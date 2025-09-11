@@ -93,7 +93,7 @@ export const cssObj = {
     transition: background-color 0.2s;
 
     &:hover {
-      background-color: ${COLORS.blue700};
+      background-color: ${COLORS.blue600};
     }
   `,
 };

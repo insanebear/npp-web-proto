@@ -1,4 +1,4 @@
-const API_BASE_URL = 'ENTER YOUR BASE URL';
+const API_BASE_URL = 'https://bm5kx387h8.execute-api.ap-northeast-2.amazonaws.com/prod';
 
 
 /**

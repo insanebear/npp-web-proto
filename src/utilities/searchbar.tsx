@@ -1,89 +1,79 @@
-import React, { useState, useRef } from 'react';
+// FILE: src/utilities/searchbar.tsx
 
-// Icons now accept a 'size' prop to be dynamically sized.
-const SearchIcon = ({ size }) => (
+import React, { useRef } from 'react';
+
+const SearchIcon = ({ size }: { size: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} fill="currentColor" viewBox="0 0 16 16">
-    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
   </svg>
 );
 
-const UploadIcon = ({ size }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} fill="currentColor" viewBox="0 0 16 16">
-        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-        <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
-    </svg>
+const UploadIcon = ({ size }: { size: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} fill="currentColor" viewBox="0 0 16 16">
+    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+    <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
+  </svg>
 );
 
+interface SelectionBarProps {
+  width?: string;
+  height?: string;
+  shape?: 'smooth-rectangle' | 'sharp-rectangle';
+  x?: string;
+  y?: string;
+  color?: string;
+  scale?: number;
+  onFileUpload?: (fileContent: string) => void;
+  pendingFile: File | null;
+  onFileSelect: (file: File) => void;
+}
 
-const SelectionBar = ({
+const SelectionBar: React.FC<SelectionBarProps> = ({
   width = '500px',
   height = '60px',
-  shape = 'smooth-rectangle', // 'sharp-rectangle' or 'smooth-rectangle'
+  shape = 'smooth-rectangle',
   x = '50%',
   y = '50%',
   color = 'bg-gray-800',
-  scale = 1, // New prop to control the scale of internal elements
+  scale = 1,
+  onFileUpload,
+  pendingFile,
+  onFileSelect,
 }) => {
-  const [selectionName, setSelectionName] = useState('No current selection');
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectionName = pendingFile ? pendingFile.name : 'No current selection';
 
   const handleSearchClick = () => {
-    fileInputRef.current.click();
+    fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (file) {
-      setSelectionName(file.name);
+      onFileSelect(file);
+    }
+  };
+
+  const handleUploadClick = () => {
+    if (pendingFile && onFileUpload) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        if (text) {
+          onFileUpload(text);
+        }
+      };
+      reader.readAsText(pendingFile);
+    } else {
+      alert('Please select a file using the "Search" button first.');
     }
   };
   
-  const handleUploadClick = () => {
-    console.log('Upload button clicked. No action configured.');
-  };
-
-  // --- SIZING CALCULATIONS BASED ON SCALE PROP ---
-  // Define base sizes for when scale is 1.
-  const baseFontSize = 14;
-  const baseIconSize = 16;
-  const baseButtonHeight = 40;
-  const baseButtonPaddingX = 16;
-  const baseGap = 8;
-  const baseContainerPadding = 8;
-
-  // Calculate the actual sizes by multiplying the base by the scale prop.
-  const fontSize = baseFontSize * scale;
-  const iconSize = baseIconSize * scale;
-  const buttonHeight = baseButtonHeight * scale;
-  const buttonPaddingX = baseButtonPaddingX * scale;
-  const gap = baseGap * scale;
-  const containerPadding = baseContainerPadding * scale;
-
-  // --- DYNAMIC STYLING ---
-  const containerStyle = {
-    position: 'absolute',
-    top: y,
-    left: x,
-    width: width,
-    height: height,
-    transform: 'translate(-50%, -50%)',
-    padding: `${containerPadding}px`,
-    gap: `${gap}px`,
-  };
-
-  const selectionTextStyle = {
-    fontSize: `${fontSize}px`,
-  };
-
-  const buttonStyle = {
-    height: `${buttonHeight}px`,
-    paddingLeft: `${buttonPaddingX}px`,
-    paddingRight: `${buttonPaddingX}px`,
-    fontSize: `${fontSize}px`,
-    // Ensure the border-radius scales nicely with the button height
-    borderRadius: `${8 * scale}px`, 
-  };
-
+  const baseFontSize = 14, baseIconSize = 16, baseButtonHeight = 40, baseButtonPaddingX = 16, baseGap = 8, baseContainerPadding = 8;
+  const fontSize = baseFontSize * scale, iconSize = baseIconSize * scale, buttonHeight = baseButtonHeight * scale, buttonPaddingX = baseButtonPaddingX * scale, gap = baseGap * scale, containerPadding = baseContainerPadding * scale;
+  const containerStyle = { position: 'absolute', top: y, left: x, width: width, height: height, transform: 'translate(-50%, -50%)', padding: `${containerPadding}px`, gap: `${gap}px` };
+  const selectionTextStyle = { fontSize: `${fontSize}px` };
+  const buttonStyle = { height: `${buttonHeight}px`, paddingLeft: `${buttonPaddingX}px`, paddingRight: `${buttonPaddingX}px`, fontSize: `${fontSize}px`, borderRadius: `${8 * scale}px` };
   const shapeClass = shape === 'smooth-rectangle' ? 'rounded-xl' : 'rounded-none';
 
   return (
@@ -98,17 +88,12 @@ const SelectionBar = ({
         onChange={handleFileChange}
         className="hidden"
       />
-
-      {/* Section 1: Selection Text */}
       <div className="flex-grow px-4">
         <p className="text-gray-300 truncate" style={selectionTextStyle} title={selectionName}>
           {selectionName}
         </p>
       </div>
-
-      {/* Section 2: Action Buttons */}
       <div className="flex items-center" style={{ gap: `${gap}px` }}>
-        {/* Search Button */}
         <button
           onClick={handleSearchClick}
           style={buttonStyle}
@@ -117,8 +102,6 @@ const SelectionBar = ({
           <SearchIcon size={iconSize} />
           <span style={{ marginLeft: `${gap}px` }}>Search</span>
         </button>
-
-        {/* Upload Button */}
         <button
           onClick={handleUploadClick}
           style={buttonStyle}

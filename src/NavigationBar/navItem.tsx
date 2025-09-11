@@ -1,20 +1,36 @@
-import React from 'react';
+// FILE: src/NavigationBar/navItem.tsx
+
+import React, { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 
-// It now takes a 'to' prop for the link destination
-const NavItem = ({
+// ADDED: Props interface
+interface NavItemProps {
+  text: string;
+  to: string;
+  position?: { x: string; y: string };
+  size?: string;
+  font?: string;
+  color?: string;
+  activeColor?: string;
+  hoverColor?: string;
+  active?: boolean;
+  onClick?: (text: string) => void; // FIXED: Made onClick optional and typed it
+}
+
+const NavItem: React.FC<NavItemProps> = ({
   text,
-  to, // ADDED: The path to navigate to
+  to,
   position = { x: '50%', y: '50%' },
   size = 'text-sm',
   font = 'mono',
-  color = "text-gray-800", 
+  color = "text-gray-800",
   activeColor = "text-red-800",
   hoverColor = "hover:text-blue-400",
   active = false,
   onClick,
 }) => {
-  const itemStyle = {
+  // FIXED: Explicitly typed the style object
+  const itemStyle: CSSProperties = {
     position: 'absolute',
     top: position.y,
     left: position.x,
@@ -27,13 +43,13 @@ const NavItem = ({
     ${active ? `${activeColor} font-bold` : `${color} ${hoverColor}`}
     no-underline
   `;
-  
+
   return (
     <Link
-      to={to} // Use the 'to' prop here
+      to={to}
       style={itemStyle}
       className={finalClasses}
-      onClick={() => onClick(text)}
+      onClick={() => onClick && onClick(text)}
     >
       {text}
     </Link>

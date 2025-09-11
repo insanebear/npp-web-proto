@@ -1,35 +1,44 @@
-import React, { useState, Children, cloneElement } from 'react';
+// FILE: src/utilities/rectangle.tsx
 
-// --- Customizable Rectangle Component ---
-// This component is now "smart". It manages the active state of its children internally.
-//
-// Props:
-// - defaultActive: The text of the NavItem that should be active by default.
-// - onNavigate: (Optional) A function that gets called with the text of the item when it's clicked.
-// - ... (all other existing props: width, height, color, etc.)
+import React, { useState, Children, cloneElement, CSSProperties } from 'react';
 
-const Rectangle = ({
+// ADDED: Props interface
+type Shape = 'smooth-rectangle' | 'sharp-rectangle' | 'pill' | 'circle';
+
+interface RectangleProps {
+  width?: string;
+  height?: string;
+  color?: string;
+  center?: { x: string; y: string; };
+  shape?: Shape;
+  children?: React.ReactNode;
+  defaultActive?: string;
+  onNavigate?: (itemName: string) => void;
+}
+
+const Rectangle: React.FC<RectangleProps> = ({
   width = '50%',
   height = '50%',
   color = 'bg-red-100',
   center = { x: '50%', y: '50%' },
   shape = 'sharp-rectangle',
   children,
-  defaultActive, 
-  onNavigate,      
+  defaultActive,
+  onNavigate,
 }) => {
-  // The state is initialized with the 'defaultActive' prop, or the text of the first child.
-  const [activeItem, setActiveItem] = useState(defaultActive || (Children.toArray(children)[0] as React.ReactElement)?.props?.text || '');
+  const firstChildText = (Children.toArray(children)[0] as React.ReactElement)?.props?.text || '';
+  const [activeItem, setActiveItem] = useState(defaultActive || firstChildText);
 
-  const handleItemClick = (itemName) => {
+  // FIXED: Added type for itemName
+  const handleItemClick = (itemName: string) => {
     setActiveItem(itemName);
-    // If the parent component needs to know about the navigation, call the callback.
     if (onNavigate) {
       onNavigate(itemName);
     }
   };
 
-  const barStyle = {
+  // FIXED: Explicitly typed style object
+  const barStyle: CSSProperties = {
     position: 'absolute',
     '--bar-width': width,
     '--bar-height': height,
@@ -40,7 +49,7 @@ const Rectangle = ({
     transform: 'translate(-50%, -50%)',
   };
 
-  const shapeClasses = {
+  const shapeClasses: { [key in Shape]: string } = {
     'smooth-rectangle': 'rounded-lg',
     'sharp-rectangle': 'rounded-none',
     'pill': 'rounded-full',
@@ -52,6 +61,7 @@ const Rectangle = ({
     <div style={barStyle} className={`${color} ${shapeClass} shadow-lg transition-all duration-300`}>
       <div className="relative w-full h-full">
         {Children.map(children, (child) => {
+          // FIXED: Used type guard before cloning
           if (React.isValidElement(child)) {
             return cloneElement(child, {
               active: child.props.text === activeItem,

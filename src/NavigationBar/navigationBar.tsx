@@ -1,7 +1,22 @@
-import React, { Children, cloneElement } from 'react';
-import { useLocation } from 'react-router-dom'; // 1. Import the useLocation hook
+// FILE: src/NavigationBar/navigationBar.tsx
 
-const NavigationBar = ({
+import React, { Children, cloneElement, CSSProperties } from 'react';
+import { useLocation } from 'react-router-dom';
+
+// ADDED: A type definition for the component's props
+type Shape = 'smooth-rectangle' | 'sharp-rectangle' | 'pill' | 'circle';
+
+interface NavigationBarProps {
+  width?: string;
+  height?: string;
+  color?: string;
+  center?: { x: string; y: string };
+  shape?: Shape;
+  children: React.ReactNode;
+  onNavigate?: (itemName: string) => void; // FIXED: Made onNavigate optional
+}
+
+const NavigationBar: React.FC<NavigationBarProps> = ({
   width = '100%',
   height = '6.4%',
   color = 'bg-gray-100',
@@ -10,12 +25,8 @@ const NavigationBar = ({
   children,
   onNavigate,
 }) => {
-  
-  // 2. Get the current location object, which contains the URL pathname
   const location = useLocation();
-
-  // 3. Determine the active item based on the current URL pathname
-  let activeItemText = "Bayesian Methods"; // Default for "/"
+  let activeItemText = "Bayesian Methods";
   if (location.pathname.startsWith('/reliability-views')) {
     activeItemText = "Reliability Views";
   } else if (location.pathname.startsWith('/statistical')) {
@@ -24,17 +35,15 @@ const NavigationBar = ({
     activeItemText = "Settings";
   }
 
-  // NOTE: We no longer need the internal useState for activeItem.
-
-  const handleItemClick = (itemName) => {
-    // The <Link> component in NavItem handles the navigation.
-    // This function can still be used for other side effects if needed.
+  // FIXED: Added type for itemName
+  const handleItemClick = (itemName: string) => {
     if (onNavigate) {
       onNavigate(itemName);
     }
   };
 
-  const barStyle = {
+  // FIXED: Explicitly typed the style object as React.CSSProperties
+  const barStyle: CSSProperties = {
     position: 'absolute',
     '--bar-width': width,
     '--bar-height': height,
@@ -45,7 +54,7 @@ const NavigationBar = ({
     transform: 'translate(-50%, -50%)',
   };
 
-  const shapeClasses = {
+  const shapeClasses: { [key in Shape]: string } = {
     'smooth-rectangle': 'rounded-lg',
     'sharp-rectangle': 'rounded-none',
     'pill': 'rounded-full',
@@ -57,9 +66,9 @@ const NavigationBar = ({
     <div style={barStyle} className={`${color} ${shapeClass} shadow-lg transition-all duration-300`}>
       <div className="relative w-full h-full">
         {Children.map(children, (child) => {
+          // FIXED: Use React.isValidElement as a type guard
           if (React.isValidElement(child)) {
             return cloneElement(child, {
-              // 4. The 'active' prop is now derived from our route-aware logic
               active: child.props.text === activeItemText,
               onClick: handleItemClick,
             });

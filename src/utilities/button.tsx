@@ -1,31 +1,44 @@
-import React, { useState, Children, cloneElement } from 'react';
+// FILE: src/utilities/button.tsx
 
-// --- Positionable Button Component ---
-// This version is modified to use absolute positioning with x and y coordinates.
-const Button = ({
+import React, { CSSProperties } from 'react';
+
+// ADDED: Props interface
+interface ButtonProps {
+  text: string;
+  active?: boolean;
+  onClick: () => void;
+  shape?: 'sharp' | 'smooth' | 'circle';
+  activeColor?: string;
+  hoverColor?: string;
+  textColor?: string;
+  activeTextColor?: string;
+  width?: string | null;
+  height?: string | null;
+  x?: string;
+  y?: string;
+  customClasses?: string;
+  disabled?: boolean; // ADDED: The missing disabled prop
+}
+
+const Button: React.FC<ButtonProps> = ({
   text,
   active = false,
   onClick,
-  shape = 'smooth', // 'sharp', 'smooth', 'circle'
+  shape = 'smooth',
   activeColor = 'bg-sky-500',
   hoverColor = 'border-sky-300',
   textColor = 'text-white',
   activeTextColor = 'text-white',
   width = null,
   height = null,
-  x = '50%', // New prop for x-coordinate
-  y = '50%', // New prop for y-coordinate
-  customClasses = ''
+  x = '50%',
+  y = '50%',
+  customClasses = '',
+  disabled = false,
 }) => {
-
-  // --- STYLE COMPUTATION ---
-
-  // Base classes for styling the button's internal content
   const baseClasses = 'font-semibold focus:outline-none transition-all duration-300 ease-in-out border-2 flex items-center justify-center text-center';
-
-  // --- Shape Classes ---
   let shapeClasses = '';
-  let paddingClasses = 'px-5 py-2'; // Default padding
+  let paddingClasses = 'px-5 py-2';
 
   switch (shape) {
     case 'sharp':
@@ -33,7 +46,7 @@ const Button = ({
       break;
     case 'circle':
       shapeClasses = 'rounded-full';
-      paddingClasses = ''; // Padding is handled by size for circles
+      paddingClasses = '';
       break;
     case 'smooth':
     default:
@@ -41,11 +54,9 @@ const Button = ({
       break;
   }
 
-  // --- State-based Classes ---
   const activeClasses = `${activeColor} ${activeTextColor} border-transparent`;
   const inactiveClasses = `bg-transparent ${textColor} hover:${hoverColor} border-transparent`;
 
-  // Combine all classes, applying default padding only if no size is specified
   const finalClassName = `
     ${baseClasses}
     ${shapeClasses}
@@ -54,22 +65,20 @@ const Button = ({
     ${customClasses}
   `.replace(/\s+/g, ' ').trim();
 
-  // --- POSITIONING STYLE ---
-  // We use the style attribute for absolute positioning and dynamic dimensions.
-  const buttonStyle = {
+  // FIXED: Explicitly typed the style object
+  const buttonStyle: CSSProperties = {
     position: 'absolute',
     top: y,
     left: x,
-    width: width,
-    height: height,
+    width: width || undefined,
+    height: height || undefined,
   };
 
-  // For a circle, ensure width and height are equal for a perfect circle.
   if (shape === 'circle') {
     if (width && !height) buttonStyle.height = width;
     if (height && !width) buttonStyle.width = height;
     if (!width && !height) {
-      buttonStyle.width = '96px'; // Default circle size
+      buttonStyle.width = '96px';
       buttonStyle.height = '96px';
     }
   }
@@ -79,9 +88,11 @@ const Button = ({
       onClick={onClick}
       className={finalClassName}
       style={buttonStyle}
+      disabled={disabled} // FIXED: Added disabled attribute
     >
       {text}
     </button>
   );
 };
+
 export default Button;

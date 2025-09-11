@@ -114,7 +114,7 @@ export const cssObj = {
   gap: 16px;
   min-width: 400px; 
   h2 {
-    font-size: ${FONT_SIZE.lg};
+    font-size: ${FONT_SIZE.base};
     font-weight: 600;
     color: ${COLORS.gray800};
     margin-bottom: 8px;
@@ -151,8 +151,8 @@ export const cssObj = {
     transition: border-color 0.2s, box-shadow 0.2s;
     &:focus {
       outline: none;
-      border-color: ${COLORS.blue500};
-      box-shadow: 0 0 0 1px ${COLORS.blue500};
+      border-color: ${COLORS.blue600};
+      box-shadow: 0 0 0 1px ${COLORS.blue600};
     }
   `,
   saveButton: css`
@@ -167,7 +167,7 @@ export const cssObj = {
     align-self: flex-start;
     transition: background-color 0.2s;
     &:hover {
-      background-color: ${COLORS.blue700};
+      background-color: ${COLORS.blue600};
     }
   `,
   output: css`

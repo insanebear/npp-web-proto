@@ -1,7 +1,7 @@
 import NavigationBar from './navigationBar'; 
 import NavItem from './navItem';
 
-const Layout = ({ children }) => {
+const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <>
       <NavigationBar>

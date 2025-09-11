@@ -1,4 +1,303 @@
-src/constants/Colors.ts
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\App.tsx
+================================================================================
+
+// FILE: src/App.tsx
+
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+
+import BayesianPage from './pages/BayesianPage/BayesianPage';
+import StatisticalPage from "./pages/StatisticalPage/StatisticalPage";
+import SettingsPage from "./pages/SettingsPage/SettingsPage";
+import ReliabilityPage from "./pages/ReliabilityPage/ReliabilityPage";
+
+import { useAppSettings } from './hooks/useAppSettings';
+import * as apiService from './services/apiService';
+
+function App() {
+  const settingsProps = useAppSettings();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // --- Central State Management ---
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<string | null>(null);
+  const [results, setResults] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [simulationInput, setSimulationInput] = useState<object | null>(null);
+  const [initialBayesianValues, setInitialBayesianValues] = useState<object | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+
+  // --- Core Functions ---
+
+  const handleStartSimulation = async (formData: object) => {
+    setError(null);
+    setResults(null);
+    setJobStatus('Submitting...');
+    setSimulationInput(formData);
+    try {
+      const newJobId = await apiService.startSimulation(formData);
+      setJobId(newJobId);
+      navigate(`/reliability-views/${newJobId}`);
+    } catch (err: any) {
+      setError(err.message);
+      setJobStatus(null);
+    }
+  };
+
+  const handleReset = () => {
+    setJobId(null);
+    setJobStatus(null);
+    setResults(null);
+    setError(null);
+    setSimulationInput(null);
+    setInitialBayesianValues(null);
+    setPendingFile(null); // Also clear any pending file on reset
+    navigate('/');
+  };
+
+  const handleFileSelect = (file: File) => {
+    setPendingFile(file);
+  };
+
+  // --- Upload Handlers for Different Pages ---
+
+  const handleReliabilityUpload = (fileContent: string) => {
+    try {
+      const data = JSON.parse(fileContent);
+      if (typeof data === 'object' && data !== null && 'output' in data) {
+        setResults(data.output);
+        setSimulationInput(data.input || null);
+        setJobId('local');
+        setJobStatus('COMPLETED');
+        setError(null);
+        navigate('/reliability-views/local');
+        setPendingFile(null); // Clear the pending file after successful upload
+      } else {
+        throw new Error("Invalid file. JSON must contain an 'output' key.");
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to parse the uploaded file.');
+    }
+  };
+
+  const handleBayesianUpload = (fileContent: string) => {
+    try {
+        const data = JSON.parse(fileContent);
+        if (typeof data === 'object' && data !== null && data.input && data.output) {
+            setResults(data.output);
+            setSimulationInput(data.input);
+            const { settings } = data.input;
+            if (settings) {
+                settingsProps.setnChains(Number(settings.nChains));
+                settingsProps.setnIter(Number(settings.nIter));
+                settingsProps.setnBurnin(Number(settings.nBurnin));
+                settingsProps.setnThin(Number(settings.nThin));
+                settingsProps.setcomputeDIC(settings.computeDIC === 'true');
+            }
+            setInitialBayesianValues(data.input);
+            setError(null);
+            alert("Inputs and settings have been loaded from the file. Results are available on the Reliability Views page.");
+            setPendingFile(null); // Clear the pending file after successful upload
+        } else {
+            throw new Error("Invalid file. JSON must contain 'input' and 'output' keys.");
+        }
+    } catch (err: any) {
+        setError(err.message || 'Failed to parse the uploaded file.');
+    }
+  };
+
+
+  // --- useEffect Hooks for State Synchronization ---
+
+  useEffect(() => {
+    if (!jobId || jobStatus === 'COMPLETED' || jobStatus === 'FAILED' || jobId === 'local') {
+      return;
+    }
+    const intervalId = setInterval(async () => {
+      try {
+        const statusData = await apiService.getJobStatus(jobId);
+        setJobStatus(statusData.jobStatus);
+        if (statusData.jobStatus === 'FAILED') {
+          setError('The simulation job failed.');
+        }
+      } catch (err) {
+        setError('Failed to get job status.');
+        setJobId(null);
+      }
+    }, 5000);
+    return () => clearInterval(intervalId);
+  }, [jobId, jobStatus]);
+
+  useEffect(() => {
+    if (jobStatus === 'COMPLETED' && jobId && jobId !== 'local') {
+      apiService.getResults(jobId)
+        .then(setResults)
+        .catch(() => setError('Failed to fetch final results.'));
+    }
+  }, [jobStatus, jobId]);
+
+  useEffect(() => {
+    const pathParts = location.pathname.split('/');
+    const urlJobId = pathParts[2];
+    if (pathParts[1] === 'reliability-views' && urlJobId && urlJobId !== 'local' && !jobId) {
+      setJobId(urlJobId);
+    }
+  }, [location.pathname, jobId]);
+
+
+  // --- Component Routing ---
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <BayesianPage
+            settings={settingsProps}
+            onStartSimulation={handleStartSimulation}
+            jobError={error}
+            isSubmitting={!!jobStatus && jobStatus === 'Submitting...'}
+            onFileUpload={handleBayesianUpload}
+            initialValues={initialBayesianValues}
+            pendingFile={pendingFile}
+            onFileSelect={handleFileSelect}
+          />
+        }
+      />
+      <Route path="/statistical" element={<StatisticalPage />} />
+      <Route path="/settings" element={<SettingsPage {...settingsProps}/>} />
+      <Route
+        path="/reliability-views/:jobId?"
+        element={
+          <ReliabilityPage
+            jobId={jobId}
+            jobStatus={jobStatus}
+            results={results}
+            error={error}
+            onReset={handleReset}
+            simulationInput={simulationInput}
+            onFileUpload={handleReliabilityUpload}
+            pendingFile={pendingFile}
+            onFileSelect={handleFileSelect}
+          />
+        }
+      />
+    </Routes>
+  );
+}
+
+export default App;
+
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\index.css
+================================================================================
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: hsl(0, 0%, 0%);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\main.tsx
+================================================================================
+
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App.tsx'
+
+import './index.css'
+import Layout from './NavigationBar/layout.tsx' 
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <BrowserRouter>
+      <Layout>
+        <App />
+      </Layout>
+    </BrowserRouter>
+  </StrictMode>,
+)
+
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\vite-env.d.ts
+================================================================================
+
+/// <reference types="vite/client" />
+
+
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\constants\COLORS.ts
+================================================================================
 
 export const COLORS = {
   white: "#FFF",
@@ -18,7 +317,9 @@ export const COLORS = {
   green600: "#059669",
 };
 
-src/constants/FONT_SIZE.ts
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\constants\FONT_SIZE.ts
+================================================================================
 
 export const FONT_SIZE = {
   xs: "12px",
@@ -28,7 +329,9 @@ export const FONT_SIZE = {
 };
 
 
-src/constants/tabs.tsx
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\constants\tabs.tsx
+================================================================================
 
 // src/constants/TABS.ts
 
@@ -582,90 +885,118 @@ export const TABS = [
 ] as const;
 
 
-src/hooks/app-settings.ts
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\hooks\useAppSettings.ts
+================================================================================
 
-// src/hooks/useAppSettings.ts
+// FILE: src/hooks/useAppSettings.ts
 
-import { useState } from 'react';
+import { useState, Dispatch, SetStateAction } from 'react';
 
-// 1. Create and export the custom hook function.
-export const AppSettings = (): AppSettings => {
-  // 2. Move all your useState calls inside this function.
+// FIXED: Changed from 'interface' to 'type' for better module compatibility
+export type AppSettings = {
+  nChains: number;
+  nIter: number;
+  nBurnin: number;
+  nThin: number;
+  computeDIC: boolean;
+  workingDir: string;
+  setnChains: Dispatch<SetStateAction<number>>;
+  setnIter: Dispatch<SetStateAction<number>>;
+  setnBurnin: Dispatch<SetStateAction<number>>;
+  setnThin: Dispatch<SetStateAction<number>>;
+  setcomputeDIC: Dispatch<SetStateAction<boolean>>;
+  setworkingDir: Dispatch<SetStateAction<string>>;
+};
+
+export const useAppSettings = (): AppSettings => {
   const [nChains, setnChains] = useState(4);
   const [nIter, setnIter] = useState(10000);
   const [nBurnin, setnBurnin] = useState(2000);
-  const [nThin, setnThin] =  useState(1);
+  const [nThin, setnThin] = useState(1);
   const [computeDIC, setcomputeDIC] = useState(true);
   const [workingDir, setworkingDir] = useState('/app/results');
 
-  // 3. Return all the values and setters in a single object.
   return {
     nChains, nIter, nBurnin, computeDIC, nThin, workingDir,
     setnChains, setnIter, setnBurnin, setcomputeDIC, setnThin, setworkingDir
   };
 };
 
-src/NavigationBar/layout.tsx
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\NavigationBar\layout.tsx
+================================================================================
 
 import NavigationBar from './navigationBar'; 
 import NavItem from './navItem';
 
-const Layout = ({ children }) => {
+const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <>
-        <NavigationBar>
-
-          <NavItem text="Bayesian Methods" position={{ x: '10%', y: '50%' }} />
-       
-          <NavItem text = "Statistical Methods" position={{ x: '24%', y: '50%' }} />
-
-          <NavItem text = "Reliabiliity Views" position={{ x: '39.5%', y: '50%' }} />
-
-          <NavItem text = "Settings" position={{ x: '95%', y: '50%' }} />
-
-        </NavigationBar>
-
-        {children}
+      <NavigationBar>
+        {/* Add the 'to' prop to each NavItem */}
+        <NavItem text="Bayesian Methods" to="/" position={{ x: '10%', y: '50%' }} />
+        <NavItem text="Statistical Methods" to="/statistical" position={{ x: '24%', y: '50%' }} />
+        <NavItem text="Reliability Views" to="/reliability-views" position={{ x: '39.5%', y: '50%' }} />
+        <NavItem text="Settings" to="/settings" position={{ x: '95%', y: '50%' }} />
+      </NavigationBar>
+      {children}
     </>
   );
 };
 
 export default Layout;
 
-src/NavigationBar/navigationBar.tsx
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\NavigationBar\navigationBar.tsx
+================================================================================
 
-import React, { useState, Children, cloneElement } from 'react';
+// FILE: src/NavigationBar/navigationBar.tsx
 
-// --- Customizable Navigation Bar Component ---
-// This component is now "smart". It manages the active state of its children internally.
-//
-// Props:
-// - defaultActive: The text of the NavItem that should be active by default.
-// - onNavigate: (Optional) A function that gets called with the text of the item when it's clicked.
-// - ... (all other existing props: width, height, color, etc.)
+import React, { Children, cloneElement, CSSProperties } from 'react';
+import { useLocation } from 'react-router-dom';
 
-const NavigationBar = ({
+// ADDED: A type definition for the component's props
+type Shape = 'smooth-rectangle' | 'sharp-rectangle' | 'pill' | 'circle';
+
+interface NavigationBarProps {
+  width?: string;
+  height?: string;
+  color?: string;
+  center?: { x: string; y: string };
+  shape?: Shape;
+  children: React.ReactNode;
+  onNavigate?: (itemName: string) => void; // FIXED: Made onNavigate optional
+}
+
+const NavigationBar: React.FC<NavigationBarProps> = ({
   width = '100%',
   height = '6.4%',
   color = 'bg-gray-100',
   center = { x: '50%', y: '0%' },
   shape = 'sharp-rectangle',
   children,
-  defaultActive, 
-  onNavigate,      
+  onNavigate,
 }) => {
-  // The state is initialized with the 'defaultActive' prop, or the text of the first child.
-  const [activeItem, setActiveItem] = useState(defaultActive || (Children.toArray(children)[0] as React.ReactElement)?.props?.text || '');
+  const location = useLocation();
+  let activeItemText = "Bayesian Methods";
+  if (location.pathname.startsWith('/reliability-views')) {
+    activeItemText = "Reliability Views";
+  } else if (location.pathname.startsWith('/statistical')) {
+    activeItemText = "Statistical Methods";
+  } else if (location.pathname.startsWith('/settings')) {
+    activeItemText = "Settings";
+  }
 
-  const handleItemClick = (itemName) => {
-    setActiveItem(itemName);
-    // If the parent component needs to know about the navigation, call the callback.
+  // FIXED: Added type for itemName
+  const handleItemClick = (itemName: string) => {
     if (onNavigate) {
       onNavigate(itemName);
     }
   };
 
-  const barStyle = {
+  // FIXED: Explicitly typed the style object as React.CSSProperties
+  const barStyle: CSSProperties = {
     position: 'absolute',
     '--bar-width': width,
     '--bar-height': height,
@@ -676,7 +1007,7 @@ const NavigationBar = ({
     transform: 'translate(-50%, -50%)',
   };
 
-  const shapeClasses = {
+  const shapeClasses: { [key in Shape]: string } = {
     'smooth-rectangle': 'rounded-lg',
     'sharp-rectangle': 'rounded-none',
     'pill': 'rounded-full',
@@ -688,9 +1019,10 @@ const NavigationBar = ({
     <div style={barStyle} className={`${color} ${shapeClass} shadow-lg transition-all duration-300`}>
       <div className="relative w-full h-full">
         {Children.map(children, (child) => {
+          // FIXED: Use React.isValidElement as a type guard
           if (React.isValidElement(child)) {
             return cloneElement(child, {
-              active: child.props.text === activeItem,
+              active: child.props.text === activeItemText,
               onClick: handleItemClick,
             });
           }
@@ -703,70 +1035,62 @@ const NavigationBar = ({
 
 export default NavigationBar;
 
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\NavigationBar\navItem.tsx
+================================================================================
 
-src/NavigationBar/navItem.tsx
+// FILE: src/NavigationBar/navItem.tsx
 
-import React from 'react';
+import React, { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 
-// --- Customizable Navigation Item Component ---
-// This component renders a single, clickable text item for the navigation bar.
-//
-// Props:
-// - text: The string to display and use as an identifier.
-// - position: An object { x, y } for the item's center coordinates relative to the bar.
-// - size: The font size (e.g., 'text-sm', 'text-lg').
-// - font: The font family. Options: 'sans', 'serif', 'mono'.
-// - active: A boolean to indicate if this is the currently active item.
-// - onClick: A function that passes the item's text back to the parent to set the active state.
+// ADDED: Props interface
+interface NavItemProps {
+  text: string;
+  to: string;
+  position?: { x: string; y: string };
+  size?: string;
+  font?: string;
+  color?: string;
+  activeColor?: string;
+  hoverColor?: string;
+  active?: boolean;
+  onClick?: (text: string) => void; // FIXED: Made onClick optional and typed it
+}
 
-const NavItem = ({
+const NavItem: React.FC<NavItemProps> = ({
   text,
+  to,
   position = { x: '50%', y: '50%' },
   size = 'text-sm',
   font = 'mono',
-  color = "text-gray-800", 
+  color = "text-gray-800",
   activeColor = "text-red-800",
   hoverColor = "hover:text-blue-400",
   active = false,
   onClick,
 }) => {
-  // --- Style for Positioning ---
-  const itemStyle = {
+  // FIXED: Explicitly typed the style object
+  const itemStyle: CSSProperties = {
     position: 'absolute',
     top: position.y,
     left: position.x,
     transform: 'translate(-50%, -50%)',
   };
 
-  // --- Font and Active State Styling ---
-  const fontClasses = {
-    sans: 'font-sans',   // A clean, modern sans-serif font.
-    serif: 'font-serif', // A more traditional serif font.
-    mono: 'font-mono',   // A monospaced, techy-style font.
-  };
-
-  // Determine the final classes based on props.
-  // We add bg-transparent, border-none, and focus:outline-none to reset button styles.
   const finalClasses = `
-    cursor-pointer
-    transition-colors duration-300
-    bg-transparent
-    border-none
-    p-2 
-    focus:outline-none
-    ${fontClasses[font] || fontClasses.sans}
-    ${size}
+    cursor-pointer transition-colors duration-300 bg-transparent border-none
+    p-2 focus:outline-none font-${font} ${size}
     ${active ? `${activeColor} font-bold` : `${color} ${hoverColor}`}
+    no-underline
   `;
 
-  const urlPath = text === 'Bayesian Methods' ? '' : text.split(' ')[0].toLowerCase();
   return (
     <Link
-      to={urlPath}
+      to={to}
       style={itemStyle}
       className={finalClasses}
-      onClick={() => onClick(text)} // The onClick still works here to set parent state.
+      onClick={() => onClick && onClick(text)}
     >
       {text}
     </Link>
@@ -775,426 +1099,9 @@ const NavItem = ({
 
 export default NavItem;
 
-
-src/utilities/button.tsx
-
-import React, { useState, Children, cloneElement } from 'react';
-
-// --- Positionable Button Component ---
-// This version is modified to use absolute positioning with x and y coordinates.
-const Button = ({
-  text,
-  active = false,
-  onClick,
-  shape = 'smooth', // 'sharp', 'smooth', 'circle'
-  activeColor = 'bg-sky-500',
-  hoverColor = 'border-sky-300',
-  textColor = 'text-white',
-  activeTextColor = 'text-white',
-  width = null,
-  height = null,
-  x = '50%', // New prop for x-coordinate
-  y = '50%', // New prop for y-coordinate
-  customClasses = ''
-}) => {
-
-  // --- STYLE COMPUTATION ---
-
-  // Base classes for styling the button's internal content
-  const baseClasses = 'font-semibold focus:outline-none transition-all duration-300 ease-in-out border-2 flex items-center justify-center text-center';
-
-  // --- Shape Classes ---
-  let shapeClasses = '';
-  let paddingClasses = 'px-5 py-2'; // Default padding
-
-  switch (shape) {
-    case 'sharp':
-      shapeClasses = 'rounded-none';
-      break;
-    case 'circle':
-      shapeClasses = 'rounded-full';
-      paddingClasses = ''; // Padding is handled by size for circles
-      break;
-    case 'smooth':
-    default:
-      shapeClasses = 'rounded-lg';
-      break;
-  }
-
-  // --- State-based Classes ---
-  const activeClasses = `${activeColor} ${activeTextColor} border-transparent`;
-  const inactiveClasses = `bg-transparent ${textColor} hover:${hoverColor} border-transparent`;
-
-  // Combine all classes, applying default padding only if no size is specified
-  const finalClassName = `
-    ${baseClasses}
-    ${shapeClasses}
-    ${!width && !height ? paddingClasses : ''}
-    ${active ? activeClasses : inactiveClasses}
-    ${customClasses}
-  `.replace(/\s+/g, ' ').trim();
-
-  // --- POSITIONING STYLE ---
-  // We use the style attribute for absolute positioning and dynamic dimensions.
-  const buttonStyle = {
-    position: 'absolute',
-    top: y,
-    left: x,
-    width: width,
-    height: height,
-  };
-
-  // For a circle, ensure width and height are equal for a perfect circle.
-  if (shape === 'circle') {
-    if (width && !height) buttonStyle.height = width;
-    if (height && !width) buttonStyle.width = height;
-    if (!width && !height) {
-      buttonStyle.width = '96px'; // Default circle size
-      buttonStyle.height = '96px';
-    }
-  }
-
-  return (
-    <button
-      onClick={onClick}
-      className={finalClassName}
-      style={buttonStyle}
-    >
-      {text}
-    </button>
-  );
-};
-export default Button;
-
-src/utilities/dropdown.tsx
-
-import React, { useState, useEffect, useRef } from 'react';
-import Button from './button'; // Assuming your Button component is in the same folder
-
-const DropDown = ({
-  options,
-  selectedOption,
-  onSelect,
-  x,
-  y,
-  width,
-  height,
-  textColor = 'text-white',
-
-  label, // The text for the label above the dropdown
-  label_color = 'text-gray-700', // Default label color
-  alignment = 'center', // Default alignment: 'left', 'right', or 'center'
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  // --- HELPER VARIABLES FOR ALIGNMENT ---
-  // Translate alignment prop to Tailwind CSS classes
-  const textAlignClass = {
-    left: 'text-left',
-    right: 'text-right',
-    center: 'text-center',
-  }[alignment];
-
-  const justifyContentClass = {
-    left: 'justify-start',
-    right: 'justify-end',
-    center: 'justify-center',
-  }[alignment];
-
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [dropdownRef]);
-
-  const handleSelect = (option) => {
-    onSelect(option);
-    setIsOpen(false);
-  };
-
-  // The container now holds both the label and the dropdown itself
-  const containerStyle = {
-    position: 'absolute',
-    top: y,
-    left: x,
-    width: width,
-    transform: 'translate(-50%, -50%)',
-    // Use flexbox to stack the label and dropdown vertically
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem', // Adds a small space between the label and the button
-  };
-
-  return (
-    <div style={containerStyle} ref={dropdownRef}>
-      {/* --- LABEL IMPLEMENTATION --- */}
-      {/* The label is only rendered if the 'label' prop is provided */}
-      {label && (
-        <label className={`block text-sm font-medium ${label_color} ${textAlignClass}`}>
-          {label}
-        </label>
-      )}
-
-      {/* The relative container for the button and dropdown list */}
-      <div className="relative" style={{ width: '100%', height: height }}>
-        <Button
-          text={selectedOption}
-          onClick={() => setIsOpen(prev => !prev)}
-          x="0"
-          y="0"
-          width="100%"
-          height="100%"
-          // --- ALIGNMENT FOR BUTTON ---
-          // Replaced 'justify-between' with our dynamic alignment class
-          customClasses={`px-4 ${justifyContentClass}`}
-          active={isOpen}
-          textColor={textColor}
-        />
-
-        {isOpen && (
-          <div className="absolute top-full mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-xl z-10">
-            {options.map(option => (
-              <div
-                key={option}
-                onClick={() => handleSelect(option)}
-                // Use flexbox to vertically center the text
-                style={{ height: height, display: 'flex', alignItems: 'center' }}
-                // --- ALIGNMENT FOR LIST ITEMS ---
-                // Added our dynamic text alignment class here as well
-                className={`px-4 text-gray-700 hover:bg-sky-100 cursor-pointer transition-colors duration-150 ${textAlignClass}`}
-              >
-                {option}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default DropDown;
-
-utilities/rectangle.tsx
-
-import React, { useState, Children, cloneElement } from 'react';
-
-// --- Customizable Rectangle Component ---
-// This component is now "smart". It manages the active state of its children internally.
-//
-// Props:
-// - defaultActive: The text of the NavItem that should be active by default.
-// - onNavigate: (Optional) A function that gets called with the text of the item when it's clicked.
-// - ... (all other existing props: width, height, color, etc.)
-
-const Rectangle = ({
-  width = '50%',
-  height = '50%',
-  color = 'bg-red-100',
-  center = { x: '50%', y: '50%' },
-  shape = 'sharp-rectangle',
-  children,
-  defaultActive, 
-  onNavigate,      
-}) => {
-  // The state is initialized with the 'defaultActive' prop, or the text of the first child.
-  const [activeItem, setActiveItem] = useState(defaultActive || (Children.toArray(children)[0] as React.ReactElement)?.props?.text || '');
-
-  const handleItemClick = (itemName) => {
-    setActiveItem(itemName);
-    // If the parent component needs to know about the navigation, call the callback.
-    if (onNavigate) {
-      onNavigate(itemName);
-    }
-  };
-
-  const barStyle = {
-    position: 'absolute',
-    '--bar-width': width,
-    '--bar-height': height,
-    width: 'var(--bar-width)',
-    height: 'var(--bar-height)',
-    top: `clamp(calc(var(--bar-height) / 2), ${center.y}, calc(100% - var(--bar-height) / 2))`,
-    left: `clamp(calc(var(--bar-width) / 2), ${center.x}, calc(100% - var(--bar-width) / 2))`,
-    transform: 'translate(-50%, -50%)',
-  };
-
-  const shapeClasses = {
-    'smooth-rectangle': 'rounded-lg',
-    'sharp-rectangle': 'rounded-none',
-    'pill': 'rounded-full',
-    'circle': 'rounded-full',
-  };
-  const shapeClass = shapeClasses[shape] || shapeClasses['smooth-rectangle'];
-
-  return (
-    <div style={barStyle} className={`${color} ${shapeClass} shadow-lg transition-all duration-300`}>
-      <div className="relative w-full h-full">
-        {Children.map(children, (child) => {
-          if (React.isValidElement(child)) {
-            return cloneElement(child, {
-              active: child.props.text === activeItem,
-              onClick: handleItemClick,
-            });
-          }
-          return child;
-        })}
-      </div>
-    </div>
-  );
-};
-
-export default Rectangle;
-
-
-src/utilities/searchbar.tsx
-
-import React, { useState, useRef } from 'react';
-
-// Icons now accept a 'size' prop to be dynamically sized.
-const SearchIcon = ({ size }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} fill="currentColor" viewBox="0 0 16 16">
-    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-  </svg>
-);
-
-const UploadIcon = ({ size }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} fill="currentColor" viewBox="0 0 16 16">
-        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-        <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
-    </svg>
-);
-
-
-const SelectionBar = ({
-  width = '500px',
-  height = '60px',
-  shape = 'smooth-rectangle', // 'sharp-rectangle' or 'smooth-rectangle'
-  x = '50%',
-  y = '50%',
-  color = 'bg-gray-800',
-  scale = 1, // New prop to control the scale of internal elements
-}) => {
-  const [selectionName, setSelectionName] = useState('No current selection');
-  const fileInputRef = useRef(null);
-
-  const handleSearchClick = () => {
-    fileInputRef.current.click();
-  };
-
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectionName(file.name);
-    }
-  };
-  
-  const handleUploadClick = () => {
-    console.log('Upload button clicked. No action configured.');
-  };
-
-  // --- SIZING CALCULATIONS BASED ON SCALE PROP ---
-  // Define base sizes for when scale is 1.
-  const baseFontSize = 14;
-  const baseIconSize = 16;
-  const baseButtonHeight = 40;
-  const baseButtonPaddingX = 16;
-  const baseGap = 8;
-  const baseContainerPadding = 8;
-
-  // Calculate the actual sizes by multiplying the base by the scale prop.
-  const fontSize = baseFontSize * scale;
-  const iconSize = baseIconSize * scale;
-  const buttonHeight = baseButtonHeight * scale;
-  const buttonPaddingX = baseButtonPaddingX * scale;
-  const gap = baseGap * scale;
-  const containerPadding = baseContainerPadding * scale;
-
-  // --- DYNAMIC STYLING ---
-  const containerStyle = {
-    position: 'absolute',
-    top: y,
-    left: x,
-    width: width,
-    height: height,
-    transform: 'translate(-50%, -50%)',
-    padding: `${containerPadding}px`,
-    gap: `${gap}px`,
-  };
-
-  const selectionTextStyle = {
-    fontSize: `${fontSize}px`,
-  };
-
-  const buttonStyle = {
-    height: `${buttonHeight}px`,
-    paddingLeft: `${buttonPaddingX}px`,
-    paddingRight: `${buttonPaddingX}px`,
-    fontSize: `${fontSize}px`,
-    // Ensure the border-radius scales nicely with the button height
-    borderRadius: `${8 * scale}px`, 
-  };
-
-  const shapeClass = shape === 'smooth-rectangle' ? 'rounded-xl' : 'rounded-none';
-
-  return (
-    <div
-      style={containerStyle}
-      className={`flex items-center ${color} ${shapeClass} shadow-2xl border border-white/10`}
-    >
-      <input
-        type="file"
-        accept=".json"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        className="hidden"
-      />
-
-      {/* Section 1: Selection Text */}
-      <div className="flex-grow px-4">
-        <p className="text-gray-300 truncate" style={selectionTextStyle} title={selectionName}>
-          {selectionName}
-        </p>
-      </div>
-
-      {/* Section 2: Action Buttons */}
-      <div className="flex items-center" style={{ gap: `${gap}px` }}>
-        {/* Search Button */}
-        <button
-          onClick={handleSearchClick}
-          style={buttonStyle}
-          className="flex items-center justify-center bg-gray-700/50 hover:bg-gray-600/80 text-white font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
-        >
-          <SearchIcon size={iconSize} />
-          <span style={{ marginLeft: `${gap}px` }}>Search</span>
-        </button>
-
-        {/* Upload Button */}
-        <button
-          onClick={handleUploadClick}
-          style={buttonStyle}
-          className="flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
-        >
-          <UploadIcon size={iconSize} />
-          <span style={{ marginLeft: `${gap}px` }}>Upload</span>
-        </button>
-      </div>
-    </div>
-  );
-};
-
-export default SelectionBar;
-
-
-src/pages/BayesianPage/background.tsx
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\BayesianPage\background.tsx
+================================================================================
 
 import Rectangle from "../../utilities/rectangle";
 
@@ -1220,37 +1127,48 @@ const Background = () => {
 }
 export default Background;
 
-src/pages/BayesianPage/BayesianPage.tsx
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\BayesianPage\BayesianPage.tsx
+================================================================================
 
-import React, { useState } from 'react';
-import Background from './background'
-import Menu from './menu'
+// FILE: src/pages/BayesianPage/BayesianPage.tsx
+
+import React, { useState, useEffect } from 'react';
+import Background from './background';
+import Menu from './menu';
 import { TABS } from '../../constants/tabs';
 import SelectionBar from '../../utilities/searchbar';
-import SubmitButton from './bayesian_submit_button/submitButton'
-import { AppSettings } from '../../hooks/app-settings';
+import SubmitButton from './bayesian_submit_button/submitButton';
 
-const initializeState = () => {
-  const initialState = {};
+const initializeState = (initialData?: any) => {
+  const initialState: { [key: string]: string } = {};
   TABS.forEach(tab => {
     tab.children.forEach(child => {
       const key = `${tab.label}/${child.label}`;
-      initialState[key] = child.values[0];
+      const uploadedValue = initialData?.[tab.label]?.[child.label];
+      initialState[key] = uploadedValue || child.values[1];
     });
   });
   return initialState;
 };
 
-function BayesianPage({settings}) {
-
+function BayesianPage({ settings, onStartSimulation, isSubmitting, jobError, onFileUpload, initialValues, pendingFile, onFileSelect }: any) {
   const [activeLabel, setActiveLabel] = useState('Requirement Dev');
-  const [dropdownValues, setDropdownValues] = useState(initializeState());
+  const [dropdownValues, setDropdownValues] = useState(() => initializeState(initialValues));
 
-  const handleSelectionChange = (key, value) => {
-    setDropdownValues(prevDropdownValues => ({
-      ...prevDropdownValues,
-      [key]: value,
-    }));
+  useEffect(() => {
+    if (initialValues) {
+      setDropdownValues(initializeState(initialValues));
+    }
+  }, [initialValues]);
+
+  const handleSelectionChange = (key: string, value: string) => {
+    setDropdownValues(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSubmit = () => {
+    const payload = formatPayload(dropdownValues, settings);
+    onStartSimulation(payload);
   };
 
   const activeLabelAndDropdowns = TABS.find(tab => tab.label === activeLabel);
@@ -1258,17 +1176,17 @@ function BayesianPage({settings}) {
   return (
     <>
       <Background />
-
+      {jobError && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 p-4 bg-red-100 text-red-800 rounded-md">
+          Error: {jobError}
+        </div>
+      )}
       <SelectionBar
-        width="25%"
-        height="6.4%"
-        shape="sharp-rectangle"
-        x="12.5%"
-        y="9.6%"
-        color="bg-gray-800"
-        scale={0.7} 
+        width="25%" height="6.4%" shape="sharp-rectangle" x="12.5%" y="9.6%" color="bg-gray-800" scale={0.7}
+        onFileUpload={onFileUpload}
+        pendingFile={pendingFile}
+        onFileSelect={onFileSelect}
       />
-
       <Menu
         activeLabel={activeLabel}
         setActiveLabel={setActiveLabel}
@@ -1276,53 +1194,62 @@ function BayesianPage({settings}) {
         handleSelectionChange={handleSelectionChange}
         activeLabelAndDropdowns={activeLabelAndDropdowns}
       />
-
       <SubmitButton
-        dropdownValues={dropdownValues}
-        settings = {settings}
-        x="87%"
-        y="90%"
-        width="8%"
-        height="5%"
-        shape="smooth"
-        before_hover_color="bg-red-700"
-        hover_color="hover:bg-blue-600"
-        click_color="active:bg-green-500"
+        onClick={handleSubmit}
+        isSubmitting={isSubmitting}
+        x="87%" y="90%" width="8%" height="5%"
       />
-
-    
     </>
   );
 }
 
+const formatPayload = (values: { [key: string]: string }, settings: any) => {
+  const payload: { [key: string]: any } = {};
+  for (const key in values) {
+    const [tabLabel, childLabel] = key.split('/');
+    if (!payload[tabLabel]) {
+      payload[tabLabel] = {};
+    }
+    payload[tabLabel][childLabel] = values[key];
+  }
+  payload['FP'] = { 'FP Input': '120' }; // This is still hardcoded
+  payload['settings'] = {
+    nChains: String(settings.nChains),
+    nIter: String(settings.nIter),
+    nBurnin: String(settings.nBurnin),
+    nThin: String(settings.nThin),
+    computeDIC: String(settings.computeDIC),
+    workingDir: settings.workingDir,
+  };
+  return payload;
+};
+
 export default BayesianPage;
 
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\BayesianPage\menu.tsx
+================================================================================
 
-src/pages/BayesianPage/menu.tsx
+// FILE: src/pages/BayesianPage/menu.tsx
 
 import React from 'react';
 import Button from "../../utilities/button";
 import DropDown from "../../utilities/dropdown";
-import { TABS } from "../../constants/tabs"; 
+import { TABS } from "../../constants/tabs";
 
-// The component now accepts all the data and functions it needs as props.
 const Menu = ({
   activeLabel,
   setActiveLabel,
   dropdownValues,
   handleSelectionChange,
   activeLabelAndDropdowns
-}) => {
+}: any) => {
   const labels = TABS.map(tab => tab.label);
   const labelSeparation = 5;
-  const dropdownXSeparation = 17;
-  const dropdownYSeparation = 25;
-
-  // All useState hooks and handler functions have been removed.
-  // It now relies entirely on the props passed from BayesianPage.
 
   return (
     <>
+      {/* --- Left-side Tab Buttons (No Change) --- */}
       {labels.map((label, index) => (
         <Button
           key={label}
@@ -1337,169 +1264,87 @@ const Menu = ({
         />
       ))}
 
-      {activeLabelAndDropdowns?.children.map(child => {
-        const uniqueKey = `${activeLabelAndDropdowns.label}/${child.label}`;
-        return (
-          <DropDown
-            key={uniqueKey}
-            label={child.label}
-            label_color="text-gray-800"
-            options={child.values}
-            selectedOption={dropdownValues[uniqueKey] || child.values[0]}
-            onSelect={(value) => handleSelectionChange(uniqueKey, value)}
-            x={`${40 + (activeLabelAndDropdowns.children.indexOf(child) % 4) * dropdownXSeparation}%`}
-            y={`${25 + Math.floor(activeLabelAndDropdowns.children.indexOf(child) / 4) * dropdownYSeparation}%`}
-            width="15%"
-            height="15%"
-            textColor="text-gray-800"
-          />
-        );
-      })}
+      {/* ADDED: A scrollable container for the dropdowns. */}
+      {/* This div is positioned to perfectly overlap the gray background area. */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '12.8%', // Positioned below the nav and search bars
+          left: '25%',   // Starts after the left column
+          width: '75%',
+          height: '87.2%', // Fills the remaining vertical space
+          overflowY: 'auto', // Adds a scrollbar ONLY when needed
+          padding: '2rem', // Adds some space around the content
+        }}
+      >
+        {/* UPDATED: Dropdowns are now placed in a CSS Grid */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)', // Arrange in 4 equal columns
+            gap: '3rem 1.5rem', // Defines vertical and horizontal spacing
+          }}
+        >
+          {activeLabelAndDropdowns?.children.map((child: any) => {
+            const uniqueKey = `${activeLabelAndDropdowns.label}/${child.label}`;
+            return (
+              // Each dropdown is now a grid item. The wrapper div is necessary
+              // for the DropDown's absolute positioning to work within the grid cell.
+              <div key={uniqueKey} style={{ position: 'relative', minHeight: '100px' }}>
+                <DropDown
+                  label={child.label}
+                  label_color="text-gray-800"
+                  options={child.values}
+                  selectedOption={dropdownValues[uniqueKey] || child.values[0]}
+                  onSelect={(value) => handleSelectionChange(uniqueKey, value)}
+                  // These props now center the dropdown within its grid cell
+                  x="50%"
+                  y="50%"
+                  width="90%" // Use slightly less than 100% width for nice spacing
+                  height="100%"
+                  textColor="text-gray-800"
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </>
   );
 }
 
 export default Menu;
 
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\BayesianPage\bayesian_submit_button\submitButton.tsx
+================================================================================
 
-src/pages/BayesianPage/bayesian_submit_button/submitButton.logic.ts
-
-import type { Dispatch, SetStateAction } from 'react';
-
-// This defines the structure of the dropdown data object
-export interface DropdownValues {
-  [key: string]: string;
-}
-
-export type SubmissionState = 'idle' | 'submitting' | 'success' | 'error';
-
-type SetState<T> = Dispatch<SetStateAction<T>>;
-
-// This is the function that formats your data into the correct JSON structure for the API
-const formatPayload = (values: DropdownValues, settings ) => {
-  const payload: { [key: string]: any } = {};
-
-  for (const key in values) {
-    const [tabLabel, childLabel] = key.split('/');
-    if (!payload[tabLabel]) {
-      payload[tabLabel] = {};
-    }
-    payload[tabLabel][childLabel] = values[key];
-  }
-
-  console.log('INPUTTED settings:', settings);
-  payload['FP'] = { 'FP Input': '120' };
-  payload['settings'] = {
-    nChains: String(settings.nChains),
-    nIter: String(settings.nIter),
-    nBurnin: String(settings.nBurnin),
-    nThin: String(settings.nThin),
-    computeDIC: String(settings.computeDIC),
-    workingDir: settings.workingDir,
-  };
-  return payload;
-};
-
-export const handleSubmitLogic = async (
-  dropdownValues: DropdownValues,
-  settings,
-  setIsLoading: SetState<boolean>,
-  setStatusMessage: SetState<string>,
-  setSubmissionState: SetState<SubmissionState>
-) => {
-  setIsLoading(true);
-  setStatusMessage('Submitting...');
-  setSubmissionState('submitting');
-
-  const API_URL = "https://a2gxqrwnzi.execute-api.ap-northeast-2.amazonaws.com/dev/start-simulation";
-  const payload = formatPayload(dropdownValues, settings);
-  const requestBody = { data: JSON.stringify(payload) };
-
-  try {
-    // These are the required options for sending JSON data in a POST request
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.message || `API Error: ${response.status}`);
-    
-    setStatusMessage('Success!');
-    setSubmissionState('success');
-
-  } catch (error) {
-    console.error('Submission failed:', error);
-    setStatusMessage('Error!');
-    setSubmissionState('error');
-
-  } finally {
-    setTimeout(() => {
-      setStatusMessage('Submit');
-      setIsLoading(false);
-      setSubmissionState('idle');
-    }, 5000);
-  }
-};
-
-src/pages/BayesianPage/bayesian_submit_button/submitButton.tsx
-
-import React, { useState } from 'react';
+import React from 'react';
 import Button from '../../../utilities/button';
-import { handleSubmitLogic } from './submitButton.logic';
-import type { DropdownValues, SubmissionState } from './submitButton.logic';
 
 interface SubmitButtonProps {
-  dropdownValues: DropdownValues;
+  onClick: () => void;
+  isSubmitting: boolean;
   x?: string;
   y?: string;
   width?: string;
   height?: string;
-  shape?: 'smooth' | 'sharp' | 'circle';
-  before_hover_color?: string;
-  hover_color?: string;
-  click_color?: string;
-  settings?: any;
 }
 
 const SubmitButton: React.FC<SubmitButtonProps> = ({
-  dropdownValues,
-  before_hover_color = 'bg-red-500',
-  hover_color = 'hover:bg-blue-500',
-  click_color = 'active:bg-green-500',
-  settings,
+  onClick,
+  isSubmitting,
   ...buttonProps
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('Submit');
-  const [submissionState, setSubmissionState] = useState<SubmissionState>('idle');
-
-  const handleClick = () => {
-    handleSubmitLogic(dropdownValues, settings, setIsLoading, setStatusMessage, setSubmissionState);
-  };
-  
-  // Combine the hover and click styles into one string.
-  const interactionClasses = `${hover_color} ${click_color} text-white`;
-
   return (
     <Button
-      text={statusMessage}
-      onClick={handleClick}
-      
-      // --- THE WORKAROUND IS HERE ---
-      // 1. We force the button into its "active" state. This makes it use
-      //    `activeColor` for its background, avoiding the `bg-transparent` issue.
+      text={isSubmitting ? 'Submitting...' : 'Submit'}
+      onClick={onClick}
+      disabled={isSubmitting} // Disable button while submitting
       active={true}
-      
-      // 2. We pass our desired default color (red) into the `activeColor` prop.
-      activeColor={before_hover_color}
-      
-      // 3. We pass our hover (blue) and click (green) styles as custom classes.
-      customClasses={interactionClasses}
-      
+      activeColor={isSubmitting ? 'bg-gray-500' : 'bg-red-700'}
+      customClasses="hover:bg-blue-600 active:bg-green-500 text-white"
+      shape="smooth"
       {...buttonProps}
     />
   );
@@ -1507,128 +1352,287 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
 
 export default SubmitButton;
 
-src/pages/SettingsPage/SettingsPage.tsx
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\ReliabilityPage\ReliabilityPage.tsx
+================================================================================
 
-/** @jsxImportSource @emotion/react */
+// FILE: src/pages/ReliabilityPage/ReliabilityPage.tsx
 
-import { cssObj } from "./style";
-import { useState } from "react";
-import React from "react";
+import React from 'react';
+import Background from "../BayesianPage/background";
+import StatusIndicator from './StatusIndicator';
+import ResultsDisplay from './ResultsDisplay';
+import SelectionBar from '../../utilities/searchbar';
 
-export default function SettingsPage({
-  nChains,
-  nIter,
-  nBurnin,
-  computeDIC,
-  nThin,
-  setnChains,
-  setnIter,
-  setnBurnin,
-  setcomputeDIC,
-  setnThin,
-}) {
-    
-    const UnsavednChains = nChains
-    const UnsavednIter = nIter
-    const UnsavednBurnin = nBurnin
-    const UnsavedcomputeDIC = computeDIC
-    const UnsavednThin = nThin
-
-    const [inputValues, setInputValues] = useState({
-      UnsavednChains,
-      UnsavednIter,
-      UnsavednBurnin,
-      UnsavedcomputeDIC,
-      UnsavednThin,
-    });
-
-    
-    const handleInputChange = (e, key) => {
-      const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-      setInputValues(prevValues => ({
-        ...prevValues, 
-        [determineValue(key)]: value
-      }));
-    }
-
-    const handleSave = () => {
-      setnChains(inputValues.UnsavednChains);
-      setnIter(inputValues.UnsavednIter);
-      setnBurnin(inputValues.UnsavednBurnin);
-      setcomputeDIC(inputValues.UnsavedcomputeDIC);
-      setnThin(inputValues.UnsavednThin);
-      alert('Settings Saved!');
-    }
-    
-    const determineType = (key) => {
-      if (key.includes("N")) {return 'number'}
-      else if (key.includes('B')) {return 'checkbox'}
-      else {return 'text'}
-    }
-
-    const determineValue = (key) => {
-      if (key === 'N1') return 'UnsavednChains';
-      if (key === 'N2') return 'UnsavednIter';
-      if (key === 'N3') return 'UnsavednBurnin';
-      if (key === 'N4') return 'UnsavednThin';
-      if (key === 'B2') return 'UnsavedcomputeDIC';
-    }
-
-    const settingsFields = [
-        { label: "Number of Chains", key: "N1" },
-        { label: "Number of Iterations", key: "N2" },
-        { label: "Number of Burns", key: "N3" },
-        { label: "Thinning Rate", key: "N4" },
-        { label: "Compute DIC, pD and deviance", key: "B2" },
-    ];
-
-    return (
-      <div css={cssObj.pageWrapper}> 
-        
-        <main css={cssObj.mainContent}>
-            <section
-                id="settings-title-section"
-                css={[cssObj.container, cssObj.settingsTitleSection]}
-            >
-                <h1 css={cssObj.title}>BBN Hyperparameters</h1>
-            </section>
-
-            <section css={cssObj.settingsGrid}>
-              {settingsFields.map(({ label, key, long }) => {
-                const valueKey = determineValue(key);
-                const inputType = determineType(key);
-                return (
-                  <div key={key} css={[cssObj.settingBox, long && cssObj.longSettingBox]}>
-                    <label htmlFor={key} css={cssObj.inputLabel}>{label}</label>
-                    <input
-                      type={inputType}
-                      id={key}
-                      value={inputType === 'checkbox' ? undefined : inputValues[valueKey as keyof typeof inputValues] || ""}
-                      checked={inputType === 'checkbox' ? !!inputValues[valueKey as keyof typeof inputValues] : undefined}
-                      onChange={(e) => handleInputChange(e, key)}
-                      css={cssObj.inputBox}
-                    />
-                  </div>
-                );
-              })}
-            </section>
-        </main>
-        
-        {/* Save Button */}
-        <div css={cssObj.saveButtonContainer}>
-            <button 
-              css={cssObj.saveButton}
-              onClick={handleSave}
-            >
-              Save
-            </button>
-        </div>
-        {/* Save Button ends here */}
-      </div>
-    );
+interface ReliabilityPageProps {
+  jobId: string | null;
+  jobStatus: string | null;
+  results: any | null;
+  error: string | null;
+  onReset: () => void;
+  simulationInput: object | null;
+  onFileUpload: (fileContent: string) => void;
+  pendingFile: File | null;
+  onFileSelect: (file: File) => void;
 }
 
-src/pages/SettingsPage/style.ts
+const ReliabilityPage: React.FC<ReliabilityPageProps> = ({ jobId, jobStatus, results, error, onReset, simulationInput, onFileUpload, pendingFile, onFileSelect }) => {
+  const isLoading = !!jobId && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED';
+
+  return (
+    <>
+      <Background />
+      <SelectionBar
+        width="25%" height="6.4%" shape="sharp-rectangle" x="12.5%" y="9.6%" color="bg-gray-800" scale={0.7}
+        onFileUpload={onFileUpload}
+        pendingFile={pendingFile}
+        onFileSelect={onFileSelect}
+      />
+
+      {results && (
+        <ResultsDisplay
+          results={results}
+          onReset={onReset}
+          simulationInput={simulationInput}
+        />
+      )}
+
+      {isLoading && <StatusIndicator jobId={jobId!} jobStatus={jobStatus!} />}
+
+      {error && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-8 bg-red-100 border border-red-400 rounded-lg text-red-800 text-center">
+          <h3 className="font-bold">An Error Occurred</h3>
+          <p>{error}</p>
+        </div>
+      )}
+
+      {!results && !isLoading && !error && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-center">
+          <h2 className="text-2xl">No Simulation Job Specified</h2>
+          <p>Please start a new simulation or upload a result file.</p>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default ReliabilityPage;
+
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\ReliabilityPage\ResultsDisplay.tsx
+================================================================================
+
+// FILE: src/pages/ReliabilityPage/ResultsDisplay.tsx
+
+import React from 'react';
+
+interface ResultsDisplayProps {
+  results: object;
+  onReset: () => void;
+  simulationInput: object | null;
+}
+
+const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simulationInput }) => {
+
+  const handleSaveResults = () => {
+    if (!results) {
+      alert("No results to save.");
+      return;
+    }
+
+    const combinedData = {
+      input: simulationInput,
+      output: results,
+    };
+
+    const jsonString = JSON.stringify(combinedData, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    a.download = `simulation-results-${timestamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-6 bg-white rounded-lg shadow-2xl text-gray-800"
+      style={{ width: '80%', maxWidth: '800px', height: '80%', display: 'flex', flexDirection: 'column' }}
+    >
+      <h2 className="text-2xl font-bold mb-4 text-center">Simulation Results</h2>
+      <pre
+        className="flex-grow bg-gray-100 p-4 rounded-md overflow-auto text-sm"
+      >
+        {JSON.stringify(results, null, 2)}
+      </pre>
+      <div className="mt-4 flex justify-center items-center gap-4">
+        <button
+          onClick={handleSaveResults}
+          className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-500 transition-colors"
+          title="Save input and output to a JSON file"
+        >
+          Save Results
+        </button>
+        <button
+          onClick={onReset}
+          className="px-6 py-2 bg-sky-600 text-white font-semibold rounded-lg hover:bg-sky-500 transition-colors"
+        >
+          Start New Simulation
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default ResultsDisplay;
+
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\ReliabilityPage\StatusIndicator.tsx
+================================================================================
+
+import React from 'react';
+
+interface StatusIndicatorProps {
+  jobId: string;
+  jobStatus: string;
+}
+
+const StatusIndicator: React.FC<StatusIndicatorProps> = ({ jobId, jobStatus }) => {
+  return (
+    <div 
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-8 bg-gray-800 bg-opacity-80 backdrop-blur-md rounded-lg shadow-xl text-white text-center"
+      style={{ width: '400px' }}
+    >
+      <h2 className="text-2xl font-bold mb-4">Simulation Running</h2>
+      <p className="text-lg">Job Status: 
+        <span className="font-semibold text-sky-400 ml-2">{jobStatus}...</span>
+      </p>
+      <p className="text-xs text-gray-400 mt-4 break-all">Job ID: {jobId}</p>
+    </div>
+  );
+};
+
+export default StatusIndicator;
+
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\SettingsPage\SettingsPage.tsx
+================================================================================
+
+// FILE: src/pages/SettingsPage/SettingsPage.tsx
+
+/** @jsxImportSource @emotion/react */
+import { cssObj } from "./style";
+import { useState, ChangeEvent } from "react";
+import type { AppSettings } from "../../hooks/useAppSettings";
+import { useAppSettings } from '../../hooks/useAppSettings';
+
+// FIXED: Use a partial AppSettings type for the props
+type SettingsPageProps = Pick<AppSettings,
+  'nChains' | 'nIter' | 'nBurnin' | 'computeDIC' | 'nThin' |
+  'setnChains' | 'setnIter' | 'setnBurnin' | 'setcomputeDIC' | 'setnThin'
+>;
+
+export default function SettingsPage({
+  nChains, nIter, nBurnin, computeDIC, nThin,
+  setnChains, setnIter, setnBurnin, setcomputeDIC, setnThin,
+}: SettingsPageProps) {
+
+  const [inputValues, setInputValues] = useState({
+    UnsavednChains: nChains,
+    UnsavednIter: nIter,
+    UnsavednBurnin: nBurnin,
+    UnsavedcomputeDIC: computeDIC,
+    UnsavednThin: nThin,
+  });
+
+  // FIXED: Added types for event and key
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>, key: string) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    const valueKey = determineValue(key);
+    if (valueKey) {
+        setInputValues(prevValues => ({
+            ...prevValues,
+            [valueKey]: value
+        }));
+    }
+  }
+
+  const handleSave = () => {
+    setnChains(Number(inputValues.UnsavednChains));
+    setnIter(Number(inputValues.UnsavednIter));
+    setnBurnin(Number(inputValues.UnsavednBurnin));
+    setcomputeDIC(inputValues.UnsavedcomputeDIC);
+    setnThin(Number(inputValues.UnsavednThin));
+    alert('Settings Saved!');
+  }
+
+  const determineType = (key: string) => {
+    if (key.startsWith("N")) { return 'number' }
+    else if (key.startsWith('B')) { return 'checkbox' }
+    else { return 'text' }
+  }
+
+  // FIXED: Added a return type
+  const determineValue = (key: string): keyof typeof inputValues | null => {
+    if (key === 'N1') return 'UnsavednChains';
+    if (key === 'N2') return 'UnsavednIter';
+    if (key === 'N3') return 'UnsavednBurnin';
+    if (key === 'N4') return 'UnsavednThin';
+    if (key === 'B2') return 'UnsavedcomputeDIC';
+    return null;
+  }
+
+  const settingsFields = [
+    { label: "Number of Chains", key: "N1" },
+    { label: "Number of Iterations", key: "N2" },
+    { label: "Number of Burns", key: "N3" },
+    { label: "Thinning Rate", key: "N4" },
+    { label: "Compute DIC, pD and deviance", key: "B2" },
+  ];
+
+  return (
+    <div css={cssObj.pageWrapper}>
+      <main css={cssObj.mainContent}>
+        <section id="settings-title-section" css={[cssObj.container, cssObj.settingsTitleSection]}>
+          <h1 css={cssObj.title}>BBN Hyperparameters</h1>
+        </section>
+        <section css={cssObj.settingsGrid}>
+          {settingsFields.map(({ label, key }) => { // FIXED: removed non-existent 'long' property
+            const valueKey = determineValue(key);
+            const inputType = determineType(key);
+            if (!valueKey) return null;
+            return (
+              <div key={key} css={cssObj.settingBox}>
+                <label htmlFor={key} css={cssObj.inputLabel}>{label}</label>
+                <input
+                  type={inputType}
+                  id={key}
+                  value={inputType === 'checkbox' ? undefined : String(inputValues[valueKey])}
+                  checked={inputType === 'checkbox' ? Boolean(inputValues[valueKey]) : undefined}
+                  onChange={(e) => handleInputChange(e, key)}
+                  css={cssObj.inputBox}
+                />
+              </div>
+            );
+          })}
+        </section>
+      </main>
+      <div css={cssObj.saveButtonContainer}>
+        <button css={cssObj.saveButton} onClick={handleSave}>
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\SettingsPage\style.ts
+================================================================================
 
 import { css } from "@emotion/react";
 // Make sure these paths are correct for your project structure
@@ -1725,12 +1729,14 @@ export const cssObj = {
     transition: background-color 0.2s;
 
     &:hover {
-      background-color: ${COLORS.blue700};
+      background-color: ${COLORS.blue600};
     }
   `,
 };
 
-src/pages/StatisticalPage/StatisticalPage.tsx
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\StatisticalPage\StatisticalPage.tsx
+================================================================================
 
 /** @jsxImportSource @emotion/react */
 import { useState } from "react";
@@ -1947,7 +1953,9 @@ export default function StatisticalPage() {
   );
 }
 
-src/pages/StatisticalPage/style.ts
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\StatisticalPage\style.ts
+================================================================================
 
 import { COLORS } from '../../constants/COLORS'
 import { FONT_SIZE } from "../../constants/FONT_SIZE";
@@ -2065,7 +2073,7 @@ export const cssObj = {
   gap: 16px;
   min-width: 400px; 
   h2 {
-    font-size: ${FONT_SIZE.lg};
+    font-size: ${FONT_SIZE.base};
     font-weight: 600;
     color: ${COLORS.gray800};
     margin-bottom: 8px;
@@ -2102,8 +2110,8 @@ export const cssObj = {
     transition: border-color 0.2s, box-shadow 0.2s;
     &:focus {
       outline: none;
-      border-color: ${COLORS.blue500};
-      box-shadow: 0 0 0 1px ${COLORS.blue500};
+      border-color: ${COLORS.blue600};
+      box-shadow: 0 0 0 1px ${COLORS.blue600};
     }
   `,
   saveButton: css`
@@ -2118,7 +2126,7 @@ export const cssObj = {
     align-self: flex-start;
     transition: background-color 0.2s;
     &:hover {
-      background-color: ${COLORS.blue700};
+      background-color: ${COLORS.blue600};
     }
   `,
   output: css`
@@ -2144,129 +2152,496 @@ export const cssObj = {
   `,
 };
 
-src/App.tsx
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\services\apiService.ts
+================================================================================
 
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+const API_BASE_URL = 'https://bm5kx387h8.execute-api.ap-northeast-2.amazonaws.com/prod';
 
-import BayesianPage from './pages/BayesianPage/BayesianPage'; 
-import StatisticalPage from "./pages/StatisticalPage/StatisticalPage";
-import SettingsPage from "./pages/SettingsPage/SettingsPage";
 
-import { AppSettings } from './hooks/app-settings';
+/**
+ * Takes the form data, wraps it, and starts the simulation.
+ * @returns The jobId for the new simulation.
+ */
+export const startSimulation = async (formData: object): Promise<string> => {
+  const requestBody = { data: JSON.stringify(formData) };
 
-function App() {
-  const settingsProps = AppSettings();
+  const response = await fetch(`${API_BASE_URL}/simulations/bayesian`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to start the job.');
+  }
+
+  const result = await response.json();
+  if (!result.jobId) {
+    throw new Error('API response did not include a jobId.');
+  }
+  return result.jobId;
+};
+
+/**
+ * Fetches the current status of a given job.
+ * @returns The full status object from the backend.
+ */
+export const getJobStatus = async (jobId: string) => {
+  const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`);
+  if (!response.ok) throw new Error('Failed to fetch job status.');
+  return response.json();
+};
+
+/**
+ * Gets the final results for a completed job.
+ * @returns The final JSON results from the S3 file.
+ */
+export const getResults = async (jobId: string) => {
+  const urlResponse = await fetch(`${API_BASE_URL}/jobs/${jobId}/results-url`, { method: 'POST' });
+  if (!urlResponse.ok) throw new Error('Could not get results URL.');
   
+  const { downloadUrl } = await urlResponse.json();
+  
+  const resultsResponse = await fetch(downloadUrl);
+  if (!resultsResponse.ok) throw new Error('Could not download results file from S3.');
+  
+  return resultsResponse.json();
+};
+
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\utilities\button.tsx
+================================================================================
+
+// FILE: src/utilities/button.tsx
+
+import React, { CSSProperties } from 'react';
+
+// ADDED: Props interface
+interface ButtonProps {
+  text: string;
+  active?: boolean;
+  onClick: () => void;
+  shape?: 'sharp' | 'smooth' | 'circle';
+  activeColor?: string;
+  hoverColor?: string;
+  textColor?: string;
+  activeTextColor?: string;
+  width?: string | null;
+  height?: string | null;
+  x?: string;
+  y?: string;
+  customClasses?: string;
+  disabled?: boolean; // ADDED: The missing disabled prop
+}
+
+const Button: React.FC<ButtonProps> = ({
+  text,
+  active = false,
+  onClick,
+  shape = 'smooth',
+  activeColor = 'bg-sky-500',
+  hoverColor = 'border-sky-300',
+  textColor = 'text-white',
+  activeTextColor = 'text-white',
+  width = null,
+  height = null,
+  x = '50%',
+  y = '50%',
+  customClasses = '',
+  disabled = false,
+}) => {
+  const baseClasses = 'font-semibold focus:outline-none transition-all duration-300 ease-in-out border-2 flex items-center justify-center text-center';
+  let shapeClasses = '';
+  let paddingClasses = 'px-5 py-2';
+
+  switch (shape) {
+    case 'sharp':
+      shapeClasses = 'rounded-none';
+      break;
+    case 'circle':
+      shapeClasses = 'rounded-full';
+      paddingClasses = '';
+      break;
+    case 'smooth':
+    default:
+      shapeClasses = 'rounded-lg';
+      break;
+  }
+
+  const activeClasses = `${activeColor} ${activeTextColor} border-transparent`;
+  const inactiveClasses = `bg-transparent ${textColor} hover:${hoverColor} border-transparent`;
+
+  const finalClassName = `
+    ${baseClasses}
+    ${shapeClasses}
+    ${!width && !height ? paddingClasses : ''}
+    ${active ? activeClasses : inactiveClasses}
+    ${customClasses}
+  `.replace(/\s+/g, ' ').trim();
+
+  // FIXED: Explicitly typed the style object
+  const buttonStyle: CSSProperties = {
+    position: 'absolute',
+    top: y,
+    left: x,
+    width: width || undefined,
+    height: height || undefined,
+  };
+
+  if (shape === 'circle') {
+    if (width && !height) buttonStyle.height = width;
+    if (height && !width) buttonStyle.width = height;
+    if (!width && !height) {
+      buttonStyle.width = '96px';
+      buttonStyle.height = '96px';
+    }
+  }
+
   return (
-    <>
-      <Routes>
-        <Route path="/" element={<BayesianPage settings = {settingsProps}/>} />
-        <Route path="/statistical" element={<StatisticalPage />} />
-        <Route path="/settings" element={<SettingsPage {...settingsProps}/>} />
-      </Routes>
-    </>
+    <button
+      onClick={onClick}
+      className={finalClassName}
+      style={buttonStyle}
+      disabled={disabled} // FIXED: Added disabled attribute
+    >
+      {text}
+    </button>
   );
+};
+
+export default Button;
+
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\utilities\dropdown.tsx
+================================================================================
+
+// FILE: src/utilities/dropdown.tsx
+
+import React, { useState, useEffect, useRef, CSSProperties } from 'react';
+import Button from './button';
+
+// ADDED: Props interface
+interface DropDownProps {
+  options: readonly string[] | string[];
+  selectedOption: string;
+  onSelect: (option: string) => void;
+  x: string;
+  y: string;
+  width: string;
+  height: string;
+  textColor?: string;
+  label?: string;
+  label_color?: string;
+  alignment?: 'left' | 'right' | 'center';
 }
 
-export default App;
+const DropDown: React.FC<DropDownProps> = ({
+  options,
+  selectedOption,
+  onSelect,
+  x,
+  y,
+  width,
+  height,
+  textColor = 'text-white',
+  label,
+  label_color = 'text-gray-700',
+  alignment = 'center',
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  // FIXED: Provide the correct element type for the ref
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-src/index.css
+  const textAlignClass = {
+    left: 'text-left',
+    right: 'text-right',
+    center: 'text-center',
+  }[alignment];
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  const justifyContentClass = {
+    left: 'justify-start',
+    right: 'justify-end',
+    center: 'justify-center',
+  }[alignment];
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: hsl(0, 0%, 0%);
+  useEffect(() => {
+    // FIXED: Type the event parameter
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  // FIXED: Type the option parameter
+  const handleSelect = (option: string) => {
+    onSelect(option);
+    setIsOpen(false);
+  };
+
+  // FIXED: Explicitly typed the style object
+  const containerStyle: CSSProperties = {
+    position: 'absolute',
+    top: y,
+    left: x,
+    width: width,
+    transform: 'translate(-50%, -50%)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
+  };
+
+  return (
+    <div style={containerStyle} ref={dropdownRef}>
+      {label && (
+        <label className={`block text-sm font-medium ${label_color} ${textAlignClass}`}>
+          {label}
+        </label>
+      )}
+
+      <div className="relative" style={{ width: '100%', height: height }}>
+        <Button
+          text={selectedOption}
+          onClick={() => setIsOpen(prev => !prev)}
+          x="0"
+          y="0"
+          width="100%"
+          height="100%"
+          customClasses={`px-4 ${justifyContentClass}`}
+          active={isOpen}
+          textColor={textColor}
+        />
+
+        {isOpen && (
+          <div className="absolute top-full mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-xl z-10">
+            {options.map(option => (
+              <div
+                key={option}
+                onClick={() => handleSelect(option)}
+                style={{ height: height, display: 'flex', alignItems: 'center' }}
+                className={`px-4 text-gray-700 hover:bg-sky-100 cursor-pointer transition-colors duration-150 ${textAlignClass}`}
+              >
+                {option}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default DropDown;
+
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\utilities\rectangle.tsx
+================================================================================
+
+// FILE: src/utilities/rectangle.tsx
+
+import React, { useState, Children, cloneElement, CSSProperties } from 'react';
+
+// ADDED: Props interface
+type Shape = 'smooth-rectangle' | 'sharp-rectangle' | 'pill' | 'circle';
+
+interface RectangleProps {
+  width?: string;
+  height?: string;
+  color?: string;
+  center?: { x: string; y: string; };
+  shape?: Shape;
+  children?: React.ReactNode;
+  defaultActive?: string;
+  onNavigate?: (itemName: string) => void;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+const Rectangle: React.FC<RectangleProps> = ({
+  width = '50%',
+  height = '50%',
+  color = 'bg-red-100',
+  center = { x: '50%', y: '50%' },
+  shape = 'sharp-rectangle',
+  children,
+  defaultActive,
+  onNavigate,
+}) => {
+  const firstChildText = (Children.toArray(children)[0] as React.ReactElement)?.props?.text || '';
+  const [activeItem, setActiveItem] = useState(defaultActive || firstChildText);
+
+  // FIXED: Added type for itemName
+  const handleItemClick = (itemName: string) => {
+    setActiveItem(itemName);
+    if (onNavigate) {
+      onNavigate(itemName);
+    }
+  };
+
+  // FIXED: Explicitly typed style object
+  const barStyle: CSSProperties = {
+    position: 'absolute',
+    '--bar-width': width,
+    '--bar-height': height,
+    width: 'var(--bar-width)',
+    height: 'var(--bar-height)',
+    top: `clamp(calc(var(--bar-height) / 2), ${center.y}, calc(100% - var(--bar-height) / 2))`,
+    left: `clamp(calc(var(--bar-width) / 2), ${center.x}, calc(100% - var(--bar-width) / 2))`,
+    transform: 'translate(-50%, -50%)',
+  };
+
+  const shapeClasses: { [key in Shape]: string } = {
+    'smooth-rectangle': 'rounded-lg',
+    'sharp-rectangle': 'rounded-none',
+    'pill': 'rounded-full',
+    'circle': 'rounded-full',
+  };
+  const shapeClass = shapeClasses[shape] || shapeClasses['smooth-rectangle'];
+
+  return (
+    <div style={barStyle} className={`${color} ${shapeClass} shadow-lg transition-all duration-300`}>
+      <div className="relative w-full h-full">
+        {Children.map(children, (child) => {
+          // FIXED: Used type guard before cloning
+          if (React.isValidElement(child)) {
+            return cloneElement(child, {
+              active: child.props.text === activeItem,
+              onClick: handleItemClick,
+            });
+          }
+          return child;
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default Rectangle;
+
+================================================================================
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\utilities\searchbar.tsx
+================================================================================
+
+// FILE: src/utilities/searchbar.tsx
+
+import React, { useRef } from 'react';
+
+const SearchIcon = ({ size }: { size: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} fill="currentColor" viewBox="0 0 16 16">
+    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+  </svg>
+);
+
+const UploadIcon = ({ size }: { size: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} fill="currentColor" viewBox="0 0 16 16">
+    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+    <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
+  </svg>
+);
+
+interface SelectionBarProps {
+  width?: string;
+  height?: string;
+  shape?: 'smooth-rectangle' | 'sharp-rectangle';
+  x?: string;
+  y?: string;
+  color?: string;
+  scale?: number;
+  onFileUpload?: (fileContent: string) => void;
+  pendingFile: File | null;
+  onFileSelect: (file: File) => void;
 }
-a:hover {
-  color: #535bf2;
-}
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
+const SelectionBar: React.FC<SelectionBarProps> = ({
+  width = '500px',
+  height = '60px',
+  shape = 'smooth-rectangle',
+  x = '50%',
+  y = '50%',
+  color = 'bg-gray-800',
+  scale = 1,
+  onFileUpload,
+  pendingFile,
+  onFileSelect,
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectionName = pendingFile ? pendingFile.name : 'No current selection';
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
+  const handleSearchClick = () => {
+    fileInputRef.current?.click();
+  };
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      onFileSelect(file);
+    }
+  };
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
+  const handleUploadClick = () => {
+    if (pendingFile && onFileUpload) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        if (text) {
+          onFileUpload(text);
+        }
+      };
+      reader.readAsText(pendingFile);
+    } else {
+      alert('Please select a file using the "Search" button first.');
+    }
+  };
+  
+  const baseFontSize = 14, baseIconSize = 16, baseButtonHeight = 40, baseButtonPaddingX = 16, baseGap = 8, baseContainerPadding = 8;
+  const fontSize = baseFontSize * scale, iconSize = baseIconSize * scale, buttonHeight = baseButtonHeight * scale, buttonPaddingX = baseButtonPaddingX * scale, gap = baseGap * scale, containerPadding = baseContainerPadding * scale;
+  const containerStyle = { position: 'absolute', top: y, left: x, width: width, height: height, transform: 'translate(-50%, -50%)', padding: `${containerPadding}px`, gap: `${gap}px` };
+  const selectionTextStyle = { fontSize: `${fontSize}px` };
+  const buttonStyle = { height: `${buttonHeight}px`, paddingLeft: `${buttonPaddingX}px`, paddingRight: `${buttonPaddingX}px`, fontSize: `${fontSize}px`, borderRadius: `${8 * scale}px` };
+  const shapeClass = shape === 'smooth-rectangle' ? 'rounded-xl' : 'rounded-none';
 
+  return (
+    <div
+      style={containerStyle}
+      className={`flex items-center ${color} ${shapeClass} shadow-2xl border border-white/10`}
+    >
+      <input
+        type="file"
+        accept=".json"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+      />
+      <div className="flex-grow px-4">
+        <p className="text-gray-300 truncate" style={selectionTextStyle} title={selectionName}>
+          {selectionName}
+        </p>
+      </div>
+      <div className="flex items-center" style={{ gap: `${gap}px` }}>
+        <button
+          onClick={handleSearchClick}
+          style={buttonStyle}
+          className="flex items-center justify-center bg-gray-700/50 hover:bg-gray-600/80 text-white font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
+        >
+          <SearchIcon size={iconSize} />
+          <span style={{ marginLeft: `${gap}px` }}>Search</span>
+        </button>
+        <button
+          onClick={handleUploadClick}
+          style={buttonStyle}
+          className="flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
+        >
+          <UploadIcon size={iconSize} />
+          <span style={{ marginLeft: `${gap}px` }}>Upload</span>
+        </button>
+      </div>
+    </div>
+  );
+};
 
-src/main.tsx
-
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import App from './App.tsx'
-
-import './index.css'
-import Layout from './NavigationBar/layout.tsx' 
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BrowserRouter>
-      <Layout>
-        <App />
-      </Layout>
-    </BrowserRouter>
-  </StrictMode>,
-)
-
-src/vite-env.d.ts
-
-/// <reference types="vite/client" />
-
+export default SelectionBar;
 

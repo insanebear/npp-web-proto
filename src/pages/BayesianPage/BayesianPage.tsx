@@ -1,28 +1,35 @@
-import React, { useState } from 'react';
+// FILE: src/pages/BayesianPage/BayesianPage.tsx
+
+import React, { useState, useEffect } from 'react';
 import Background from './background';
 import Menu from './menu';
 import { TABS } from '../../constants/tabs';
 import SelectionBar from '../../utilities/searchbar';
 import SubmitButton from './bayesian_submit_button/submitButton';
 
-// Helper to create the initial dropdown state
-const initializeState = () => {
-  const initialState = {};
+const initializeState = (initialData?: any) => {
+  const initialState: { [key: string]: string } = {};
   TABS.forEach(tab => {
     tab.children.forEach(child => {
       const key = `${tab.label}/${child.label}`;
-      initialState[key] = child.values[1]; // Default to Medium
+      const uploadedValue = initialData?.[tab.label]?.[child.label];
+      initialState[key] = uploadedValue || child.values[1];
     });
   });
   return initialState;
 };
 
-// This component now receives props from App.tsx
-function BayesianPage({ settings, onStartSimulation, isSubmitting, jobError }) {
+function BayesianPage({ settings, onStartSimulation, isSubmitting, jobError, onFileUpload, initialValues, pendingFile, onFileSelect }: any) {
   const [activeLabel, setActiveLabel] = useState('Requirement Dev');
-  const [dropdownValues, setDropdownValues] = useState(initializeState());
+  const [dropdownValues, setDropdownValues] = useState(() => initializeState(initialValues));
 
-  const handleSelectionChange = (key, value) => {
+  useEffect(() => {
+    if (initialValues) {
+      setDropdownValues(initializeState(initialValues));
+    }
+  }, [initialValues]);
+
+  const handleSelectionChange = (key: string, value: string) => {
     setDropdownValues(prev => ({ ...prev, [key]: value }));
   };
 
@@ -37,12 +44,15 @@ function BayesianPage({ settings, onStartSimulation, isSubmitting, jobError }) {
     <>
       <Background />
       {jobError && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 p-4 bg-red-100 text-red-800 rounded-md">
-              Error: {jobError}
-          </div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 p-4 bg-red-100 text-red-800 rounded-md">
+          Error: {jobError}
+        </div>
       )}
       <SelectionBar
-        width="25%" height="6.4%" shape="sharp-rectangle" x="12.5%" y="9.6%" color="bg-gray-800" scale={0.7} 
+        width="25%" height="6.4%" shape="sharp-rectangle" x="12.5%" y="9.6%" color="bg-gray-800" scale={0.7}
+        onFileUpload={onFileUpload}
+        pendingFile={pendingFile}
+        onFileSelect={onFileSelect}
       />
       <Menu
         activeLabel={activeLabel}
@@ -60,9 +70,8 @@ function BayesianPage({ settings, onStartSimulation, isSubmitting, jobError }) {
   );
 }
 
-// This helper function formats the data before sending it up
-const formatPayload = (values, settings) => {
-  const payload = {};
+const formatPayload = (values: { [key: string]: string }, settings: any) => {
+  const payload: { [key: string]: any } = {};
   for (const key in values) {
     const [tabLabel, childLabel] = key.split('/');
     if (!payload[tabLabel]) {
