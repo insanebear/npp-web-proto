@@ -10,6 +10,22 @@ import ReliabilityPage from "./pages/ReliabilityPage/ReliabilityPage";
 
 import { useAppSettings } from './hooks/useAppSettings';
 import * as apiService from './services/apiService';
+import { TABS } from './constants/tabs';
+
+// Helper function to initialize or reset dropdown values, moved to the module scope
+const initializeDropdownState = (initialData?: any) => {
+  const initialState: { [key: string]: string } = {};
+  TABS.forEach(tab => {
+    tab.children.forEach(child => {
+      const key = `${tab.label}/${child.label}`;
+      // Check for an uploaded value for this specific key
+      const uploadedValue = initialData?.[tab.label]?.[child.label];
+      // Use the uploaded value, or default to 'Medium'
+      initialState[key] = uploadedValue || child.values[1];
+    });
+  });
+  return initialState;
+};
 
 function App() {
   const settingsProps = useAppSettings();
@@ -24,6 +40,9 @@ function App() {
   const [simulationInput, setSimulationInput] = useState<object | null>(null);
   const [initialBayesianValues, setInitialBayesianValues] = useState<object | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  // LIFTED STATE: State for dropdowns is now managed centrally in App.tsx
+  const [dropdownValues, setDropdownValues] = useState(() => initializeDropdownState());
 
 
   // --- Core Functions ---
@@ -51,11 +70,18 @@ function App() {
     setSimulationInput(null);
     setInitialBayesianValues(null);
     setPendingFile(null); // Also clear any pending file on reset
+    // Also reset dropdowns to their default values
+    setDropdownValues(initializeDropdownState());
     navigate('/');
   };
 
   const handleFileSelect = (file: File) => {
     setPendingFile(file);
+  };
+
+  // LIFTED STATE HANDLER: This function will be passed to BayesianPage to update the central state.
+  const handleDropdownChange = (key: string, value: string) => {
+    setDropdownValues(prev => ({ ...prev, [key]: value }));
   };
 
   // --- Upload Handlers for Different Pages ---
@@ -94,6 +120,8 @@ function App() {
                 settingsProps.setcomputeDIC(settings.computeDIC === 'true');
             }
             setInitialBayesianValues(data.input);
+            // When a file is uploaded, update the dropdown state with its values
+            setDropdownValues(initializeDropdownState(data.input));
             setError(null);
             alert("Inputs and settings have been loaded from the file. Results are available on the Reliability Views page.");
             setPendingFile(null); // Clear the pending file after successful upload
@@ -154,11 +182,13 @@ function App() {
             settings={settingsProps}
             onStartSimulation={handleStartSimulation}
             jobError={error}
-            isSubmitting={!!jobStatus && jobStatus === 'Submitting...'}
+            jobStatus={jobStatus}
             onFileUpload={handleBayesianUpload}
-            initialValues={initialBayesianValues}
             pendingFile={pendingFile}
             onFileSelect={handleFileSelect}
+            // Pass the state and the handler function as props
+            dropdownValues={dropdownValues}
+            onDropdownChange={handleDropdownChange}
           />
         }
       />

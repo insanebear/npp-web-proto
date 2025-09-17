@@ -1,39 +1,31 @@
 // FILE: src/pages/BayesianPage/BayesianPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Background from './background';
 import Menu from './menu';
 import { TABS } from '../../constants/tabs';
 import SelectionBar from '../../utilities/searchbar';
 import SubmitButton from './bayesian_submit_button/submitButton';
 
-const initializeState = (initialData?: any) => {
-  const initialState: { [key: string]: string } = {};
-  TABS.forEach(tab => {
-    tab.children.forEach(child => {
-      const key = `${tab.label}/${child.label}`;
-      const uploadedValue = initialData?.[tab.label]?.[child.label];
-      initialState[key] = uploadedValue || child.values[1];
-    });
-  });
-  return initialState;
-};
-
-function BayesianPage({ settings, onStartSimulation, isSubmitting, jobError, onFileUpload, initialValues, pendingFile, onFileSelect }: any) {
+// All props are now passed down from App.tsx
+function BayesianPage({
+  settings,
+  onStartSimulation,
+  jobStatus,
+  jobError,
+  onFileUpload,
+  pendingFile,
+  onFileSelect,
+  dropdownValues,
+  onDropdownChange
+}: any) {
+  // The active tab state can remain local as it doesn't need to persist across pages.
   const [activeLabel, setActiveLabel] = useState('Requirement Dev');
-  const [dropdownValues, setDropdownValues] = useState(() => initializeState(initialValues));
 
-  useEffect(() => {
-    if (initialValues) {
-      setDropdownValues(initializeState(initialValues));
-    }
-  }, [initialValues]);
-
-  const handleSelectionChange = (key: string, value: string) => {
-    setDropdownValues(prev => ({ ...prev, [key]: value }));
-  };
+  // The local state for dropdown values and its related logic have been removed.
 
   const handleSubmit = () => {
+    // The `dropdownValues` are now directly from props.
     const payload = formatPayload(dropdownValues, settings);
     onStartSimulation(payload);
   };
@@ -57,13 +49,13 @@ function BayesianPage({ settings, onStartSimulation, isSubmitting, jobError, onF
       <Menu
         activeLabel={activeLabel}
         setActiveLabel={setActiveLabel}
-        dropdownValues={dropdownValues}
-        handleSelectionChange={handleSelectionChange}
+        dropdownValues={dropdownValues} // Pass prop down
+        handleSelectionChange={onDropdownChange} // Pass the handler function from App.tsx
         activeLabelAndDropdowns={activeLabelAndDropdowns}
       />
       <SubmitButton
         onClick={handleSubmit}
-        isSubmitting={isSubmitting}
+        status={jobStatus}
         x="87%" y="90%" width="8%" height="5%"
       />
     </>

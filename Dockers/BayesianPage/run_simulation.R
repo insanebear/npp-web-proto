@@ -94,8 +94,8 @@ print(paste0(
 
   # --- Run the JAGS Simulation ---
   model.file <- "/app/plumber/R2WinBUGS_Combined_Model.txt"
-  parameters_to_save <- c(
-    "SR_Total_Remained_Defect", "PFD", "SR_DevH_post", "SR_DevM_post", "SR_DevL_post"
+  parameters_to_save <- c( 
+    "PFD", "SR_Total_Remained_Defect", "SD_Total_Remained_Defect", "IM_Total_Remained_Defect", "ST_Total_Remained_Defect", "IC_Total_Remained_Defect"
     # (Add all other parameters you want to save)
   )
   jags_model <- jags.model(file = model.file, data = data, n.chains = nChains, n.adapt = nBurnin)

@@ -14,6 +14,22 @@ import ReliabilityPage from "./pages/ReliabilityPage/ReliabilityPage";
 
 import { useAppSettings } from './hooks/useAppSettings';
 import * as apiService from './services/apiService';
+import { TABS } from './constants/tabs';
+
+// Helper function to initialize or reset dropdown values, moved to the module scope
+const initializeDropdownState = (initialData?: any) => {
+  const initialState: { [key: string]: string } = {};
+  TABS.forEach(tab => {
+    tab.children.forEach(child => {
+      const key = `${tab.label}/${child.label}`;
+      // Check for an uploaded value for this specific key
+      const uploadedValue = initialData?.[tab.label]?.[child.label];
+      // Use the uploaded value, or default to 'Medium'
+      initialState[key] = uploadedValue || child.values[1];
+    });
+  });
+  return initialState;
+};
 
 function App() {
   const settingsProps = useAppSettings();
@@ -28,6 +44,9 @@ function App() {
   const [simulationInput, setSimulationInput] = useState<object | null>(null);
   const [initialBayesianValues, setInitialBayesianValues] = useState<object | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  // LIFTED STATE: State for dropdowns is now managed centrally in App.tsx
+  const [dropdownValues, setDropdownValues] = useState(() => initializeDropdownState());
 
 
   // --- Core Functions ---
@@ -55,11 +74,18 @@ function App() {
     setSimulationInput(null);
     setInitialBayesianValues(null);
     setPendingFile(null); // Also clear any pending file on reset
+    // Also reset dropdowns to their default values
+    setDropdownValues(initializeDropdownState());
     navigate('/');
   };
 
   const handleFileSelect = (file: File) => {
     setPendingFile(file);
+  };
+
+  // LIFTED STATE HANDLER: This function will be passed to BayesianPage to update the central state.
+  const handleDropdownChange = (key: string, value: string) => {
+    setDropdownValues(prev => ({ ...prev, [key]: value }));
   };
 
   // --- Upload Handlers for Different Pages ---
@@ -98,6 +124,8 @@ function App() {
                 settingsProps.setcomputeDIC(settings.computeDIC === 'true');
             }
             setInitialBayesianValues(data.input);
+            // When a file is uploaded, update the dropdown state with its values
+            setDropdownValues(initializeDropdownState(data.input));
             setError(null);
             alert("Inputs and settings have been loaded from the file. Results are available on the Reliability Views page.");
             setPendingFile(null); // Clear the pending file after successful upload
@@ -158,11 +186,13 @@ function App() {
             settings={settingsProps}
             onStartSimulation={handleStartSimulation}
             jobError={error}
-            isSubmitting={!!jobStatus && jobStatus === 'Submitting...'}
+            jobStatus={jobStatus}
             onFileUpload={handleBayesianUpload}
-            initialValues={initialBayesianValues}
             pendingFile={pendingFile}
             onFileSelect={handleFileSelect}
+            // Pass the state and the handler function as props
+            dropdownValues={dropdownValues}
+            onDropdownChange={handleDropdownChange}
           />
         }
       />
@@ -189,6 +219,7 @@ function App() {
 }
 
 export default App;
+
 
 ================================================================================
 // FILE: C:\Users\lab\Desktop\npp-web-proto\src\index.css
@@ -1133,40 +1164,32 @@ export default Background;
 
 // FILE: src/pages/BayesianPage/BayesianPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Background from './background';
 import Menu from './menu';
 import { TABS } from '../../constants/tabs';
 import SelectionBar from '../../utilities/searchbar';
 import SubmitButton from './bayesian_submit_button/submitButton';
 
-const initializeState = (initialData?: any) => {
-  const initialState: { [key: string]: string } = {};
-  TABS.forEach(tab => {
-    tab.children.forEach(child => {
-      const key = `${tab.label}/${child.label}`;
-      const uploadedValue = initialData?.[tab.label]?.[child.label];
-      initialState[key] = uploadedValue || child.values[1];
-    });
-  });
-  return initialState;
-};
-
-function BayesianPage({ settings, onStartSimulation, isSubmitting, jobError, onFileUpload, initialValues, pendingFile, onFileSelect }: any) {
+// All props are now passed down from App.tsx
+function BayesianPage({
+  settings,
+  onStartSimulation,
+  jobStatus,
+  jobError,
+  onFileUpload,
+  pendingFile,
+  onFileSelect,
+  dropdownValues,
+  onDropdownChange
+}: any) {
+  // The active tab state can remain local as it doesn't need to persist across pages.
   const [activeLabel, setActiveLabel] = useState('Requirement Dev');
-  const [dropdownValues, setDropdownValues] = useState(() => initializeState(initialValues));
 
-  useEffect(() => {
-    if (initialValues) {
-      setDropdownValues(initializeState(initialValues));
-    }
-  }, [initialValues]);
-
-  const handleSelectionChange = (key: string, value: string) => {
-    setDropdownValues(prev => ({ ...prev, [key]: value }));
-  };
+  // The local state for dropdown values and its related logic have been removed.
 
   const handleSubmit = () => {
+    // The `dropdownValues` are now directly from props.
     const payload = formatPayload(dropdownValues, settings);
     onStartSimulation(payload);
   };
@@ -1190,13 +1213,13 @@ function BayesianPage({ settings, onStartSimulation, isSubmitting, jobError, onF
       <Menu
         activeLabel={activeLabel}
         setActiveLabel={setActiveLabel}
-        dropdownValues={dropdownValues}
-        handleSelectionChange={handleSelectionChange}
+        dropdownValues={dropdownValues} // Pass prop down
+        handleSelectionChange={onDropdownChange} // Pass the handler function from App.tsx
         activeLabelAndDropdowns={activeLabelAndDropdowns}
       />
       <SubmitButton
         onClick={handleSubmit}
-        isSubmitting={isSubmitting}
+        status={jobStatus}
         x="87%" y="90%" width="8%" height="5%"
       />
     </>
@@ -1225,6 +1248,7 @@ const formatPayload = (values: { [key: string]: string }, settings: any) => {
 };
 
 export default BayesianPage;
+
 
 ================================================================================
 // FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\BayesianPage\menu.tsx
@@ -1319,12 +1343,14 @@ export default Menu;
 // FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\BayesianPage\bayesian_submit_button\submitButton.tsx
 ================================================================================
 
+// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\BayesianPage\bayesian_submit_button\submitButton.tsx
+
 import React from 'react';
 import Button from '../../../utilities/button';
 
 interface SubmitButtonProps {
   onClick: () => void;
-  isSubmitting: boolean;
+  status: string | null;
   x?: string;
   y?: string;
   width?: string;
@@ -1333,16 +1359,28 @@ interface SubmitButtonProps {
 
 const SubmitButton: React.FC<SubmitButtonProps> = ({
   onClick,
-  isSubmitting,
+  status,
   ...buttonProps
 }) => {
+  // A simulation is "busy" if it has a status that is not final (COMPLETED/FAILED) or null.
+  const isBusy = status !== null && status !== 'COMPLETED' && status !== 'FAILED';
+
+  const getButtonText = (): string => {
+    if (!isBusy || !status) {
+      return 'Submit';
+    }
+    // Capitalize first letter and add ellipsis for a consistent look (e.g., "Running...").
+    return `${status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}...`;
+  };
+
   return (
     <Button
-      text={isSubmitting ? 'Submitting...' : 'Submit'}
+      text={getButtonText()}
       onClick={onClick}
-      disabled={isSubmitting} // Disable button while submitting
+      disabled={isBusy}
       active={true}
-      activeColor={isSubmitting ? 'bg-gray-500' : 'bg-red-700'}
+      // The button is grayed out and non-interactive when busy.
+      activeColor={isBusy ? 'bg-gray-500' : 'bg-red-700'}
       customClasses="hover:bg-blue-600 active:bg-green-500 text-white"
       shape="smooth"
       {...buttonProps}
