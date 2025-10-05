@@ -1,6 +1,6 @@
 // FILE: src/App.tsx
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 import BayesianPage from './pages/BayesianPage/BayesianPage';
@@ -38,7 +38,6 @@ function App() {
   const [results, setResults] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [simulationInput, setSimulationInput] = useState<object | null>(null);
-  const [initialBayesianValues, setInitialBayesianValues] = useState<object | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   // LIFTED STATE: State for dropdowns is now managed centrally in App.tsx
@@ -68,7 +67,6 @@ function App() {
     setResults(null);
     setError(null);
     setSimulationInput(null);
-    setInitialBayesianValues(null);
     setPendingFile(null); // Also clear any pending file on reset
     // Also reset dropdowns to their default values
     setDropdownValues(initializeDropdownState());
@@ -119,7 +117,6 @@ function App() {
                 settingsProps.setnThin(Number(settings.nThin));
                 settingsProps.setcomputeDIC(settings.computeDIC === 'true');
             }
-            setInitialBayesianValues(data.input);
             // When a file is uploaded, update the dropdown state with its values
             setDropdownValues(initializeDropdownState(data.input));
             setError(null);

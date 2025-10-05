@@ -1,6 +1,6 @@
 // FILE: src/utilities/dropdown.tsx
 
-import React, { useState, useEffect, useRef, CSSProperties } from 'react';
+import React, { useState, useEffect, useRef, type CSSProperties } from 'react';
 import Button from './button';
 
 // ADDED: Props interface

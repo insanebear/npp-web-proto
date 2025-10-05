@@ -1,6 +1,6 @@
 // FILE: src/hooks/useAppSettings.ts
 
-import { useState, Dispatch, SetStateAction } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 
 // FIXED: Changed from 'interface' to 'type' for better module compatibility
 export type AppSettings = {

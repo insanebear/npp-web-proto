@@ -2,9 +2,8 @@
 
 /** @jsxImportSource @emotion/react */
 import { cssObj } from "./style";
-import { useState, ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import type { AppSettings } from "../../hooks/useAppSettings";
-import { useAppSettings } from '../../hooks/useAppSettings';
 
 // FIXED: Use a partial AppSettings type for the props
 type SettingsPageProps = Pick<AppSettings,

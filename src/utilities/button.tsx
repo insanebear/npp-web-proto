@@ -1,6 +1,6 @@
 // FILE: src/utilities/button.tsx
 
-import React, { CSSProperties } from 'react';
+import React, { type CSSProperties } from 'react';
 
 // ADDED: Props interface
 interface ButtonProps {

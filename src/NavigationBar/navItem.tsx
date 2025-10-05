@@ -1,10 +1,10 @@
 // FILE: src/NavigationBar/navItem.tsx
 
-import React, { CSSProperties } from 'react';
+import React, { type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 
-// ADDED: Props interface
-interface NavItemProps {
+// ADDED: Props interface and exported it for use in other components
+export interface NavItemProps {
   text: string;
   to: string;
   position?: { x: string; y: string };

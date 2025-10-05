@@ -1,6 +1,5 @@
 // FILE: src/pages/BayesianPage/menu.tsx
 
-import React from 'react';
 import Button from "../../utilities/button";
 import DropDown from "../../utilities/dropdown";
 import { TABS } from "../../constants/tabs";
