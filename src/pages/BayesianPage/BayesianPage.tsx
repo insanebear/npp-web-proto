@@ -16,17 +16,15 @@ function BayesianPage({
   onFileUpload,
   pendingFile,
   onFileSelect,
-  dropdownValues,
-  onDropdownChange
+  inputValues,
+  onInputChange
 }: any) {
-  // The active tab state can remain local as it doesn't need to persist across pages.
-  const [activeLabel, setActiveLabel] = useState('Requirement Dev');
-
-  // The local state for dropdown values and its related logic have been removed.
+  // The active tab state remains local. We'll default to the new "FP" tab.
+  const [activeLabel, setActiveLabel] = useState('FP');
 
   const handleSubmit = () => {
-    // The `dropdownValues` are now directly from props.
-    const payload = formatPayload(dropdownValues, settings);
+    // The `inputValues` from props now contains FP and all dropdowns.
+    const payload = formatPayload(inputValues, settings);
     onStartSimulation(payload);
   };
 
@@ -49,8 +47,8 @@ function BayesianPage({
       <Menu
         activeLabel={activeLabel}
         setActiveLabel={setActiveLabel}
-        dropdownValues={dropdownValues} // Pass prop down
-        handleSelectionChange={onDropdownChange} // Pass the handler function from App.tsx
+        inputValues={inputValues} // Pass unified state down
+        onInputChange={onInputChange} // Pass unified handler down
         activeLabelAndDropdowns={activeLabelAndDropdowns}
       />
       <SubmitButton
@@ -62,6 +60,7 @@ function BayesianPage({
   );
 }
 
+// This function now works generically for all inputs, including FP.
 const formatPayload = (values: { [key: string]: string }, settings: any) => {
   const payload: { [key: string]: any } = {};
   for (const key in values) {
@@ -71,7 +70,7 @@ const formatPayload = (values: { [key: string]: string }, settings: any) => {
     }
     payload[tabLabel][childLabel] = values[key];
   }
-  payload['FP'] = { 'FP Input': '120' }; // This is still hardcoded
+  // No longer needed: payload['FP'] = { 'FP Input': '120' };
   payload['settings'] = {
     nChains: String(settings.nChains),
     nIter: String(settings.nIter),

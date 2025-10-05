@@ -7,8 +7,8 @@ import { TABS } from "../../constants/tabs";
 const Menu = ({
   activeLabel,
   setActiveLabel,
-  dropdownValues,
-  handleSelectionChange,
+  inputValues,
+  onInputChange,
   activeLabelAndDropdowns
 }: any) => {
   const labels = TABS.map(tab => tab.label);
@@ -16,7 +16,7 @@ const Menu = ({
 
   return (
     <>
-      {/* --- Left-side Tab Buttons (No Change) --- */}
+      {/* --- Left-side Tab Buttons --- */}
       {labels.map((label, index) => (
         <Button
           key={label}
@@ -31,50 +31,84 @@ const Menu = ({
         />
       ))}
 
-      {/* ADDED: A scrollable container for the dropdowns. */}
-      {/* This div is positioned to perfectly overlap the gray background area. */}
+      {/* --- Main container for the right-side inputs --- */}
       <div
         style={{
           position: 'absolute',
-          top: '12.8%', // Positioned below the nav and search bars
-          left: '25%',   // Starts after the left column
+          top: '12.8%',
+          left: '25%',
           width: '75%',
-          height: '87.2%', // Fills the remaining vertical space
-          overflowY: 'auto', // Adds a scrollbar ONLY when needed
-          padding: '2rem', // Adds some space around the content
+          height: '87.2%',
+          overflowY: 'auto',
+          padding: '2rem',
         }}
       >
-        {/* UPDATED: Dropdowns are now placed in a CSS Grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)', // Arrange in 4 equal columns
-            gap: '3rem 1.5rem', // Defines vertical and horizontal spacing
-          }}
-        >
-          {activeLabelAndDropdowns?.children.map((child: any) => {
-            const uniqueKey = `${activeLabelAndDropdowns.label}/${child.label}`;
-            return (
-              // Each dropdown is now a grid item. The wrapper div is necessary
-              // for the DropDown's absolute positioning to work within the grid cell.
-              <div key={uniqueKey} style={{ position: 'relative', minHeight: '100px' }}>
-                <DropDown
-                  label={child.label}
-                  label_color="text-gray-800"
-                  options={child.values}
-                  selectedOption={dropdownValues[uniqueKey] || child.values[0]}
-                  onSelect={(value) => handleSelectionChange(uniqueKey, value)}
-                  // These props now center the dropdown within its grid cell
-                  x="50%"
-                  y="50%"
-                  width="90%" // Use slightly less than 100% width for nice spacing
-                  height="100%"
-                  textColor="text-gray-800"
-                />
-              </div>
-            );
-          })}
-        </div>
+        {/* --- CONDITIONAL RENDERING: FP Input vs. Dropdowns --- */}
+        {activeLabel === 'FP' ? (
+          // NEW: A dedicated positioning wrapper for the FP input
+          <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', // Handles horizontal centering
+              paddingTop: '20vh'        // Pushes the content down from the top by 20% of the viewport height
+            }}>
+            <div> {/* This inner div contains the actual input and label */}
+              {activeLabelAndDropdowns?.children.map((child: any) => {
+                const key = `FP/${child.label}`;
+                return (
+                  <div key={key}>
+                    <label htmlFor={key} style={{ color: '#4B5563', display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '14px' }}>
+                      {child.label}
+                    </label>
+                    <input
+                      id={key}
+                      type="number"
+                      value={inputValues[key] || ''}
+                      onChange={(e) => onInputChange(key, e.target.value)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #D1D5DB',
+                        width: '250px',
+                        fontSize: '14px',
+                        backgroundColor: '#FFFFFF',
+                        color: '#111827',
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          // The dropdown grid remains unchanged
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '3rem 1.5rem',
+            }}
+          >
+            {activeLabelAndDropdowns?.children.map((child: any) => {
+              const uniqueKey = `${activeLabelAndDropdowns.label}/${child.label}`;
+              return (
+                <div key={uniqueKey} style={{ position: 'relative', minHeight: '100px' }}>
+                  <DropDown
+                    label={child.label}
+                    label_color="text-gray-800"
+                    options={child.values}
+                    selectedOption={inputValues[uniqueKey] || child.values[0]}
+                    onSelect={(value) => onInputChange(uniqueKey, value)}
+                    x="50%"
+                    y="50%"
+                    width="90%"
+                    height="100%"
+                    textColor="text-gray-800"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </>
   );

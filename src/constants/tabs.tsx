@@ -1,6 +1,17 @@
 // src/constants/TABS.ts
 
 export const TABS = [
+    {
+    label: "FP",
+    children: [
+      {
+        label: "FP Input",
+        // This is not a dropdown, so values can be an empty array.
+        // The UI will render a number input instead based on the tab label.
+        values: [],
+      },
+    ],
+  },
   {
     label: "Requirement Dev",
     children: [

@@ -12,16 +12,21 @@ import { useAppSettings } from './hooks/useAppSettings';
 import * as apiService from './services/apiService';
 import { TABS } from './constants/tabs';
 
-// Helper function to initialize or reset dropdown values, moved to the module scope
-const initializeDropdownState = (initialData?: any) => {
+// Helper function to initialize or reset all input values
+const initializeInputState = (initialData?: any) => {
   const initialState: { [key: string]: string } = {};
   TABS.forEach(tab => {
     tab.children.forEach(child => {
       const key = `${tab.label}/${child.label}`;
-      // Check for an uploaded value for this specific key
       const uploadedValue = initialData?.[tab.label]?.[child.label];
-      // Use the uploaded value, or default to 'Medium'
-      initialState[key] = uploadedValue || child.values[1];
+
+      // Special handling for the new FP input
+      if (tab.label === 'FP') {
+        initialState[key] = uploadedValue || '120'; // Default FP to 120
+      } else {
+        // Use the uploaded value, or default to 'Medium' for dropdowns
+        initialState[key] = uploadedValue || child.values[1];
+      }
     });
   });
   return initialState;
@@ -40,8 +45,8 @@ function App() {
   const [simulationInput, setSimulationInput] = useState<object | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  // LIFTED STATE: State for dropdowns is now managed centrally in App.tsx
-  const [dropdownValues, setDropdownValues] = useState(() => initializeDropdownState());
+  // UNIFIED STATE: State for all inputs is now managed centrally.
+  const [inputValues, setInputValues] = useState(() => initializeInputState());
 
 
   // --- Core Functions ---
@@ -68,8 +73,8 @@ function App() {
     setError(null);
     setSimulationInput(null);
     setPendingFile(null); // Also clear any pending file on reset
-    // Also reset dropdowns to their default values
-    setDropdownValues(initializeDropdownState());
+    // Also reset all inputs to their default values
+    setInputValues(initializeInputState());
     navigate('/');
   };
 
@@ -77,9 +82,9 @@ function App() {
     setPendingFile(file);
   };
 
-  // LIFTED STATE HANDLER: This function will be passed to BayesianPage to update the central state.
-  const handleDropdownChange = (key: string, value: string) => {
-    setDropdownValues(prev => ({ ...prev, [key]: value }));
+  // UNIFIED STATE HANDLER: This function updates the central state for any input.
+  const handleInputChange = (key: string, value: string) => {
+    setInputValues(prev => ({ ...prev, [key]: value }));
   };
 
   // --- Upload Handlers for Different Pages ---
@@ -117,8 +122,8 @@ function App() {
                 settingsProps.setnThin(Number(settings.nThin));
                 settingsProps.setcomputeDIC(settings.computeDIC === 'true');
             }
-            // When a file is uploaded, update the dropdown state with its values
-            setDropdownValues(initializeDropdownState(data.input));
+            // When a file is uploaded, update the input state with its values
+            setInputValues(initializeInputState(data.input));
             setError(null);
             alert("Inputs and settings have been loaded from the file. Results are available on the Reliability Views page.");
             setPendingFile(null); // Clear the pending file after successful upload
@@ -183,9 +188,9 @@ function App() {
             onFileUpload={handleBayesianUpload}
             pendingFile={pendingFile}
             onFileSelect={handleFileSelect}
-            // Pass the state and the handler function as props
-            dropdownValues={dropdownValues}
-            onDropdownChange={handleDropdownChange}
+            // Pass the unified state and handler function as props
+            inputValues={inputValues}
+            onInputChange={handleInputChange}
           />
         }
       />
