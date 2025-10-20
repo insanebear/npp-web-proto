@@ -6,7 +6,7 @@ export const cssObj = {
   globalStyles: css`
     body {
       margin: 0;
-      background-color: #f9fafb;
+      background-color: #E5E7EB
     }
   `,
 
@@ -14,7 +14,7 @@ export const cssObj = {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background-color: #f9fafb;
+    background-color: #E5E7EB
   `,
   header: css`
     background-color: ${COLORS.gray800};
