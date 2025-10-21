@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import { useState } from "react";
-import axios from "axios";
+import { useState, type FormEvent } from "react";
 import { Global } from "@emotion/react";
 import { cssObj } from "./style";
+import * as api from "../../services/apiService"; // <-- calls AWS endpoints you wired
 
 export default function StatisticalPage() {
   // 입력값
@@ -21,56 +21,64 @@ export default function StatisticalPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
 
-  // 환경변수로 빼두면 배포 시 편합니다.
-  //const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:8000";
-  const API_ORIGIN = "http://localhost:8000";
-  const API_BASE = `${API_ORIGIN}/api`;
-
   // 1) Number of Tests 계산
-  const handleSensitivitySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSensitivitySubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg(null);
     setLoading(true);
     setDownloadLink(null);
-    try {
-      const payload: any = {
-        pfd_goal: parseFloat(pfdGoal),
-        confidence_goal: parseFloat(confidenceGoal),
-      };
-      if (traceId) payload.trace_id = traceId;
 
-      const res = await axios.post(`${API_BASE}/sensitivity-analysis`, payload);
-      const { num_tests } = res.data.data;
-      if (res.data.trace_id) setTraceId(res.data.trace_id);
-      setTests(Number(num_tests));
-    } catch (err) {
+    // quick guard
+    const p = parseFloat(pfdGoal);
+    const c = parseFloat(confidenceGoal);
+    if (!Number.isFinite(p) || !Number.isFinite(c)) {
+      setLoading(false);
+      setErrorMsg("숫자를 정확히 입력하세요.");
+      return;
+    }
+
+    try {
+      const out = await api.sensitivityAnalysis({
+        pfd_goal: p,
+        confidence_goal: c,
+        trace_id: traceId ?? undefined,
+      });
+      if (out.trace_id) setTraceId(out.trace_id);
+      setTests(Number(out.data.num_tests));
+    } catch (err: any) {
       console.error(err);
-      setErrorMsg("Sensitivity Analysis 호출 중 오류가 발생했습니다.");
+      setErrorMsg(`Sensitivity Analysis 오류: ${err?.message ?? String(err)}`);
     } finally {
       setLoading(false);
     }
   };
 
   // 2) Update PFD
-  const handlePfdUpdateSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handlePfdUpdateSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg(null);
     setLoading(true);
     setDownloadLink(null);
-    try {
-      const payload: any = {
-        pfd_goal: parseFloat(pfdGoal),
-        demand: tests,
-        failures: failures,
-      };
-      if (traceId) payload.trace_id = traceId;
 
-      const res = await axios.post(`${API_BASE}/update-pfd`, payload);
-      if (res.data.trace_id) setTraceId(res.data.trace_id);
-      // 출력은 생략
-    } catch (err) {
+    const p = parseFloat(pfdGoal);
+    if (!Number.isFinite(p)) {
+      setLoading(false);
+      setErrorMsg("PFD Goal을 숫자로 입력하세요.");
+      return;
+    }
+
+    try {
+      const out = await api.updatePfd({
+        pfd_goal: p,
+        demand: tests,
+        failures,
+        trace_id: traceId ?? undefined,
+      });
+      if (out.trace_id) setTraceId(out.trace_id);
+      // 성공 메시지를 별도로 노출하고 싶으면 여기서 setErrorMsg(null) 유지
+    } catch (err: any) {
       console.error(err);
-      setErrorMsg("Update PFD 호출 중 오류가 발생했습니다.");
+      setErrorMsg(`Update PFD 오류: ${err?.message ?? String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -81,26 +89,28 @@ export default function StatisticalPage() {
     setErrorMsg(null);
     setLoading(true);
     setDownloadLink(null);
+
+    const p = parseFloat(pfdGoal);
+    const c = parseFloat(confidenceGoal);
+    if (!Number.isFinite(p) || !Number.isFinite(c)) {
+      setLoading(false);
+      setErrorMsg("숫자를 정확히 입력하세요.");
+      return;
+    }
+
     try {
-      const payload: any = {
-        pfd_goal: parseFloat(pfdGoal),
-        confidence_goal: parseFloat(confidenceGoal),
-        failures: failures,
-      };
-      if (traceId) payload.trace_id = traceId;
-
-      const res = await axios.post(`${API_BASE}/full-analysis`, payload);
-      if (res.data.trace_id) setTraceId(res.data.trace_id);
-
-      // 서버가 준 상대 경로를 절대 URL로 변환
-      const dl = res.data.download_url as string | undefined; // 예: /api/download/uuid.json
-      if (dl) {
-        const absolute = new URL(dl, API_ORIGIN).toString();
-        setDownloadLink(absolute);
-      }
-    } catch (err) {
+      const out = await api.fullAnalysis({
+        pfd_goal: p,
+        confidence_goal: c,
+        failures,
+        trace_id: traceId ?? undefined,
+      });
+      if (out.trace_id) setTraceId(out.trace_id);
+      if (out.download_url) setDownloadLink(out.download_url);
+      else setErrorMsg("download_url 이 응답에 없습니다.");
+    } catch (err: any) {
       console.error(err);
-      setErrorMsg("Full Analysis 호출 중 오류가 발생했습니다.");
+      setErrorMsg(`Full Analysis 오류: ${err?.message ?? String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -111,15 +121,25 @@ export default function StatisticalPage() {
       <Global styles={cssObj.globalStyles} />
       <div css={cssObj.pageWrapper}>
         <main css={cssObj.mainContent}>
-          <section id="settings-title-section" css={[cssObj.container, cssObj.settingsTitleSection]}>
+          <section
+            id="settings-title-section"
+            css={[cssObj.container, cssObj.settingsTitleSection]}
+          >
             <h1 css={cssObj.title}>Statistical Methods</h1>
           </section>
 
           {loading && (
-            <div css={cssObj.container} style={{ marginTop: 8 }}><p>처리 중입니다...</p></div>
+            <div css={cssObj.container} style={{ marginTop: 8 }}>
+              <p>처리 중입니다...</p>
+            </div>
           )}
           {errorMsg && (
-            <div css={cssObj.container} style={{ marginTop: 8, color: "#d33" }}><p>{errorMsg}</p></div>
+            <div
+              css={cssObj.container}
+              style={{ marginTop: 8, color: "#d33" }}
+            >
+              <p>{errorMsg}</p>
+            </div>
           )}
 
           <div css={cssObj.settingsGrid}>
@@ -154,6 +174,13 @@ export default function StatisticalPage() {
                 <button type="submit" css={cssObj.saveButton} disabled={loading}>
                   Calculate Number of Tests
                 </button>
+
+                {/* 결과 미니 표시 */}
+                {tests > 0 && (
+                  <div css={cssObj.output} style={{ marginTop: 12 }}>
+                    계산된 <b>Number of Tests</b>: {tests}
+                  </div>
+                )}
               </form>
             </div>
 
@@ -192,14 +219,17 @@ export default function StatisticalPage() {
             {/* 3. Full Analysis */}
             <div css={[cssObj.settingBox, cssObj.longSettingBox]}>
               <h2>3. Full Analysis (Save JSON)</h2>
-              <button css={cssObj.saveButton} onClick={handleFullAnalysisSubmit} disabled={loading}>
+              <button
+                css={cssObj.saveButton}
+                onClick={handleFullAnalysisSubmit}
+                disabled={loading}
+              >
                 Run Full Analysis and Save
               </button>
 
               {downloadLink && (
                 <p css={cssObj.output} style={{ marginTop: 12 }}>
                   저장됨:&nbsp;
-                  {/* download 속성 넣지 마세요! 서버의 Content-Disposition 파일명을 사용해야 함 */}
                   <a href={downloadLink} target="_blank" rel="noreferrer">
                     결과 JSON 다운로드
                   </a>
