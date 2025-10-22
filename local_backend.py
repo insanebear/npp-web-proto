@@ -66,7 +66,7 @@ def get_results_url(job_id):
     
     if result_file.exists():
         return jsonify({
-            "downloadUrl": f"http://localhost:5000/jobs/{job_id}/results"
+            "downloadUrl": f"http://localhost:5001/jobs/{job_id}/results"
         })
     else:
         return jsonify({"error": "Results not found"}), 404

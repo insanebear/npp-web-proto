@@ -108,7 +108,7 @@ def get_job_status(job_id):
 def get_results_url(job_id):
     """결과 다운로드 URL 생성"""
     return jsonify({
-        "downloadUrl": f"http://localhost:5000/jobs/{job_id}/results"
+        "downloadUrl": f"http://localhost:5001/jobs/{job_id}/results"
     })
 
 @app.route('/jobs/<job_id>/results')
