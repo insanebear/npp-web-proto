@@ -1,11 +1,12 @@
-const API_BASE_URL = 'https://bm5kx387h8.execute-api.ap-northeast-2.amazonaws.com/prod';
+//const API_BASE_URL = 'https://bm5kx387h8.execute-api.ap-northeast-2.amazonaws.com/prod';
+const API_BASE_URL = 'http://localhost:5001'; // 로컬 백엔드 서버
 const API_BASE_URL_SST = 'https://a2gxqrwnzi.execute-api.ap-northeast-2.amazonaws.com';
 
 /**
  * Takes the form data, wraps it, and starts the simulation.
- * @returns The jobId for the new simulation.
+ * @returns The jobId and results for the new simulation.
  */
-export const startSimulation = async (formData: object): Promise<string> => {
+export const startSimulation = async (formData: object): Promise<{jobId: string, results?: any}> => {
   const requestBody = { data: JSON.stringify(formData) };
 
   const response = await fetch(`${API_BASE_URL}/simulations/bayesian`, {
@@ -23,7 +24,12 @@ export const startSimulation = async (formData: object): Promise<string> => {
   if (!result.jobId) {
     throw new Error('API response did not include a jobId.');
   }
-  return result.jobId;
+  
+  // 로컬 백엔드에서는 결과를 바로 반환하므로 이를 활용
+  return {
+    jobId: result.jobId,
+    results: result.result || result.results
+  };
 };
 
 /**
@@ -41,15 +47,29 @@ export const getJobStatus = async (jobId: string) => {
  * @returns The final JSON results from the S3 file.
  */
 export const getResults = async (jobId: string) => {
-  const urlResponse = await fetch(`${API_BASE_URL}/jobs/${jobId}/results-url`, { method: 'POST' });
-  if (!urlResponse.ok) throw new Error('Could not get results URL.');
-  
-  const { downloadUrl } = await urlResponse.json();
-  
-  const resultsResponse = await fetch(downloadUrl);
-  if (!resultsResponse.ok) throw new Error('Could not download results file from S3.');
-  
-  return resultsResponse.json();
+  try {
+    const urlResponse = await fetch(`${API_BASE_URL}/jobs/${jobId}/results-url`, { method: 'POST' });
+    if (!urlResponse.ok) {
+      console.error('Failed to get results URL:', urlResponse.status, urlResponse.statusText);
+      throw new Error('Could not get results URL.');
+    }
+    
+    const { downloadUrl } = await urlResponse.json();
+    console.log('Download URL:', downloadUrl);
+    
+    const resultsResponse = await fetch(downloadUrl);
+    if (!resultsResponse.ok) {
+      console.error('Failed to download results:', resultsResponse.status, resultsResponse.statusText);
+      throw new Error('Could not download results file.');
+    }
+    
+    const results = await resultsResponse.json();
+    console.log('Results received:', results);
+    return results;
+  } catch (error) {
+    console.error('Error in getResults:', error);
+    throw error;
+  }
 };
 
 

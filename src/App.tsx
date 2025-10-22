@@ -53,9 +53,18 @@ function App() {
     setJobStatus('Submitting...');
     setSimulationInput(formData);
     try {
-      const newJobId = await apiService.startSimulation(formData);
-      setJobId(newJobId);
-      navigate(`/reliability-views/${newJobId}`);
+      const response = await apiService.startSimulation(formData);
+      setJobId(response.jobId);
+      
+      // 로컬 백엔드에서는 결과를 바로 받을 수 있음
+      if (response.results) {
+        setResults(response.results);
+        setJobStatus('COMPLETED');
+      } else {
+        setJobStatus('PENDING');
+      }
+      
+      navigate(`/reliability-views/${response.jobId}`);
     } catch (err: any) {
       setError(err.message);
       setJobStatus(null);
@@ -156,12 +165,14 @@ function App() {
   }, [jobId, jobStatus]);
 
   useEffect(() => {
-    if (jobStatus === 'COMPLETED' && jobId && jobId !== 'local') {
+    // 로컬 백엔드에서는 이미 결과를 받았으므로 추가로 가져올 필요 없음
+    // AWS 백엔드용 코드는 유지
+    if (jobStatus === 'COMPLETED' && jobId && jobId !== 'local' && !results) {
       apiService.getResults(jobId)
         .then(setResults)
         .catch(() => setError('Failed to fetch final results.'));
     }
-  }, [jobStatus, jobId]);
+  }, [jobStatus, jobId, results]);
 
   useEffect(() => {
     const pathParts = location.pathname.split('/');
