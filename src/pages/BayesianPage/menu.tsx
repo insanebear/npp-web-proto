@@ -23,9 +23,9 @@ const Menu = ({
           text={label}
           active={activeLabel === label}
           onClick={() => setActiveLabel(label)}
-          x={'2%'}
+          x={'0%'}
           y={`${23 + index * labelSeparation}%`}
-          width={'20%'}
+          width={'25%'}
           height={'5%'}
           shape={'smooth'}
         />
