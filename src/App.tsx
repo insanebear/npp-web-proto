@@ -175,25 +175,25 @@ function App() {
 
 
   // --- Component Routing ---
+  const BayesianPageComponent = (
+    <BayesianPage
+      settings={settingsProps}
+      onStartSimulation={handleStartSimulation}
+      jobError={error}
+      jobStatus={jobStatus}
+      onFileUpload={handleBayesianUpload}
+      pendingFile={pendingFile}
+      onFileSelect={handleFileSelect}
+      // Pass the unified state and handler function as props
+      inputValues={inputValues}
+      onInputChange={handleInputChange}
+    />
+  );
+
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          <BayesianPage
-            settings={settingsProps}
-            onStartSimulation={handleStartSimulation}
-            jobError={error}
-            jobStatus={jobStatus}
-            onFileUpload={handleBayesianUpload}
-            pendingFile={pendingFile}
-            onFileSelect={handleFileSelect}
-            // Pass the unified state and handler function as props
-            inputValues={inputValues}
-            onInputChange={handleInputChange}
-          />
-        }
-      />
+      <Route path="/" element={BayesianPageComponent} />
+      <Route path="/bayesian" element={BayesianPageComponent} />
       <Route path="/statistical" element={<StatisticalPage />} />
       <Route path="/settings" element={<SettingsPage {...settingsProps}/>} />
       <Route

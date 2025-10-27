@@ -27,14 +27,16 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   onNavigate,
 }) => {
   const location = useLocation();
-  let activeItemText = "Bayesian Methods";
-  if (location.pathname.startsWith('/reliability-views')) {
-    activeItemText = "Reliability Views";
-  } else if (location.pathname.startsWith('/statistical')) {
-    activeItemText = "Statistical Methods";
-  } else if (location.pathname.startsWith('/settings')) {
-    activeItemText = "Settings";
-  }
+  let activeItemText = "Bayesian Methods";
+  if (location.pathname.startsWith('/reliability-views')) {
+    activeItemText = "Reliability Views";
+  } else if (location.pathname.startsWith('/statistical')) {
+    activeItemText = "Statistical Methods";
+  } else if (location.pathname.startsWith('/settings')) {
+    activeItemText = "Settings";
+  } else if (location.pathname === '/' || location.pathname.startsWith('/bayesian')) {
+    activeItemText = "Bayesian Methods";
+  }
 
   const handleItemClick = (itemName: string) => {
     if (onNavigate) {
