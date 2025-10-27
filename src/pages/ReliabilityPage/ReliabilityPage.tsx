@@ -25,35 +25,49 @@ const ReliabilityPage: React.FC<ReliabilityPageProps> = ({ jobId, jobStatus, res
     <>
       <Background />
       <SelectionBar
-        width="25%" height="6.4%" shape="sharp-rectangle" x="12.5%" y="9.6%" color="bg-gray-800" scale={0.7}
+        width="300px" height="6.4%" shape="sharp-rectangle" x="150px" y="9.6%" color="bg-gray-800" scale={0.7}
         onFileUpload={onFileUpload}
         pendingFile={pendingFile}
         onFileSelect={onFileSelect}
       />
 
-      {results && (
-        <ResultsDisplay
-          results={results}
-          onReset={onReset}
-          simulationInput={simulationInput}
-        />
-      )}
+      {/* Main content area - positioned in the right panel */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '12.8%',
+          left: '300px',
+          right: '2%',
+          height: '87.2%',
+          overflowY: 'auto',
+          padding: '2rem',
+          minWidth: '300px',
+        }}
+      >
+        {results && (
+          <ResultsDisplay
+            results={results}
+            onReset={onReset}
+            simulationInput={simulationInput}
+          />
+        )}
 
-      {isLoading && <StatusIndicator jobId={jobId!} jobStatus={jobStatus!} />}
+        {isLoading && <StatusIndicator jobId={jobId!} jobStatus={jobStatus!} />}
 
-      {error && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-8 bg-red-100 border border-red-400 rounded-lg text-red-800 text-center">
-          <h3 className="font-bold">An Error Occurred</h3>
-          <p>{error}</p>
-        </div>
-      )}
+        {error && (
+          <div className="p-8 bg-red-100 border border-red-400 rounded-lg text-red-800 text-center">
+            <h3 className="font-bold">An Error Occurred</h3>
+            <p>{error}</p>
+          </div>
+        )}
 
-      {!results && !isLoading && !error && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-center">
-          <h2 className="text-2xl">No Simulation Job Specified</h2>
-          <p>Please start a new simulation or upload a result file.</p>
-        </div>
-      )}
+        {!results && !isLoading && !error && (
+          <div className="text-white text-center">
+            <h2 className="text-2xl">No Simulation Job Specified</h2>
+            <p>Please start a new simulation or upload a result file.</p>
+          </div>
+        )}
+      </div>
     </>
   );
 };
