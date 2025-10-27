@@ -1,5 +1,6 @@
 const API_BASE_URL = 'https://bm5kx387h8.execute-api.ap-northeast-2.amazonaws.com/prod';
-const API_BASE_URL_SST = 'https://a2gxqrwnzi.execute-api.ap-northeast-2.amazonaws.com';
+// const API_BASE_URL_SST = 'https://a2gxqrwnzi.execute-api.ap-northeast-2.amazonaws.com';
+const API_BASE_URL_SST = 'http://localhost:8000';
 
 /**
  * Takes the form data, wraps it, and starts the simulation.
