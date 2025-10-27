@@ -100,7 +100,7 @@ const DropDown: React.FC<DropDownProps> = ({
         />
 
         {isOpen && (
-          <div className="absolute top-full mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-xl z-10">
+          <div className="absolute w-full bg-white border border-gray-200 rounded-lg shadow-xl z-10" style={{ top: '100%', marginTop: '30px' }}>
             {options.map(option => (
               <div
                 key={option}
