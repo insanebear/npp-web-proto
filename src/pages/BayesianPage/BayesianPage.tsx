@@ -39,7 +39,7 @@ function BayesianPage({
         </div>
       )}
       <SelectionBar
-        width="25%" height="6.4%" shape="sharp-rectangle" x="12.5%" y="9.6%" color="bg-gray-800" scale={0.7}
+        width="300px" height="6.4%" shape="sharp-rectangle" x="150px" y="9.6%" color="bg-gray-800" scale={0.7}
         onFileUpload={onFileUpload}
         pendingFile={pendingFile}
         onFileSelect={onFileSelect}

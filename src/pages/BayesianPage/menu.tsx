@@ -25,7 +25,7 @@ const Menu = ({
           onClick={() => setActiveLabel(label)}
           x={'0%'}
           y={`${23 + index * labelSeparation}%`}
-          width={'25%'}
+          width={'300px'}
           height={'5%'}
           shape={'smooth'}
         />
@@ -36,7 +36,7 @@ const Menu = ({
         style={{
           position: 'absolute',
           top: '12.8%',
-          left: '25%',
+          left: '300px',
           right: '2%',
           height: '87.2%',
           overflowY: 'auto',
