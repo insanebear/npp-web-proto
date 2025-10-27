@@ -29,10 +29,9 @@ interface SelectionBarProps {
 }
 
 const SelectionBar: React.FC<SelectionBarProps> = ({
-  width = '500px',
+  width = 'calc(100% - 2rem)',
   height = '60px',
   shape = 'smooth-rectangle',
-  x = '50%',
   y = '50%',
   color = 'bg-gray-800',
   scale = 1,
@@ -76,7 +75,17 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
   const fontSize = baseFontSize * scale, iconSize = baseIconSize * scale, buttonHeight = baseButtonHeight * scale, buttonPaddingX = baseButtonPaddingX * scale, gap = baseGap * scale, containerPadding = baseContainerPadding * scale;
   
   // FIXED: Explicitly typed the style object to CSSProperties
-  const containerStyle: CSSProperties = { position: 'absolute', top: y, left: x, width: width, height: height, transform: 'translate(-50%, -50%)', padding: `${containerPadding}px`, gap: `${gap}px` };
+  const containerStyle: CSSProperties = { 
+    position: 'absolute', 
+    top: y,
+    width: width, 
+    height: height, 
+    transform: 'translateY(-50%)', 
+    padding: `${containerPadding}px`, 
+    gap: `${gap}px`,
+    minWidth: '300px',
+    maxWidth: 'calc(100% - 2rem)'
+  };
   const selectionTextStyle = { fontSize: `${fontSize}px` };
   const buttonStyle = { height: `${buttonHeight}px`, paddingLeft: `${buttonPaddingX}px`, paddingRight: `${buttonPaddingX}px`, fontSize: `${fontSize}px`, borderRadius: `${8 * scale}px` };
   const shapeClass = shape === 'smooth-rectangle' ? 'rounded-xl' : 'rounded-none';
@@ -98,11 +107,11 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
           {selectionName}
         </p>
       </div>
-      <div className="flex items-center" style={{ gap: `${gap}px` }}>
+      <div className="flex items-center flex-shrink-0" style={{ gap: `${gap}px` }}>
         <button
           onClick={handleSearchClick}
           style={buttonStyle}
-          className="flex items-center justify-center bg-gray-700/50 hover:bg-gray-600/80 text-white font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
+          className="flex items-center justify-center bg-gray-700/50 hover:bg-gray-600/80 text-white font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white whitespace-nowrap"
         >
           <SearchIcon size={iconSize} />
           <span style={{ marginLeft: `${gap}px` }}>Search</span>
@@ -110,7 +119,7 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
         <button
           onClick={handleUploadClick}
           style={buttonStyle}
-          className="flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
+          className="flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white whitespace-nowrap"
         >
           <UploadIcon size={iconSize} />
           <span style={{ marginLeft: `${gap}px` }}>Upload</span>

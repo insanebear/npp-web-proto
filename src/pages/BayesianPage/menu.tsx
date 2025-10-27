@@ -37,10 +37,11 @@ const Menu = ({
           position: 'absolute',
           top: '12.8%',
           left: '25%',
-          width: '75%',
+          right: '2%',
           height: '87.2%',
           overflowY: 'auto',
           padding: '2rem',
+          minWidth: '300px',
         }}
       >
         {/* --- CONDITIONAL RENDERING: FP Input vs. Dropdowns --- */}
@@ -68,7 +69,8 @@ const Menu = ({
                         padding: '8px 12px',
                         borderRadius: '6px',
                         border: '1px solid #D1D5DB',
-                        width: '250px',
+                        width: '100%',
+                        maxWidth: '400px',
                         fontSize: '14px',
                         backgroundColor: '#FFFFFF',
                         color: '#111827',
@@ -84,7 +86,7 @@ const Menu = ({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: '3rem 1.5rem',
             }}
           >
