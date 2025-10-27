@@ -5,3 +5,4 @@ sqlalchemy
 pymysql
 requests
 pymc
+python-dotenv
