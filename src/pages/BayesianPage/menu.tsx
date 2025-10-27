@@ -12,7 +12,7 @@ const Menu = ({
   activeLabelAndDropdowns
 }: any) => {
   const labels = TABS.map(tab => tab.label);
-  const labelSeparation = 5;
+  const labelSeparation = 6;
 
   return (
     <>
