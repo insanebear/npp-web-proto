@@ -93,7 +93,7 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
   return (
     <div
       style={containerStyle}
-      className={`flex items-center ${color} ${shapeClass} shadow-2xl border border-white/10`}
+      className={`flex flex-col ${color} ${shapeClass} shadow-2xl border border-white/10`}
     >
       <input
         type="file"
@@ -102,12 +102,12 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
         onChange={handleFileChange}
         className="hidden"
       />
-      <div className="flex-grow px-4">
+      <div className="w-full px-4 py-2">
         <p className="text-gray-300 truncate" style={selectionTextStyle} title={selectionName}>
           {selectionName}
         </p>
       </div>
-      <div className="flex items-center flex-shrink-0" style={{ gap: `${gap}px` }}>
+      <div className="flex items-center justify-center w-full px-4 pb-2" style={{ gap: `${gap}px`, marginTop: '4px' }}>
         <button
           onClick={handleSearchClick}
           style={buttonStyle}
