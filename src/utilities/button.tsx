@@ -36,7 +36,7 @@ const Button: React.FC<ButtonProps> = ({
   customClasses = '',
   disabled = false,
 }) => {
-  const baseClasses = 'font-semibold focus:outline-none transition-all duration-300 ease-in-out border-2 flex items-center justify-start text-left pl-4';
+  const baseClasses = 'font-semibold focus:outline-none transition-all duration-300 ease-in-out border-2 flex items-center justify-center text-center';
   let shapeClasses = '';
   let paddingClasses = 'px-5 py-2';
 
