@@ -6,3 +6,9 @@ pymysql
 requests
 pymc
 python-dotenv
+jax
+jaxlib
+numpyro
+arviz
+scipy
+pytensor
