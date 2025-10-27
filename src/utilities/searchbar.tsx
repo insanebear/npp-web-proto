@@ -41,7 +41,7 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
   onFileSelect,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const selectionName = pendingFile ? pendingFile.name : 'No current selection';
+  const selectionName = pendingFile ? pendingFile.name : 'Select a file';
 
   const handleSearchClick = () => {
     fileInputRef.current?.click();
@@ -72,7 +72,7 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
     }
   };
  
-  const baseFontSize = 14, baseIconSize = 16, baseButtonHeight = 40, baseButtonPaddingX = 16, baseGap = 8, baseContainerPadding = 8;
+  const baseFontSize = 16, baseIconSize = 18, baseButtonHeight = 44, baseButtonPaddingX = 18, baseGap = 10, baseContainerPadding = 10;
   const fontSize = baseFontSize * scale, iconSize = baseIconSize * scale, buttonHeight = baseButtonHeight * scale, buttonPaddingX = baseButtonPaddingX * scale, gap = baseGap * scale, containerPadding = baseContainerPadding * scale;
   
   // FIXED: Explicitly typed the style object to CSSProperties
