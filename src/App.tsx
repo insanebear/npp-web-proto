@@ -22,7 +22,7 @@ const initializeInputState = (initialData?: any) => {
 
       // Special handling for the new FP input
       if (tab.label === 'FP') {
-        initialState[key] = uploadedValue || '120'; // Default FP to 120
+        initialState[key] = uploadedValue || '56'; // Default FP to 56
       } else {
         // Use the uploaded value, or default to 'Medium' for dropdowns
         initialState[key] = uploadedValue || child.values[1];
