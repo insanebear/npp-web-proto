@@ -55,14 +55,15 @@ function BayesianPage({
       />
       {/* Fixed-width control box positioned below Settings */}
       <div className="absolute" style={{ 
-        right: '20px', // 오른쪽에서 20px 안쪽
-        top: '60px', 
+        right: '40px',
+        top: '48px', 
         width: '340px', 
+        maxWidth: 'calc(100vw - 50% - 150px - 40px)',
         height: '60px',
         padding: '12px 16px',
         zIndex: 10
       }}>
-        <div className="flex items-center justify-between h-full">
+        <div className="flex items-center gap-6 h-full">
           <div className="flex items-center gap-3">
             <label className="text-black text-sm font-medium whitespace-nowrap">
               Include trace raw data
