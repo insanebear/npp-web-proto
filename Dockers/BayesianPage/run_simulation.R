@@ -16,26 +16,40 @@ print("--- SCRIPT VERSION 12 (JAGS with AWS & JSON Output) ---")
 job_id <- Sys.getenv("JOB_ID")
 table_name <- Sys.getenv("JOBS_TABLE_NAME")
 s3_bucket_name <- Sys.getenv("S3_BUCKET_NAME")
+test_mode <- Sys.getenv("TEST_MODE", "false")
 
-# Check if essential variables are set
-if (job_id == "" || table_name == "" || s3_bucket_name == "") {
+# Check if essential variables are set (skip in test mode)
+if (test_mode == "true") {
+  print("--- RUNNING IN TEST MODE (No AWS) ---")
+  job_id <- "test-job-123"
+  table_name <- "test-table"
+  s3_bucket_name <- "test-bucket"
+} else if (job_id == "" || table_name == "" || s3_bucket_name == "") {
   stop("FATAL: Missing essential environment variables (JOB_ID, JOBS_TABLE_NAME, S3_BUCKET_NAME).")
 }
 
-# Initialize paws clients. They will automatically use the Fargate Task's IAM Role.
-dynamodb <- paws::dynamodb()
-s3 <- paws::s3()
-print("--- AWS clients initialized. ---")
+# Initialize paws clients only if not in test mode
+if (test_mode != "true") {
+  dynamodb <- paws::dynamodb()
+  s3 <- paws::s3()
+  print("--- AWS clients initialized. ---")
+} else {
+  print("--- Skipping AWS initialization in test mode ---")
+}
 
 
 # --- 3. Update Job Status to "RUNNING" ---
 print(paste("--- Updating job", job_id, "to RUNNING... ---"))
-dynamodb$update_item(
-  TableName = table_name,
-  Key = list(jobId = list(S = job_id)),
-  UpdateExpression = "SET jobStatus = :s",
-  ExpressionAttributeValues = list(":s" = list(S = "RUNNING"))
-)
+if (test_mode != "true") {
+  dynamodb$update_item(
+    TableName = table_name,
+    Key = list(jobId = list(S = job_id)),
+    UpdateExpression = "SET jobStatus = :s",
+    ExpressionAttributeValues = list(":s" = list(S = "RUNNING"))
+  )
+} else {
+  print("--- Skipping DynamoDB update in test mode ---")
+}
 
 # --- 4. Main Simulation Logic (with Error Handling) ---
 # tryCatch ensures that if any part of the simulation fails,
@@ -157,23 +171,32 @@ print(paste0(
   s3_object_key <- paste0("results/", job_id, "/", json_filename)
   print(paste("--- Uploading results to s3://", s3_bucket_name, "/", s3_object_key, " ---", sep=""))
   
-  s3$put_object(
-    Bucket = s3_bucket_name,
-    Key = s3_object_key,
-    Body = json_filename # Upload the JSON file
-  )
-  
-  # --- 7. Update Job Status to "COMPLETED" ---
-  print("--- Upload successful. Updating job status to COMPLETED. ---")
-  dynamodb$update_item(
-    TableName = table_name,
-    Key = list(jobId = list(S = job_id)),
-    UpdateExpression = "SET jobStatus = :s, resultsPath = :p",
-    ExpressionAttributeValues = list(
-      ":s" = list(S = "COMPLETED"),
-      ":p" = list(S = s3_object_key)
+  if (test_mode != "true") {
+    s3$put_object(
+      Bucket = s3_bucket_name,
+      Key = s3_object_key,
+      Body = json_filename # Upload the JSON file
     )
-  )
+    
+    # --- 7. Update Job Status to "COMPLETED" ---
+    print("--- Upload successful. Updating job status to COMPLETED. ---")
+    dynamodb$update_item(
+      TableName = table_name,
+      Key = list(jobId = list(S = job_id)),
+      UpdateExpression = "SET jobStatus = :s, resultsPath = :p",
+      ExpressionAttributeValues = list(
+        ":s" = list(S = "COMPLETED"),
+        ":p" = list(S = s3_object_key)
+      )
+    )
+  } else {
+    print("--- Skipping S3 upload and DynamoDB update in test mode ---")
+    print("--- Key results saved locally ---")
+    if ("PFD" %in% names(results_list)) {
+      print(paste("PFD Mean:", results_list$PFD$mean))
+      print(paste("PFD SD:", results_list$PFD$sd))
+    }
+  }
   
   print("--- Script finished successfully. ---")
   
@@ -183,16 +206,20 @@ print(paste0(
   error_message <- paste("Error during simulation:", e$message)
   print(error_message)
   
-  # Update job status to FAILED in DynamoDB
-  dynamodb$update_item(
-    TableName = table_name,
-    Key = list(jobId = list(S = job_id)),
-    UpdateExpression = "SET jobStatus = :s, errorMessage = :e",
-    ExpressionAttributeValues = list(
-      ":s" = list(S = "FAILED"),
-      ":e" = list(S = error_message)
+  # Update job status to FAILED in DynamoDB (only if not in test mode)
+  if (test_mode != "true") {
+    dynamodb$update_item(
+      TableName = table_name,
+      Key = list(jobId = list(S = job_id)),
+      UpdateExpression = "SET jobStatus = :s, errorMessage = :e",
+      ExpressionAttributeValues = list(
+        ":s" = list(S = "FAILED"),
+        ":e" = list(S = error_message)
+      )
     )
-  )
+  } else {
+    print("--- Skipping DynamoDB error update in test mode ---")
+  }
   
   # Cause the script to exit with an error code
   quit(status = 1)
