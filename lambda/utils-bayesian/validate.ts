@@ -1,3 +1,19 @@
+/**
+ * ⚠️  WARNING: DELETE CANDIDATE  ⚠️
+ * ================================================
+ * This TypeScript file is NOT currently in use.
+ * The actual Lambda function uses JavaScript versions of these utilities
+ * that are deployed directly in AWS Lambda console.
+ * 
+ * CONSIDER DELETING THIS FILE:
+ * - This appears to be a development/reference version
+ * - The actual running Lambda uses JS versions (parser.js, tabs.js, validate.js)
+ * - No deployment configuration found in the project
+ * 
+ * If keeping for reference, ensure it matches the deployed JS versions.
+ * ================================================
+ */
+
 // --- /utils-bayesian/validate.ts ---
 
 import { validationSchema } from './tabs';

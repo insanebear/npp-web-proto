@@ -21,10 +21,13 @@ function BayesianPage({
 }: any) {
   // The active tab state remains local. We'll default to the new "FP" tab.
   const [activeLabel, setActiveLabel] = useState('FP');
+  const [includeTraceData, setIncludeTraceData] = useState(false);
 
   const handleSubmit = () => {
     // The `inputValues` from props now contains FP and all dropdowns.
     const payload = formatPayload(inputValues, settings);
+    // Include trace data setting in the payload
+    payload.settings.includeTraceData = includeTraceData;
     onStartSimulation(payload);
   };
 
@@ -51,10 +54,23 @@ function BayesianPage({
         onInputChange={onInputChange} // Pass unified handler down
         activeLabelAndDropdowns={activeLabelAndDropdowns}
       />
+      <div className="absolute" style={{ left: '75%', top: '10%', width: '25%', height: '5%' }}>
+        <div className="flex items-center gap-2 h-full">
+          <label className="text-black text-sm font-medium whitespace-nowrap">
+            Include trace raw data
+          </label>
+          <input
+            type="checkbox"
+            checked={includeTraceData}
+            onChange={(e) => setIncludeTraceData(e.target.checked)}
+            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+          />
+        </div>
+      </div>
       <SubmitButton
         onClick={handleSubmit}
         status={jobStatus}
-        x="87%" y="90%" width="8%" height="5%"
+        x="88%" y="10%" width="8%" height="5%"
       />
     </>
   );

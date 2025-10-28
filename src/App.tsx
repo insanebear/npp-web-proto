@@ -12,7 +12,15 @@ import { useAppSettings } from './hooks/useAppSettings';
 import * as apiService from './services/apiService';
 import { TABS } from './constants/tabs';
 
-// Helper function to initialize or reset all input values
+// ===========================================
+// HELPER FUNCTIONS
+// ===========================================
+
+/**
+ * Initialize or reset all input values to their default state
+ * @param initialData - Optional data to pre-populate inputs
+ * @returns Initial state object for input values
+ */
 const initializeInputState = (initialData?: any) => {
   const initialState: { [key: string]: string } = {};
   TABS.forEach(tab => {
@@ -32,25 +40,40 @@ const initializeInputState = (initialData?: any) => {
   return initialState;
 };
 
+// ===========================================
+// MAIN APP COMPONENT
+// ===========================================
+
 function App() {
   const settingsProps = useAppSettings();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // --- Central State Management ---
+  // ===========================================
+  // STATE MANAGEMENT
+  // ===========================================
+
+  // Simulation-related state
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<string | null>(null);
   const [results, setResults] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [simulationInput, setSimulationInput] = useState<object | null>(null);
+
+  // File-related state
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  // UNIFIED STATE: State for all inputs is now managed centrally.
+  // Input values state (unified state for all form inputs)
   const [inputValues, setInputValues] = useState(() => initializeInputState());
 
+  // ===========================================
+  // SIMULATION EVENT HANDLERS
+  // ===========================================
 
-  // --- Core Functions ---
-
+  /**
+   * Start a new simulation with the provided form data
+   * @param formData - The form data containing simulation parameters
+   */
   const handleStartSimulation = async (formData: object) => {
     setError(null);
     setResults(null);
@@ -66,29 +89,36 @@ function App() {
     }
   };
 
+  /**
+   * Reset all application state to initial values
+   */
   const handleReset = () => {
     setJobId(null);
     setJobStatus(null);
     setResults(null);
     setError(null);
     setSimulationInput(null);
-    setPendingFile(null); // Also clear any pending file on reset
-    // Also reset all inputs to their default values
+    setPendingFile(null);
     setInputValues(initializeInputState());
     navigate('/');
   };
 
+  // ===========================================
+  // FILE UPLOAD HANDLERS
+  // ===========================================
+
+  /**
+   * Handle file selection for upload
+   * @param file - The selected file
+   */
   const handleFileSelect = (file: File) => {
     setPendingFile(file);
   };
 
-  // UNIFIED STATE HANDLER: This function updates the central state for any input.
-  const handleInputChange = (key: string, value: string) => {
-    setInputValues(prev => ({ ...prev, [key]: value }));
-  };
-
-  // --- Upload Handlers for Different Pages ---
-
+  /**
+   * Handle file upload for Reliability page (results display)
+   * @param fileContent - The content of the uploaded file
+   */
   const handleReliabilityUpload = (fileContent: string) => {
     try {
       const data = JSON.parse(fileContent);
@@ -99,7 +129,7 @@ function App() {
         setJobStatus('COMPLETED');
         setError(null);
         navigate('/reliability-views/local');
-        setPendingFile(null); // Clear the pending file after successful upload
+        setPendingFile(null);
       } else {
         throw new Error("Invalid file. JSON must contain an 'output' key.");
       }
@@ -108,36 +138,54 @@ function App() {
     }
   };
 
+  /**
+   * Handle file upload for Bayesian page (input loading)
+   * @param fileContent - The content of the uploaded file
+   */
   const handleBayesianUpload = (fileContent: string) => {
     try {
-        const data = JSON.parse(fileContent);
-        if (typeof data === 'object' && data !== null && data.input && data.output) {
-            setResults(data.output);
-            setSimulationInput(data.input);
-            const { settings } = data.input;
-            if (settings) {
-                settingsProps.setnChains(Number(settings.nChains));
-                settingsProps.setnIter(Number(settings.nIter));
-                settingsProps.setnBurnin(Number(settings.nBurnin));
-                settingsProps.setnThin(Number(settings.nThin));
-                settingsProps.setcomputeDIC(settings.computeDIC === 'true');
-            }
-            // When a file is uploaded, update the input state with its values
-            setInputValues(initializeInputState(data.input));
-            setError(null);
-            alert("Inputs and settings have been loaded from the file. Results are available on the Reliability Views page.");
-            setPendingFile(null); // Clear the pending file after successful upload
-        } else {
-            throw new Error("Invalid file. JSON must contain 'input' and 'output' keys.");
+      const data = JSON.parse(fileContent);
+      if (typeof data === 'object' && data !== null && data.input && data.output) {
+        setResults(data.output);
+        setSimulationInput(data.input);
+        const { settings } = data.input;
+        if (settings) {
+          settingsProps.setnChains(Number(settings.nChains));
+          settingsProps.setnIter(Number(settings.nIter));
+          settingsProps.setnBurnin(Number(settings.nBurnin));
+          settingsProps.setnThin(Number(settings.nThin));
+          settingsProps.setcomputeDIC(settings.computeDIC === 'true');
         }
+        setInputValues(initializeInputState(data.input));
+        setError(null);
+        alert("Inputs and settings have been loaded from the file. Results are available on the Reliability Views page.");
+        setPendingFile(null);
+      } else {
+        throw new Error("Invalid file. JSON must contain 'input' and 'output' keys.");
+      }
     } catch (err: any) {
-        setError(err.message || 'Failed to parse the uploaded file.');
+      setError(err.message || 'Failed to parse the uploaded file.');
     }
   };
 
+  // ===========================================
+  // INPUT MANAGEMENT HANDLERS
+  // ===========================================
 
-  // --- useEffect Hooks for State Synchronization ---
+  /**
+   * Update input values for any form input
+   * @param key - The input key (tab/child format)
+   * @param value - The new value
+   */
+  const handleInputChange = (key: string, value: string) => {
+    setInputValues(prev => ({ ...prev, [key]: value }));
+  };
 
+  // ===========================================
+  // SIDE EFFECTS
+  // ===========================================
+
+  // Job status polling effect
   useEffect(() => {
     if (!jobId || jobStatus === 'COMPLETED' || jobStatus === 'FAILED' || jobId === 'local') {
       return;
@@ -157,6 +205,7 @@ function App() {
     return () => clearInterval(intervalId);
   }, [jobId, jobStatus]);
 
+  // Results download effect
   useEffect(() => {
     if (jobStatus === 'COMPLETED' && jobId && jobId !== 'local') {
       apiService.getResults(jobId)
@@ -165,6 +214,7 @@ function App() {
     }
   }, [jobStatus, jobId]);
 
+  // URL job ID extraction effect
   useEffect(() => {
     const pathParts = location.pathname.split('/');
     const urlJobId = pathParts[2];
@@ -173,8 +223,10 @@ function App() {
     }
   }, [location.pathname, jobId]);
 
+  // ===========================================
+  // COMPONENT RENDERING
+  // ===========================================
 
-  // --- Component Routing ---
   const BayesianPageComponent = (
     <BayesianPage
       settings={settingsProps}
@@ -184,7 +236,6 @@ function App() {
       onFileUpload={handleBayesianUpload}
       pendingFile={pendingFile}
       onFileSelect={handleFileSelect}
-      // Pass the unified state and handler function as props
       inputValues={inputValues}
       onInputChange={handleInputChange}
     />
