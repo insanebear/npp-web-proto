@@ -27,14 +27,16 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   onNavigate,
 }) => {
   const location = useLocation();
-  let activeItemText = "Bayesian Methods";
-  if (location.pathname.startsWith('/reliability-views')) {
-    activeItemText = "Reliability Views";
-  } else if (location.pathname.startsWith('/statistical')) {
-    activeItemText = "Statistical Methods";
-  } else if (location.pathname.startsWith('/settings')) {
-    activeItemText = "Settings";
-  }
+  let activeItemText = "Bayesian Methods";
+  if (location.pathname.startsWith('/reliability-views')) {
+    activeItemText = "Reliability Views";
+  } else if (location.pathname.startsWith('/statistical')) {
+    activeItemText = "Statistical Methods";
+  } else if (location.pathname.startsWith('/settings')) {
+    activeItemText = "Settings";
+  } else if (location.pathname === '/' || location.pathname.startsWith('/bayesian')) {
+    activeItemText = "Bayesian Methods";
+  }
 
   const handleItemClick = (itemName: string) => {
     if (onNavigate) {
@@ -61,27 +63,24 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   };
   const shapeClass = shapeClasses[shape] || shapeClasses['smooth-rectangle'];
 
-  return (
-    <div style={barStyle} className={`${color} ${shapeClass} shadow-lg transition-all duration-300`}>
-      <div className="relative w-full h-full">
-        {Children.map(children, (child) => {
-          if (React.isValidElement(child)) {
-            // ======================== FINAL FIX IS HERE ========================
-            // We assert the type of the 'child' element itself before passing it to cloneElement.
-            // The generic on cloneElement is no longer needed as it can be inferred from the typed child.
+  return (
+    <div style={barStyle} className={`${color} ${shapeClass} shadow-lg transition-all duration-300`}>
+      <div className="flex justify-between items-center w-full h-full px-4">
+        {Children.map(children, (child, index) => {
+          if (React.isValidElement(child)) {
             const typedChild = child as ReactElement<NavItemProps>;
             return cloneElement(typedChild, {
               ...typedChild.props,
-              active: typedChild.props.text === activeItemText,
-              onClick: handleItemClick,
-            });
-            // ====================================================================
-          }
-          return child;
-        })}
-      </div>
-    </div>
-  );
+              active: typedChild.props.text === activeItemText,
+              onClick: handleItemClick,
+              className: `${typedChild.props.className || ''} ${index === 3 ? 'ml-auto' : ''}`,
+            });
+          }
+          return child;
+        })}
+      </div>
+    </div>
+  );
 };
 
 export default NavigationBar;

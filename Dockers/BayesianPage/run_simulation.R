@@ -16,26 +16,40 @@ print("--- SCRIPT VERSION 12 (JAGS with AWS & JSON Output) ---")
 job_id <- Sys.getenv("JOB_ID")
 table_name <- Sys.getenv("JOBS_TABLE_NAME")
 s3_bucket_name <- Sys.getenv("S3_BUCKET_NAME")
+test_mode <- Sys.getenv("TEST_MODE", "false")
 
-# Check if essential variables are set
-if (job_id == "" || table_name == "" || s3_bucket_name == "") {
+# Check if essential variables are set (skip in test mode)
+if (test_mode == "true") {
+  print("--- RUNNING IN TEST MODE (No AWS) ---")
+  job_id <- "test-job-123"
+  table_name <- "test-table"
+  s3_bucket_name <- "test-bucket"
+} else if (job_id == "" || table_name == "" || s3_bucket_name == "") {
   stop("FATAL: Missing essential environment variables (JOB_ID, JOBS_TABLE_NAME, S3_BUCKET_NAME).")
 }
 
-# Initialize paws clients. They will automatically use the Fargate Task's IAM Role.
-dynamodb <- paws::dynamodb()
-s3 <- paws::s3()
-print("--- AWS clients initialized. ---")
+# Initialize paws clients only if not in test mode
+if (test_mode != "true") {
+  dynamodb <- paws::dynamodb()
+  s3 <- paws::s3()
+  print("--- AWS clients initialized. ---")
+} else {
+  print("--- Skipping AWS initialization in test mode ---")
+}
 
 
 # --- 3. Update Job Status to "RUNNING" ---
 print(paste("--- Updating job", job_id, "to RUNNING... ---"))
-dynamodb$update_item(
-  TableName = table_name,
-  Key = list(jobId = list(S = job_id)),
-  UpdateExpression = "SET jobStatus = :s",
-  ExpressionAttributeValues = list(":s" = list(S = "RUNNING"))
-)
+if (test_mode != "true") {
+  dynamodb$update_item(
+    TableName = table_name,
+    Key = list(jobId = list(S = job_id)),
+    UpdateExpression = "SET jobStatus = :s",
+    ExpressionAttributeValues = list(":s" = list(S = "RUNNING"))
+  )
+} else {
+  print("--- Skipping DynamoDB update in test mode ---")
+}
 
 # --- 4. Main Simulation Logic (with Error Handling) ---
 # tryCatch ensures that if any part of the simulation fails,
@@ -81,7 +95,8 @@ getenv_logical <- function(var_name, default_val = TRUE) {
   nIter <- getenv_numeric("nIter", 5000)
   nBurnin <- getenv_numeric("nBurnin", 1000)
   nThin <- getenv_numeric("nThin", 1) 
-computeDIC <- getenv_logical("computeDIC", TRUE)
+  computeDIC <- getenv_logical("computeDIC", TRUE)
+  includeTraceData <- getenv_logical("includeTraceData", FALSE)
 print(paste0(
   "--- Starting JAGS simulation with parameters: ",
   "nChains = ", nChains,
@@ -94,10 +109,17 @@ print(paste0(
 
   # --- Run the JAGS Simulation ---
   model.file <- "/app/plumber/R2WinBUGS_Combined_Model.txt"
-  parameters_to_save <- c( 
-    "PFD", "SR_Total_Remained_Defect", "SD_Total_Remained_Defect", "IM_Total_Remained_Defect", "ST_Total_Remained_Defect", "IC_Total_Remained_Defect"
-    # (Add all other parameters you want to save)
-  )
+  
+  # Conditionally add trace parameter based on checkbox
+  if (includeTraceData) {
+    parameters_to_save <- c( 
+      "PFD", "SR_Total_Remained_Defect", "SD_Total_Remained_Defect", "IM_Total_Remained_Defect", "ST_Total_Remained_Defect", "IC_Total_Remained_Defect"
+    )
+  } else {
+    parameters_to_save <- c( 
+      "PFD", "SR_Total_Remained_Defect", "SD_Total_Remained_Defect", "IM_Total_Remained_Defect", "ST_Total_Remained_Defect", "IC_Total_Remained_Defect"
+    )
+  }
   jags_model <- jags.model(file = model.file, data = data, n.chains = nChains, n.adapt = nBurnin)
   update(jags_model, n.iter = nBurnin)
   jags_samples <- coda.samples(jags_model, variable.names = parameters_to_save, n.iter = nIter)
@@ -123,6 +145,20 @@ print(paste0(
     )
   }
 
+  # Add trace data if checkbox was checked
+  if (includeTraceData) {
+    # Add trace data for PFD samples
+    pfd_samples <- as.vector(as.matrix(jags_samples)[, "PFD"])
+    
+    # Store raw MCMC samples for PFD as a numeric array under "traces".
+    # This is the exact sample set used to compute the summary statistics above
+    # (mean, sd, quantiles). It is included only when includeTraceData == TRUE
+    # to support downstream visualization and debugging.
+    results_list[["traces"]] <- pfd_samples
+    
+    print("--- Trace data added to results ---")
+  }
+  
   # Convert the R list into a nicely formatted JSON string
   json_output <- toJSON(results_list, pretty = TRUE, auto_unbox = TRUE)
   
@@ -132,27 +168,46 @@ print(paste0(
   print(paste("--- JSON results saved to", json_filename, "---"))
   
   # --- 6. Upload JSON Results to S3 ---
-  s3_object_key <- paste0("results/", job_id, "/", json_filename)
+  s3_object_key <- paste0("results/results-", job_id, ".json")
   print(paste("--- Uploading results to s3://", s3_bucket_name, "/", s3_object_key, " ---", sep=""))
   
-  s3$put_object(
-    Bucket = s3_bucket_name,
-    Key = s3_object_key,
-    Body = json_filename # Upload the JSON file
-  )
-  
-  # --- 7. Update Job Status to "COMPLETED" ---
-  print("--- Upload successful. Updating job status to COMPLETED. ---")
-  dynamodb$update_item(
-    TableName = table_name,
-    Key = list(jobId = list(S = job_id)),
-    UpdateExpression = "SET jobStatus = :s, resultsPath = :p",
-    ExpressionAttributeValues = list(
-      ":s" = list(S = "COMPLETED"),
-      ":p" = list(S = s3_object_key)
+  if (test_mode != "true") {
+    s3$put_object(
+      Bucket = s3_bucket_name,
+      Key = s3_object_key,
+      Body = json_filename # Upload the JSON file
     )
-  )
+    
+    # --- 7. Update Job Status to "COMPLETED" ---
+    print("--- Upload successful. Updating job status to COMPLETED. ---")
+    dynamodb$update_item(
+      TableName = table_name,
+      Key = list(jobId = list(S = job_id)),
+      UpdateExpression = "SET jobStatus = :s, resultsPath = :p",
+      ExpressionAttributeValues = list(
+        ":s" = list(S = "COMPLETED"),
+        ":p" = list(S = s3_object_key)
+      )
+    )
+
+    # --- Delete local JSON file after successful S3 upload ---
+    if (file.exists(json_filename)) {
+      try({ file.remove(json_filename) }, silent = TRUE)
+    }
+  } else {
+    print("--- Skipping S3 upload and DynamoDB update in test mode ---")
+    print("--- Key results saved locally ---")
+    if ("PFD" %in% names(results_list)) {
+      print(paste("PFD Mean:", results_list$PFD$mean))
+      print(paste("PFD SD:", results_list$PFD$sd))
+    }
+  }
   
+  # --- Cleanup JAGS objects to free memory ---
+  if (exists("jags_model")) rm(jags_model)
+  if (exists("jags_samples")) rm(jags_samples)
+  invisible(gc())
+
   print("--- Script finished successfully. ---")
   
 }, error = function(e) {
@@ -161,16 +216,20 @@ print(paste0(
   error_message <- paste("Error during simulation:", e$message)
   print(error_message)
   
-  # Update job status to FAILED in DynamoDB
-  dynamodb$update_item(
-    TableName = table_name,
-    Key = list(jobId = list(S = job_id)),
-    UpdateExpression = "SET jobStatus = :s, errorMessage = :e",
-    ExpressionAttributeValues = list(
-      ":s" = list(S = "FAILED"),
-      ":e" = list(S = error_message)
+  # Update job status to FAILED in DynamoDB (only if not in test mode)
+  if (test_mode != "true") {
+    dynamodb$update_item(
+      TableName = table_name,
+      Key = list(jobId = list(S = job_id)),
+      UpdateExpression = "SET jobStatus = :s, errorMessage = :e",
+      ExpressionAttributeValues = list(
+        ":s" = list(S = "FAILED"),
+        ":e" = list(S = error_message)
+      )
     )
-  )
+  } else {
+    print("--- Skipping DynamoDB error update in test mode ---")
+  }
   
   # Cause the script to exit with an error code
   quit(status = 1)

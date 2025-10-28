@@ -68,13 +68,28 @@ def run_sampling(model, numpyro=False, draws=1000, tune=1000, chains=1):
         if numpyro:
             trace = pmjax.sample_numpyro_nuts(draws=draws, tune=tune, chains=chains)
         else:
-            trace = pm.sample(
-                draws=draws,
-                tune=tune,
-                chains=chains,
-                init="adapt_diag",          # 초기값 안정성
-                target_accept=0.9           # 허용 수락 확률을 높여서 발산 방지
-            )
+            # !!!: Try to use NUTS sampler, but it failed with ufunc error. So use Metropolis sampler instead.
+            # Need to be checked and reconsidered using another sampler like this. 251027
+            try:
+                # 원래 NUTS 샘플러 시도
+                trace = pm.sample(
+                    draws=draws,
+                    tune=tune,
+                    chains=chains,
+                    init="adapt_diag",
+                    target_accept=0.9
+                )
+            except Exception as e:
+                print(f"NUTS sampling failed with ufunc error: {e}")
+                print("Trying with Metropolis sampler...")
+                # NUTS 실패 시 Metropolis 샘플러 사용
+                trace = pm.sample(
+                    draws=draws,
+                    tune=tune,
+                    chains=chains,
+                    init="adapt_diag",
+                    step=pm.Metropolis()
+                )
     end = time.time()
     print("sampling time: ", end - start)
     print_summary(trace)
