@@ -189,6 +189,11 @@ print(paste0(
         ":p" = list(S = s3_object_key)
       )
     )
+
+    # --- Delete local JSON file after successful S3 upload ---
+    if (file.exists(json_filename)) {
+      try({ file.remove(json_filename) }, silent = TRUE)
+    }
   } else {
     print("--- Skipping S3 upload and DynamoDB update in test mode ---")
     print("--- Key results saved locally ---")
@@ -198,6 +203,11 @@ print(paste0(
     }
   }
   
+  # --- Cleanup JAGS objects to free memory ---
+  if (exists("jags_model")) rm(jags_model)
+  if (exists("jags_samples")) rm(jags_samples)
+  invisible(gc())
+
   print("--- Script finished successfully. ---")
   
 }, error = function(e) {
