@@ -99,7 +99,7 @@ print(paste0(
   # Conditionally add trace parameter based on checkbox
   if (includeTraceData) {
     parameters_to_save <- c( 
-      "PFD", "SR_Total_Remained_Defect", "SD_Total_Remained_Defect", "IM_Total_Remained_Defect", "ST_Total_Remained_Defect", "IC_Total_Remained_Defect", "trace"
+      "PFD", "SR_Total_Remained_Defect", "SD_Total_Remained_Defect", "IM_Total_Remained_Defect", "ST_Total_Remained_Defect", "IC_Total_Remained_Defect"
     )
   } else {
     parameters_to_save <- c( 
@@ -135,12 +135,12 @@ print(paste0(
   if (includeTraceData) {
     # Add trace data for PFD samples
     pfd_samples <- as.vector(as.matrix(jags_samples)[, "PFD"])
-    results_list[["trace"]] <- list(
-      PFD = pfd_samples
-    )
     
-    # Add trace as a separate parameter for JSON output
-    results_list[["trace_raw"]] <- pfd_samples
+    # Store raw MCMC samples for PFD as a numeric array under "traces".
+    # This is the exact sample set used to compute the summary statistics above
+    # (mean, sd, quantiles). It is included only when includeTraceData == TRUE
+    # to support downstream visualization and debugging.
+    results_list[["traces"]] <- pfd_samples
     
     print("--- Trace data added to results ---")
   }
