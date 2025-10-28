@@ -44,16 +44,17 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     }
   };
 
-  const barStyle: CSSProperties = {
-    position: 'absolute',
-    '--bar-width': width,
-    '--bar-height': height,
-    width: 'var(--bar-width)',
-    height: 'var(--bar-height)',
-    top: `clamp(calc(var(--bar-height) / 2), ${center.y}, calc(100% - var(--bar-height) / 2))`,
-    left: `clamp(calc(var(--bar-width) / 2), ${center.x}, calc(100% - var(--bar-width) / 2))`,
-    transform: 'translate(-50%, -50%)',
-  } as CSSProperties;
+  const barStyle: CSSProperties = {
+    position: 'absolute',
+    '--bar-width': width,
+    '--bar-height': height,
+    width: 'var(--bar-width)',
+    height: 'var(--bar-height)',
+    top: `clamp(calc(var(--bar-height) / 2), ${center.y}, calc(100% - var(--bar-height) / 2))`,
+    left: `clamp(calc(var(--bar-width) / 2), ${center.x}, calc(100% - var(--bar-width) / 2))`,
+    transform: 'translate(-50%, -50%)',
+    zIndex: 1000,
+  } as CSSProperties;
 
   const shapeClasses: { [key in Shape]: string } = {
     'smooth-rectangle': 'rounded-lg',
