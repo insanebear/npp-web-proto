@@ -38,8 +38,7 @@ const Menu = ({
           top: '12.8%',
           left: '300px',
           right: '2%',
-          height: '87.2%',
-          overflowY: 'auto',
+          minHeight: '87.2%',
           padding: '2rem',
           minWidth: '300px',
         }}

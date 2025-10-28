@@ -33,7 +33,7 @@ function BayesianPage({
   const activeLabelAndDropdowns = TABS.find(tab => tab.label === activeLabel);
 
   return (
-    <>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
       <Background />
       {jobError && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 p-4 bg-red-100 text-red-800 rounded-md">
@@ -95,7 +95,7 @@ function BayesianPage({
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
