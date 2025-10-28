@@ -168,7 +168,7 @@ print(paste0(
   print(paste("--- JSON results saved to", json_filename, "---"))
   
   # --- 6. Upload JSON Results to S3 ---
-  s3_object_key <- paste0("results/", job_id, "/", json_filename)
+  s3_object_key <- paste0("results/results-", job_id, ".json")
   print(paste("--- Uploading results to s3://", s3_bucket_name, "/", s3_object_key, " ---", sep=""))
   
   if (test_mode != "true") {
