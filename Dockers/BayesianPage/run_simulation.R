@@ -81,7 +81,8 @@ getenv_logical <- function(var_name, default_val = TRUE) {
   nIter <- getenv_numeric("nIter", 5000)
   nBurnin <- getenv_numeric("nBurnin", 1000)
   nThin <- getenv_numeric("nThin", 1) 
-computeDIC <- getenv_logical("computeDIC", TRUE)
+  computeDIC <- getenv_logical("computeDIC", TRUE)
+  includeTraceData <- getenv_logical("includeTraceData", FALSE)
 print(paste0(
   "--- Starting JAGS simulation with parameters: ",
   "nChains = ", nChains,
@@ -94,10 +95,17 @@ print(paste0(
 
   # --- Run the JAGS Simulation ---
   model.file <- "/app/plumber/R2WinBUGS_Combined_Model.txt"
-  parameters_to_save <- c( 
-    "PFD", "SR_Total_Remained_Defect", "SD_Total_Remained_Defect", "IM_Total_Remained_Defect", "ST_Total_Remained_Defect", "IC_Total_Remained_Defect"
-    # (Add all other parameters you want to save)
-  )
+  
+  # Conditionally add trace parameter based on checkbox
+  if (includeTraceData) {
+    parameters_to_save <- c( 
+      "PFD", "SR_Total_Remained_Defect", "SD_Total_Remained_Defect", "IM_Total_Remained_Defect", "ST_Total_Remained_Defect", "IC_Total_Remained_Defect", "trace"
+    )
+  } else {
+    parameters_to_save <- c( 
+      "PFD", "SR_Total_Remained_Defect", "SD_Total_Remained_Defect", "IM_Total_Remained_Defect", "ST_Total_Remained_Defect", "IC_Total_Remained_Defect"
+    )
+  }
   jags_model <- jags.model(file = model.file, data = data, n.chains = nChains, n.adapt = nBurnin)
   update(jags_model, n.iter = nBurnin)
   jags_samples <- coda.samples(jags_model, variable.names = parameters_to_save, n.iter = nIter)
@@ -123,6 +131,20 @@ print(paste0(
     )
   }
 
+  # Add trace data if checkbox was checked
+  if (includeTraceData) {
+    # Add trace data for PFD samples
+    pfd_samples <- as.vector(as.matrix(jags_samples)[, "PFD"])
+    results_list[["trace"]] <- list(
+      PFD = pfd_samples
+    )
+    
+    # Add trace as a separate parameter for JSON output
+    results_list[["trace_raw"]] <- pfd_samples
+    
+    print("--- Trace data added to results ---")
+  }
+  
   # Convert the R list into a nicely formatted JSON string
   json_output <- toJSON(results_list, pretty = TRUE, auto_unbox = TRUE)
   
