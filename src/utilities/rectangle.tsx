@@ -62,9 +62,9 @@ const Rectangle: React.FC<RectangleProps> = ({
   };
   const shapeClass = shapeClasses[shape] || shapeClasses['smooth-rectangle'];
 
-  return (
-    <div style={barStyle} className={`${color} ${shapeClass} shadow-lg transition-all duration-300`}>
-      <div className="relative w-full h-full">
+  return (
+    <div style={barStyle} className={`${color} ${shapeClass} shadow-lg transition-all duration-300`}>
+      <div className="relative w-full h-full">
         {Children.map(children, (child) => {
           if (React.isValidElement(child)) {
             // ======================== FINAL FIX IS HERE ========================

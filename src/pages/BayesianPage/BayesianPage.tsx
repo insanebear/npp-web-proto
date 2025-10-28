@@ -5,7 +5,6 @@ import Background from './background';
 import Menu from './menu';
 import { TABS } from '../../constants/tabs';
 import SelectionBar from '../../utilities/searchbar';
-import SubmitButton from './bayesian_submit_button/submitButton';
 
 // All props are now passed down from App.tsx
 function BayesianPage({
@@ -34,7 +33,7 @@ function BayesianPage({
   const activeLabelAndDropdowns = TABS.find(tab => tab.label === activeLabel);
 
   return (
-    <>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
       <Background />
       {jobError && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 p-4 bg-red-100 text-red-800 rounded-md">
@@ -54,25 +53,49 @@ function BayesianPage({
         onInputChange={onInputChange} // Pass unified handler down
         activeLabelAndDropdowns={activeLabelAndDropdowns}
       />
-      <div className="absolute" style={{ left: '75%', top: '10%', width: '25%', height: '5%' }}>
-        <div className="flex items-center gap-2 h-full">
-          <label className="text-black text-sm font-medium whitespace-nowrap">
-            Include trace raw data
-          </label>
-          <input
-            type="checkbox"
-            checked={includeTraceData}
-            onChange={(e) => setIncludeTraceData(e.target.checked)}
-            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-          />
+      {/* Fixed-width control box positioned below Settings */}
+      <div className="absolute" style={{ 
+        right: '40px',
+        top: '48px', 
+        width: '340px', 
+        maxWidth: 'calc(100vw - 50% - 150px - 40px)',
+        height: '60px',
+        padding: '12px 16px',
+        zIndex: 10
+      }}>
+        <div className="flex items-center gap-6 h-full">
+          <div className="flex items-center gap-3">
+            <label className="text-black text-sm font-medium whitespace-nowrap">
+              Include trace raw data
+            </label>
+            <input
+              type="checkbox"
+              checked={includeTraceData}
+              onChange={(e) => setIncludeTraceData(e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            />
+          </div>
+          <button
+            onClick={handleSubmit}
+            disabled={jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED'}
+            className={`
+              px-4 py-2 rounded-lg font-semibold text-white text-sm
+              transition-all duration-300 ease-in-out border-2 border-transparent
+              ${jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED' 
+                ? 'bg-gray-500 cursor-not-allowed' 
+                : 'bg-red-700 hover:bg-red-600 active:bg-red-800 cursor-pointer'
+              }
+            `}
+            style={{ width: '120px', height: '36px' }}
+          >
+            {!jobStatus || jobStatus === 'COMPLETED' || jobStatus === 'FAILED' 
+              ? 'Submit' 
+              : `${jobStatus.charAt(0).toUpperCase() + jobStatus.slice(1).toLowerCase()}...`
+            }
+          </button>
         </div>
       </div>
-      <SubmitButton
-        onClick={handleSubmit}
-        status={jobStatus}
-        x="88%" y="10%" width="8%" height="5%"
-      />
-    </>
+    </div>
   );
 }
 
