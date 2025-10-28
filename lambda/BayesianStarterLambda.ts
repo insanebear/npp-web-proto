@@ -1,4 +1,18 @@
 /**
+ * ⚠️  WARNING: DELETE CANDIDATE  ⚠️
+ * ================================================
+ * This TypeScript file is NOT currently in use.
+ * The actual Lambda function is deployed directly in AWS Lambda console
+ * as a JavaScript file with some differences (e.g., jobType field).
+ * 
+ * CONSIDER DELETING THIS FILE:
+ * - This appears to be a development/reference version
+ * - No deployment configuration found in the project
+ * - The actual running Lambda is in AWS console (JS format)
+ * 
+ * If keeping for reference, ensure it matches the deployed version.
+ * ================================================
+ * 
  * AWS Lambda Function: BayesianStarterLambda
  * 
  * This Lambda function serves as the entry point for starting Bayesian simulation jobs.
