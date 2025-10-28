@@ -2,7 +2,7 @@
 # Dockerfile for Fargate Batch Job
 # ===================================================================
 
-FROM rocker/r-base:4.4.1
+FROM rocker/r-ver:4.4.1
 
 # 1. Install system dependencies and update certificate store
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -24,10 +24,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 # 2. Install CRAN packages (including remotes and jsonlite)
-# MODIFICATION: Added 'jsonlite' for JSON conversion
 RUN R -e "install.packages(c('rjags', 'remotes', 'jsonlite'), repos='https://cloud.r-project.org', Ncpus = 4)"
 
-# 3. Install paws from CRAN (the correct method)
+# 3. Install paws from CRAN
 RUN R -e "install.packages('paws', repos='https://cloud.r-project.org', Ncpus = 4)"
 
 # 4. Verify paws is installed
