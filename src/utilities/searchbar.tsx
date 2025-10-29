@@ -22,7 +22,6 @@ interface SelectionBarProps {
   x?: string;
   y?: string;
   color?: string;
-  scale?: number;
   onFileUpload?: (fileContent: string) => void;
   pendingFile: File | null;
   onFileSelect: (file: File) => void;
@@ -34,7 +33,6 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
   shape = 'smooth-rectangle',
   y = '50%',
   color = 'bg-gray-800',
-  scale = 1,
   onFileUpload,
   pendingFile,
   onFileSelect,
@@ -71,10 +69,9 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
     }
   };
  
-  const baseFontSize = 16, baseIconSize = 18, baseButtonHeight = 44, baseButtonPaddingX = 18, baseGap = 10, baseContainerPadding = 10;
-  const fontSize = baseFontSize * scale, iconSize = baseIconSize * scale, buttonHeight = baseButtonHeight * scale, buttonPaddingX = baseButtonPaddingX * scale, gap = baseGap * scale, containerPadding = baseContainerPadding * scale;
+  const baseFontSize = 14, baseIconSize = 18, baseButtonHeight = 44, baseButtonPaddingX = 18, baseGap = 10, baseContainerPadding = 10;
+  const fontSize = baseFontSize, iconSize = baseIconSize, buttonHeight = baseButtonHeight, buttonPaddingX = baseButtonPaddingX, gap = baseGap, containerPadding = baseContainerPadding;
   
-  // FIXED: Explicitly typed the style object to CSSProperties
   const containerStyle: CSSProperties = { 
     position: 'absolute', 
     top: y,
@@ -87,7 +84,7 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
     maxWidth: 'calc(100% - 2rem)'
   };
   const selectionTextStyle = { fontSize: `${fontSize}px` };
-  const buttonStyle = { height: `${buttonHeight}px`, paddingLeft: `${buttonPaddingX}px`, paddingRight: `${buttonPaddingX}px`, fontSize: `${fontSize}px`, borderRadius: `${8 * scale}px` };
+  const buttonStyle = { height: `${buttonHeight}px`, paddingLeft: `${buttonPaddingX}px`, paddingRight: `${buttonPaddingX}px`, fontSize: `${fontSize}px`, borderRadius: '8px' };
   const shapeClass = shape === 'smooth-rectangle' ? 'rounded-xl' : 'rounded-none';
 
   return (

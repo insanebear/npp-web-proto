@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Background from './background';
 import Menu from './menu';
 import { TABS } from '../../constants/tabs';
-import SelectionBar from '../../utilities/searchbar';
 
 // All props are now passed down from App.tsx
 function BayesianPage({
@@ -40,23 +39,20 @@ function BayesianPage({
           Error: {jobError}
         </div>
       )}
-      <SelectionBar
-        width="300px" height="6.4%" shape="sharp-rectangle" x="150px" y="9.6%" color="bg-gray-800" scale={0.7}
-        onFileUpload={onFileUpload}
-        pendingFile={pendingFile}
-        onFileSelect={onFileSelect}
-      />
       <Menu
         activeLabel={activeLabel}
         setActiveLabel={setActiveLabel}
         inputValues={inputValues} // Pass unified state down
         onInputChange={onInputChange} // Pass unified handler down
         activeLabelAndDropdowns={activeLabelAndDropdowns}
+        onFileUpload={onFileUpload}
+        pendingFile={pendingFile}
+        onFileSelect={onFileSelect}
       />
       {/* Fixed-width control box positioned below Settings */}
       <div className="absolute" style={{ 
         right: '40px',
-        top: '48px', 
+        top: '80px', 
         width: '340px', 
         maxWidth: 'calc(100vw - 50% - 150px - 40px)',
         height: '60px',
