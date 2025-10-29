@@ -16,9 +16,12 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
       return;
     }
 
+    // Remove __rawText from output before saving (it's only for display)
+    const { __rawText, ...cleanOutput } = results as any;
+
     const combinedData = {
       input: simulationInput,
-      output: results,
+      output: cleanOutput,
     };
 
     const jsonString = JSON.stringify(combinedData, null, 2);
