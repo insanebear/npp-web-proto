@@ -60,11 +60,15 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
     const hasTraces = Boolean((container && container.traces) || (metrics && metrics.traces));
 
     return (
-      <div className="space-y-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {metrics ? (
           <>
-            <h3 className="text-lg font-semibold text-blue-800">Bayesian Simulation Results</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1e40af' }}>Bayesian Simulation Results</h3>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+              gap: '16px' 
+            }}>
               {Object.entries(metrics as Record<string, any>)
                 // Hide non-metric keys from cards
                 .filter(([param]) => param !== 'traces' && param !== '__rawText')
@@ -74,24 +78,29 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
                   return orderA - orderB;
                 })
                 .map(([param, data]: [string, any]) => (
-                  <div key={param} className="bg-blue-50 p-4 rounded-lg border">
-                    <h4 className="font-bold text-blue-900 mb-2">{param}</h4>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
+                  <div key={param} style={{
+                    backgroundColor: '#eff6ff',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    border: '1px solid #dbeafe'
+                  }}>
+                    <h4 style={{ fontWeight: 'bold', color: '#1e3a8a', marginBottom: '8px' }}>{param}</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>Mean:</span>
-                        <span className="font-mono">{data?.mean !== undefined ? Number(data.mean).toFixed(6) : 'N/A'}</span>
+                        <span style={{ fontFamily: 'monospace' }}>{data?.mean !== undefined ? Number(data.mean).toFixed(6) : 'N/A'}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>SD:</span>
-                        <span className="font-mono">{data?.sd !== undefined ? Number(data.sd).toFixed(6) : 'N/A'}</span>
+                        <span style={{ fontFamily: 'monospace' }}>{data?.sd !== undefined ? Number(data.sd).toFixed(6) : 'N/A'}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>Median:</span>
-                        <span className="font-mono">{data?.median !== undefined ? Number(data.median).toFixed(6) : 'N/A'}</span>
+                        <span style={{ fontFamily: 'monospace' }}>{data?.median !== undefined ? Number(data.median).toFixed(6) : 'N/A'}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>95% CI:</span>
-                        <span className="font-mono text-xs">[
+                        <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>[
                           {data?.q2_5 !== undefined ? Number(data.q2_5).toFixed(6) : 'N/A'}, {data?.q97_5 !== undefined ? Number(data.q97_5).toFixed(6) : 'N/A'}
                         ]</span>
                       </div>
@@ -102,15 +111,36 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
           </>
         ) : (
           // Fallback: plain statistical output format
-          <pre className="flex-grow bg-gray-100 p-4 rounded-md overflow-auto text-sm">
+          <pre style={{
+            flexGrow: 1,
+            backgroundColor: '#f3f4f6',
+            padding: '16px',
+            borderRadius: '6px',
+            overflow: 'auto',
+            fontSize: '14px'
+          }}>
             {JSON.stringify(results, null, 2)}
           </pre>
         )}
 
         {/* Raw JSON viewer: prefer container raw text, then metrics raw text, then pretty-printed */}
-        <details className="mt-4">
-          <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800">View Raw JSON Data{hasTraces ? ' (traces included)' : ''}</summary>
-          <pre className="mt-2 bg-gray-100 p-4 rounded-md overflow-auto text-xs">{
+        <details style={{ marginTop: '16px' }}>
+          <summary style={{ 
+            cursor: 'pointer', 
+            fontSize: '14px', 
+            color: '#4b5563',
+            textDecoration: 'underline'
+          }}>
+            View Raw JSON Data{hasTraces ? ' (traces included)' : ''}
+          </summary>
+          <pre style={{
+            marginTop: '8px',
+            backgroundColor: '#f3f4f6',
+            padding: '16px',
+            borderRadius: '6px',
+            overflow: 'auto',
+            fontSize: '12px'
+          }}>{
             (container && container.__rawText)
               ?? (metrics && metrics.__rawText)
               ?? JSON.stringify(results, null, 2)
@@ -122,24 +152,73 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
 
   return (
     <div
-      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-6 bg-white rounded-lg shadow-2xl text-gray-800"
-      style={{ width: '90%', maxWidth: '1200px', height: '85%', display: 'flex', flexDirection: 'column' }}
+      style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        padding: '24px',
+        backgroundColor: '#ffffff',
+        borderRadius: '8px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        color: '#1f2937',
+        width: '90%',
+        maxWidth: '1200px',
+        height: '85%',
+        display: 'flex',
+        flexDirection: 'column'
+      }}
     >
-      <h2 className="text-2xl font-bold mb-4 text-center">Simulation Results</h2>
-      <div className="flex-grow overflow-auto">
+      <h2 style={{ 
+        fontSize: '24px', 
+        fontWeight: 'bold', 
+        marginBottom: '16px', 
+        textAlign: 'center' 
+      }}>
+        Simulation Results
+      </h2>
+      <div style={{ flexGrow: 1, overflow: 'auto' }}>
         {renderResults()}
       </div>
-      <div className="mt-4 flex justify-center items-center gap-4">
+      <div style={{ 
+        marginTop: '16px', 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        gap: '16px' 
+      }}>
         <button
           onClick={handleSaveResults}
-          className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-500 transition-colors"
+          style={{
+            padding: '8px 24px',
+            backgroundColor: '#059669',
+            color: '#ffffff',
+            fontWeight: '600',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#047857'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#059669'}
           title="Save input and output to a JSON file"
         >
           Save Results
         </button>
         <button
           onClick={onReset}
-          className="px-6 py-2 bg-sky-600 text-white font-semibold rounded-lg hover:bg-sky-500 transition-colors"
+          style={{
+            padding: '8px 24px',
+            backgroundColor: '#0284c7',
+            color: '#ffffff',
+            fontWeight: '600',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#0369a1'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0284c7'}
         >
           Start New Simulation
         </button>

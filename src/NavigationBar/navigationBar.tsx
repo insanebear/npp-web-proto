@@ -56,28 +56,59 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     zIndex: 1000,
   } as CSSProperties;
 
-  const shapeClasses: { [key in Shape]: string } = {
-    'smooth-rectangle': 'rounded-lg',
-    'sharp-rectangle': 'rounded-none',
-    'pill': 'rounded-full',
-    'circle': 'rounded-full',
-  };
-  const shapeClass = shapeClasses[shape] || shapeClasses['smooth-rectangle'];
+  // Removed unused shapeClasses
+
+  // Convert Tailwind classes to inline styles
+  const getBackgroundColor = () => {
+    return color === 'bg-gray-100' ? '#f3f4f6' : 
+           color === 'bg-gray-800' ? '#1f2937' : '#f3f4f6';
+  };
+
+  const getBorderRadius = () => {
+    return shape === 'smooth-rectangle' ? '8px' :
+           shape === 'sharp-rectangle' ? '0' :
+           shape === 'pill' ? '9999px' : '0';
+  };
+
+  const barContainerStyle: CSSProperties = {
+    ...barStyle,
+    backgroundColor: getBackgroundColor(),
+    borderRadius: getBorderRadius(),
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    transition: 'all 0.3s',
+  };
+
+  const flexContainerStyle: CSSProperties = {
+    display: 'flex',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    width: '100%',
+    height: '100%',
+    padding: '0 16px',
+    gap: '32px',
+  };
+
+  // Ensure last item (Settings) sticks to the right edge
+  const items = Children.toArray(children);
 
   return (
-    <div style={barStyle} className={`${color} ${shapeClass} shadow-lg transition-all duration-300`}>
-      <div className="flex justify-between items-center w-full h-full px-4">
-        {Children.map(children, (child, index) => {
+    <div style={barContainerStyle}>
+      <div style={flexContainerStyle}>
+        {items.map((child, index) => {
           if (React.isValidElement(child)) {
             const typedChild = child as ReactElement<NavItemProps>;
-            return cloneElement(typedChild, {
+            const cloned = cloneElement(typedChild, {
               ...typedChild.props,
               active: typedChild.props.text === activeItemText,
               onClick: handleItemClick,
-              className: `${typedChild.props.className || ''} ${index === 3 ? 'ml-auto' : ''}`,
             });
+
+            if (index === items.length - 1) {
+              return <div key={`nav-${index}`} style={{ marginLeft: 'auto' }}>{cloned}</div>;
+            }
+            return <div key={`nav-${index}`}>{cloned}</div>;
           }
-          return child;
+          return child as any;
         })}
       </div>
     </div>

@@ -35,7 +35,16 @@ function BayesianPage({
     <div style={{ position: 'relative', minHeight: '100vh' }}>
       <Background />
       {jobError && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 p-4 bg-red-100 text-red-800 rounded-md">
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          padding: '16px',
+          backgroundColor: '#fee2e2',
+          color: '#991b1b',
+          borderRadius: '6px'
+        }}>
           Error: {jobError}
         </div>
       )}
@@ -59,30 +68,70 @@ function BayesianPage({
         padding: '12px 16px',
         zIndex: 10
       }}>
-        <div className="flex items-center gap-6 h-full">
-          <div className="flex items-center gap-3">
-            <label className="text-black text-sm font-medium whitespace-nowrap">
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '24px', 
+          height: '100%' 
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px' 
+          }}>
+            <label style={{ 
+              color: '#000000', 
+              fontSize: '14px', 
+              fontWeight: '500', 
+              whiteSpace: 'nowrap' 
+            }}>
               Include trace raw data
             </label>
             <input
               type="checkbox"
               checked={includeTraceData}
               onChange={(e) => setIncludeTraceData(e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+              style={{
+                width: '16px',
+                height: '16px',
+                color: '#2563eb',
+                backgroundColor: '#f3f4f6',
+                borderColor: '#d1d5db',
+                borderRadius: '4px',
+                outline: 'none'
+              }}
             />
           </div>
           <button
             onClick={handleSubmit}
             disabled={jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED'}
-            className={`
-              px-4 py-2 rounded-lg font-semibold text-white text-sm
-              transition-all duration-300 ease-in-out border-2 border-transparent
-              ${jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED' 
-                ? 'bg-gray-500 cursor-not-allowed' 
-                : 'bg-red-700 hover:bg-red-600 active:bg-red-800 cursor-pointer'
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              fontWeight: '600',
+              color: '#ffffff',
+              fontSize: '14px',
+              transition: 'all 0.3s ease-in-out',
+              border: '2px solid transparent',
+              width: '120px',
+              height: '36px',
+              backgroundColor: jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED' 
+                ? '#6b7280' 
+                : '#b91c1c',
+              cursor: jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED' 
+                ? 'not-allowed' 
+                : 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              if (jobStatus === null || jobStatus === 'COMPLETED' || jobStatus === 'FAILED') {
+                e.currentTarget.style.backgroundColor = '#dc2626';
               }
-            `}
-            style={{ width: '120px', height: '36px' }}
+            }}
+            onMouseLeave={(e) => {
+              if (jobStatus === null || jobStatus === 'COMPLETED' || jobStatus === 'FAILED') {
+                e.currentTarget.style.backgroundColor = '#b91c1c';
+              }
+            }}
           >
             {!jobStatus || jobStatus === 'COMPLETED' || jobStatus === 'FAILED' 
               ? 'Submit' 

@@ -62,26 +62,52 @@ const Rectangle: React.FC<RectangleProps> = ({
   };
   const shapeClass = shapeClasses[shape] || shapeClasses['smooth-rectangle'];
 
+  // Convert Tailwind classes to inline styles
+  const getBackgroundColor = () => {
+    return color === 'bg-red-100' ? '#fee2e2' : 
+           color === 'bg-gray-800' ? '#1f2937' : '#f3f4f6';
+  };
+
+  const getBorderRadius = () => {
+    return shapeClass === 'rounded-lg' ? '8px' :
+           shapeClass === 'rounded-none' ? '0' :
+           shapeClass === 'rounded-full' ? '9999px' : '8px';
+  };
+
+  const containerStyle: CSSProperties = {
+    ...barStyle,
+    backgroundColor: getBackgroundColor(),
+    borderRadius: getBorderRadius(),
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    transition: 'all 0.3s',
+  };
+
+  const innerContainerStyle: CSSProperties = {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+  };
+
   return (
-    <div style={barStyle} className={`${color} ${shapeClass} shadow-lg transition-all duration-300`}>
-      <div className="relative w-full h-full">
-        {Children.map(children, (child) => {
-          if (React.isValidElement(child)) {
+    <div style={containerStyle}>
+      <div style={innerContainerStyle}>
+        {Children.map(children, (child) => {
+          if (React.isValidElement(child)) {
             // ======================== FINAL FIX IS HERE ========================
             // Assert the type of the 'child' element itself before cloning.
             const typedChild = child as ReactElement<ChildWithClonedProps>;
-            return cloneElement(typedChild, {
+            return cloneElement(typedChild, {
               ...typedChild.props,
-              active: typedChild.props.text === activeItem,
-              onClick: handleItemClick,
-            });
+              active: typedChild.props.text === activeItem,
+              onClick: handleItemClick,
+            });
             // ====================================================================
-          }
-          return child;
-        })}
-      </div>
-    </div>
-  );
+          }
+          return child;
+        })}
+      </div>
+    </div>
+  );
 };
 
 export default Rectangle;

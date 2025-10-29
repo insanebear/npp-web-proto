@@ -87,36 +87,107 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
   const buttonStyle = { height: `${buttonHeight}px`, paddingLeft: `${buttonPaddingX}px`, paddingRight: `${buttonPaddingX}px`, fontSize: `${fontSize}px`, borderRadius: '8px' };
   const shapeClass = shape === 'smooth-rectangle' ? 'rounded-xl' : 'rounded-none';
 
+  // Convert Tailwind classes to inline styles
+  const getBackgroundColor = () => {
+    return color === 'bg-gray-800' ? '#1f2937' : '#f3f4f6';
+  };
+
+  const getBorderRadius = () => {
+    return shapeClass === 'rounded-xl' ? '12px' : '0';
+  };
+
+  const containerStyleWithClasses: CSSProperties = {
+    ...containerStyle,
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: getBackgroundColor(),
+    borderRadius: getBorderRadius(),
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+  };
+
+  const inputStyle: CSSProperties = {
+    display: 'none',
+  };
+
+  const textContainerStyle: CSSProperties = {
+    width: '100%',
+    padding: '8px 16px',
+  };
+
+  const textStyle: CSSProperties = {
+    ...selectionTextStyle,
+    color: '#d1d5db',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  };
+
+  const buttonContainerStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    padding: '0 16px 8px 16px',
+    gap: `${gap}px`,
+    marginTop: '4px',
+  };
+
+  const searchButtonStyle: CSSProperties = {
+    ...buttonStyle,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(55, 65, 81, 0.5)',
+    color: '#ffffff',
+    fontWeight: '600',
+    transition: 'all 0.2s',
+    outline: 'none',
+    whiteSpace: 'nowrap',
+  };
+
+  const uploadButtonStyle: CSSProperties = {
+    ...buttonStyle,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563eb',
+    color: '#ffffff',
+    fontWeight: '600',
+    transition: 'all 0.2s',
+    outline: 'none',
+    whiteSpace: 'nowrap',
+  };
+
   return (
-    <div
-      style={containerStyle}
-      className={`flex flex-col ${color} ${shapeClass} shadow-2xl border border-white/10`}
-    >
+    <div style={containerStyleWithClasses}>
       <input
         type="file"
         accept=".json"
         ref={fileInputRef}
         onChange={handleFileChange}
-        className="hidden"
+        style={inputStyle}
       />
-      <div className="w-full px-4 py-2">
-        <p className="text-gray-300 truncate" style={selectionTextStyle} title={selectionName}>
+      <div style={textContainerStyle}>
+        <p style={textStyle} title={selectionName}>
           {selectionName}
         </p>
       </div>
-      <div className="flex items-center justify-center w-full px-4 pb-2" style={{ gap: `${gap}px`, marginTop: '4px' }}>
+      <div style={buttonContainerStyle}>
         <button
           onClick={handleSearchClick}
-          style={buttonStyle}
-          className="flex items-center justify-center bg-gray-700/50 hover:bg-gray-600/80 text-white font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white whitespace-nowrap"
+          style={searchButtonStyle}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(75, 85, 99, 0.8)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(55, 65, 81, 0.5)'}
         >
           <SearchIcon size={iconSize} />
           <span style={{ marginLeft: `${gap}px` }}>Search</span>
         </button>
         <button
           onClick={handleUploadClick}
-          style={buttonStyle}
-          className="flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white whitespace-nowrap"
+          style={uploadButtonStyle}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
         >
           <UploadIcon size={iconSize} />
           <span style={{ marginLeft: `${gap}px` }}>Upload</span>
