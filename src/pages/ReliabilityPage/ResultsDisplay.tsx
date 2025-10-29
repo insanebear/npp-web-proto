@@ -50,13 +50,15 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
     // Detect Bayesian simulation style output
     // @ts-ignore - results is a runtime object; branch by key existence
     if (results.PFD || results.SR_Total_Remained_Defect) {
+      // Preserve whether traces are present for summary label only (not rendered as a card)
       const hasTraces = Boolean((results as any) && (results as any).traces);
       return (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-blue-800">Bayesian Simulation Results</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Object.entries(results as Record<string, any>)
-              .filter(([param]) => param !== 'traces')
+              // Hide non-metric keys from cards
+              .filter(([param]) => param !== 'traces' && param !== '__rawText')
               .sort(([paramA], [paramB]) => {
                 const orderA = (displayOrder as any)[paramA] ?? 99;
                 const orderB = (displayOrder as any)[paramB] ?? 99;
@@ -89,8 +91,9 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
               ))}
           </div>
           <details className="mt-4">
+            {/* Show the original response text if available; fallback to pretty-printed object */}
             <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800">View Raw JSON Data{hasTraces ? ' (traces included)' : ''}</summary>
-            <pre className="mt-2 bg-gray-100 p-4 rounded-md overflow-auto text-xs">{JSON.stringify(results, null, 2)}</pre>
+            <pre className="mt-2 bg-gray-100 p-4 rounded-md overflow-auto text-xs">{(results as any).__rawText ?? JSON.stringify(results, null, 2)}</pre>
           </details>
         </div>
       );

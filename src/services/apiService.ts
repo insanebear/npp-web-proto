@@ -60,8 +60,19 @@ export const getResults = async (jobId: string) => {
   
   const resultsResponse = await fetch(downloadUrl);
   if (!resultsResponse.ok) throw new Error('Could not download results file from S3.');
-  
-  return resultsResponse.json();
+  // Preserve the original JSON text as-is
+  const rawText = await resultsResponse.text();
+  try {
+    const parsed = rawText ? JSON.parse(rawText) : {};
+    // Attach the original raw text so the UI can display it unchanged
+    if (parsed && typeof parsed === 'object') {
+      (parsed as any).__rawText = rawText;
+    }
+    return parsed;
+  } catch {
+    // If parsing fails, return an object containing only the raw text
+    return { __rawText: rawText } as any;
+  }
 };
 
 // =======================================================
