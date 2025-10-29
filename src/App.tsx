@@ -123,7 +123,12 @@ function App() {
     try {
       const data = JSON.parse(fileContent);
       if (typeof data === 'object' && data !== null && 'output' in data) {
-        setResults(data.output);
+        const output = (data as any).output;
+        if (output && typeof output === 'object') {
+          // Preserve the full uploaded JSON text for the Raw viewer
+          (output as any).__rawText = fileContent;
+        }
+        setResults(output);
         setSimulationInput(data.input || null);
         setJobId('local');
         setJobStatus('COMPLETED');
