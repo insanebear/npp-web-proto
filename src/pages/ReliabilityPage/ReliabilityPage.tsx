@@ -25,7 +25,7 @@ const ReliabilityPage: React.FC<ReliabilityPageProps> = ({ jobId, jobStatus, res
     <>
       <Background />
       <SelectionBar
-        width="300px" height="6.4%" shape="sharp-rectangle" x="150px" y="9.6%" color="bg-gray-800" scale={0.7}
+        width="300px" height="6.4%" shape="sharp-rectangle" x="150px" y="9.6%" color="bg-gray-800"
         onFileUpload={onFileUpload}
         pendingFile={pendingFile}
         onFileSelect={onFileSelect}
