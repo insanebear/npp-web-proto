@@ -18,8 +18,8 @@ interface NavigationBarProps {
 }
 
 const NavigationBar: React.FC<NavigationBarProps> = ({
-  width = '100%',
-  height = '6.4%',
+  width = '100%',
+  height = '64px',
   color = 'bg-gray-100',
   center = { x: '50%', y: '0%' },
   shape = 'sharp-rectangle',
