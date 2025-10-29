@@ -35,12 +35,6 @@ const DropDown: React.FC<DropDownProps> = ({
   // FIXED: Provide the correct element type for the ref
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const textAlignClass = {
-    left: 'text-left',
-    right: 'text-right',
-    center: 'text-center',
-  }[alignment];
-
   const justifyContentClass = {
     left: 'justify-start',
     right: 'justify-end',
@@ -81,12 +75,23 @@ const DropDown: React.FC<DropDownProps> = ({
   return (
     <div style={containerStyle} ref={dropdownRef}>
       {label && (
-        <label className={`block text-sm font-medium ${label_color} ${textAlignClass}`}>
+        <label style={{
+          display: 'block',
+          fontSize: '14px',
+          fontWeight: '500',
+          color: label_color === 'text-gray-800' ? '#1f2937' : 
+                 label_color === 'text-gray-700' ? '#374151' : '#1f2937',
+          textAlign: alignment === 'left' ? 'left' : alignment === 'right' ? 'right' : 'center'
+        }}>
           {label}
         </label>
       )}
 
-      <div className="relative" style={{ width: '100%', height: height }}>
+      <div style={{ 
+        position: 'relative', 
+        width: '100%', 
+        height: height 
+      }}>
         <Button
           text={selectedOption}
           onClick={() => setIsOpen(prev => !prev)}
@@ -100,13 +105,35 @@ const DropDown: React.FC<DropDownProps> = ({
         />
 
         {isOpen && (
-          <div className="absolute w-full bg-white border border-gray-200 rounded-lg shadow-xl z-10" style={{ top: '100%', marginTop: '30px' }}>
+          <div 
+            style={{ 
+              position: 'absolute',
+              width: '100%',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              zIndex: 10,
+              top: '100%',
+              marginTop: '30px'
+            }}
+          >
             {options.map(option => (
               <div
                 key={option}
                 onClick={() => handleSelect(option)}
-                style={{ height: height, display: 'flex', alignItems: 'center' }}
-                className={`px-4 text-gray-700 hover:bg-sky-100 cursor-pointer transition-colors duration-150 ${textAlignClass}`}
+                style={{ 
+                  height: height, 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  padding: '0 16px',
+                  color: '#374151',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.15s',
+                  textAlign: alignment === 'left' ? 'left' : alignment === 'right' ? 'right' : 'center'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f9ff'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 {option}
               </div>

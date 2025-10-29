@@ -26,44 +26,57 @@ const Button: React.FC<ButtonProps> = ({
   onClick,
   shape = 'smooth',
   activeColor = 'bg-sky-500',
-  hoverColor = 'border-sky-300',
   textColor = 'text-white',
   activeTextColor = 'text-white',
   width = null,
   height = null,
   x = '50%',
   y = '50%',
-  customClasses = '',
   disabled = false,
 }) => {
-  const baseClasses = 'font-semibold focus:outline-none transition-all duration-300 ease-in-out border-2 flex items-center justify-center text-center';
-  let shapeClasses = '';
-  let paddingClasses = 'px-5 py-2';
+  // Convert Tailwind classes to inline styles
+  const getShapeStyles = () => {
+    switch (shape) {
+      case 'sharp':
+        return { borderRadius: '0' };
+      case 'circle':
+        return { borderRadius: '50%' };
+      case 'smooth':
+      default:
+        return { borderRadius: '8px' };
+    }
+  };
 
-  switch (shape) {
-    case 'sharp':
-      shapeClasses = 'rounded-none';
-      break;
-    case 'circle':
-      shapeClasses = 'rounded-full';
-      paddingClasses = '';
-      break;
-    case 'smooth':
-    default:
-      shapeClasses = 'rounded-lg';
-      break;
-  }
+  const getColorStyles = () => {
+    if (active) {
+      // Parse activeColor (e.g., 'bg-sky-500' -> '#0ea5e9')
+      const bgColor = activeColor === 'bg-sky-500' ? '#0ea5e9' : 
+                     activeColor === 'bg-blue-600' ? '#2563eb' : '#0ea5e9';
+      const activeTextColorValue = activeTextColor === 'text-white' ? '#ffffff' : '#ffffff';
+      return { backgroundColor: bgColor, color: activeTextColorValue, border: 'none' };
+    } else {
+      // Parse textColor (e.g., 'text-white' -> '#ffffff')
+      const textColorValue = textColor === 'text-white' ? '#ffffff' : 
+                            textColor === 'text-gray-800' ? '#1f2937' : '#ffffff';
+      return { backgroundColor: 'transparent', color: textColorValue, border: 'none' };
+    }
+  };
 
-  const activeClasses = `${activeColor} ${activeTextColor} border-transparent`;
-  const inactiveClasses = `bg-transparent ${textColor} hover:${hoverColor} border-transparent`;
+  const baseStyles = {
+    fontWeight: '600',
+    outline: 'none',
+    transition: 'all 0.3s ease-in-out',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center' as const,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.6 : 1,
+    ...getShapeStyles(),
+    ...getColorStyles(),
+  };
 
-  const finalClassName = `
-    ${baseClasses}
-    ${shapeClasses}
-    ${!width && !height ? paddingClasses : ''}
-    ${active ? activeClasses : inactiveClasses}
-    ${customClasses}
-  `.replace(/\s+/g, ' ').trim();
+  const paddingStyles = !width && !height ? { padding: '8px 20px' } : {};
 
   // FIXED: Explicitly typed the style object
   const buttonStyle: CSSProperties = {
@@ -72,6 +85,8 @@ const Button: React.FC<ButtonProps> = ({
     left: x,
     width: width || undefined,
     height: height || undefined,
+    ...baseStyles,
+    ...paddingStyles,
   };
 
   if (shape === 'circle') {
@@ -86,7 +101,6 @@ const Button: React.FC<ButtonProps> = ({
   return (
     <button
       onClick={onClick}
-      className={finalClassName}
       style={buttonStyle}
       disabled={disabled} // FIXED: Added disabled attribute
     >
