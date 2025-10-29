@@ -56,7 +56,7 @@ const Menu = ({
       <div
         style={{
           position: 'absolute',
-          top: '12.8%',
+          top: '160px',
           left: '300px',
           right: '2%',
           minHeight: '87.2%',

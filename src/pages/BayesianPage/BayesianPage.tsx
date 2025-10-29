@@ -52,7 +52,7 @@ function BayesianPage({
       {/* Fixed-width control box positioned below Settings */}
       <div className="absolute" style={{ 
         right: '40px',
-        top: '68px', 
+        top: '80px', 
         width: '340px', 
         maxWidth: 'calc(100vw - 50% - 150px - 40px)',
         height: '60px',
