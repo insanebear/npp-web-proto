@@ -20,7 +20,7 @@ export interface NavItemProps {
 const NavItem: React.FC<NavItemProps> = ({
   text,
   to,
-  size = 'text-sm',
+  size = 'text-base',
   font = 'mono',
   color = "text-gray-800",
   activeColor = "text-red-800",
