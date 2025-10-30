@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lambda:clean": "rm -rf lambda-build lambda/bundle.zip",
+    "lambda:build": "tsc -p lambda/tsconfig.json",
+    "lambda:zip": "cd lambda-build && zip -r ../lambda/bundle.zip .",
+    "lambda:deploy": "aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://lambda/bundle.zip --region $AWS_REGION --profile $AWS_PROFILE"
   },
   "dependencies": {
     "@emotion/babel-plugin": "^11.13.5",
@@ -17,7 +21,10 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-google-charts": "^5.2.1",
-    "react-router-dom": "^7.8.2"
+    "react-router-dom": "^7.8.2",
+    "@aws-sdk/client-dynamodb": "^3.670.0",
+    "@aws-sdk/client-ecs": "^3.670.0",
+    "@aws-sdk/lib-dynamodb": "^3.670.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
@@ -26,6 +33,7 @@
     "@types/react-dom": "^19.1.6",
     "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.6.0",
+    "bestzip": "^2.2.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.30.1",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -33,6 +41,8 @@
     "globals": "^16.3.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.16",
+    "@types/aws-lambda": "^8.10.138",
+    "@types/node": "^22.7.5",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.35.1",
     "vite": "^7.1.10"

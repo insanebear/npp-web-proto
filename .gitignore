@@ -251,3 +251,12 @@ cython_debug/
 .bashrc
 
 .cursor/
+
+# Local lambda env (do not commit)
+scripts/.lambda-env
+
+# Lambda build and downloads (do not commit)
+lambda/bundle.zip
+lambda-build/
+lambda/aws-live/*.zip
+lambda/aws-live/extracted/__MACOSX/

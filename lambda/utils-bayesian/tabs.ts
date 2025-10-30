@@ -1,17 +1,8 @@
 /**
- * ⚠️  WARNING: DELETE CANDIDATE  ⚠️
- * ================================================
- * This TypeScript file is NOT currently in use.
- * The actual Lambda function uses JavaScript versions of these utilities
- * that are deployed directly in AWS Lambda console.
- * 
- * CONSIDER DELETING THIS FILE:
- * - This appears to be a development/reference version
- * - The actual running Lambda uses JS versions (parser.js, tabs.js, validate.js)
- * - No deployment configuration found in the project
- * 
- * If keeping for reference, ensure it matches the deployed JS versions.
- * ================================================
+ * Validation schema (repo-managed TS)
+ * - Single source of truth for allowed field values per tab
+ * - Directly synced from live JS in lambda/aws-live/extracted
+ * - Used by validate.ts for form data validation
  */
 
 // This block contains two files that you would package together in a .zip file for deployment.
