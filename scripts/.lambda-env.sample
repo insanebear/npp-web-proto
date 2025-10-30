@@ -1,0 +1,6 @@
+# Copy this file to scripts/.lambda-env and edit values below
+# This file is sourced by scripts/*.sh (Git Bash)
+
+FUNCTION_NAME=my-starter
+AWS_REGION=ap-northeast-2
+AWS_PROFILE=default
