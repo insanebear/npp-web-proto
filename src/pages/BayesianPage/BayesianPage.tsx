@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Background from './background';
 import Menu from './menu';
 import { TABS } from '../../constants/tabs';
+import { getCodeKey } from '../../constants/labelToCode';
 
 // All props are now passed down from App.tsx
 function BayesianPage({
@@ -152,7 +153,9 @@ const formatPayload = (values: { [key: string]: string }, settings: any) => {
     if (!payload[tabLabel]) {
       payload[tabLabel] = {};
     }
-    payload[tabLabel][childLabel] = values[key];
+    const codeKey = getCodeKey(tabLabel, childLabel);
+    const outKey = codeKey || childLabel; // fallback to label if mapping missing
+    payload[tabLabel][outKey] = values[key];
   }
   // No longer needed: payload['FP'] = { 'FP Input': '120' };
   payload['settings'] = {

@@ -11,6 +11,7 @@ import ReliabilityPage from "./pages/ReliabilityPage/ReliabilityPage";
 import { useAppSettings } from './hooks/useAppSettings';
 import * as apiService from './services/apiService';
 import { TABS } from './constants/tabs';
+import { getCodeKey } from './constants/labelToCode';
 
 // ===========================================
 // HELPER FUNCTIONS
@@ -26,14 +27,17 @@ const initializeInputState = (initialData?: any) => {
   TABS.forEach(tab => {
     tab.children.forEach(child => {
       const key = `${tab.label}/${child.label}`;
-      const uploadedValue = initialData?.[tab.label]?.[child.label];
+      const uploadedSection = initialData?.[tab.label] || {};
+      const uploadedValueByLabel = uploadedSection?.[child.label];
+      const codeKey = getCodeKey(tab.label, child.label) || child.label;
+      const uploadedValueByCode = uploadedSection?.[codeKey];
 
       // Special handling for the new FP input
       if (tab.label === 'FP') {
-        initialState[key] = uploadedValue || '56'; // Default FP to 56
+        initialState[key] = uploadedValueByLabel ?? uploadedValueByCode ?? '56'; // Default FP to 56
       } else {
         // Use the uploaded value, or default to 'Medium' for dropdowns
-        initialState[key] = uploadedValue || child.values[1];
+        initialState[key] = (uploadedValueByLabel ?? uploadedValueByCode) || child.values[1];
       }
     });
   });

@@ -6,6 +6,7 @@
  */
 
 import { validationSchema } from './tabs';
+import { labelToCode } from './labelToCode';
 
 interface ValidationResult {
   isValid: boolean;
@@ -31,21 +32,39 @@ export function validateFormData(formData: Record<string, any>): ValidationResul
     return { isValid: false, errors: ["Request body must be a valid JSON object."] };
   }
 
-  for (const fieldLabel in formData) {
-    const submittedValue = formData[fieldLabel];
+  for (const fieldKey in formData) {
+    const submittedValue = formData[fieldKey];
 
-    if (settingsFields.has(fieldLabel)) {
+    if (settingsFields.has(fieldKey)) {
       continue;
     }
 
-    if (!validationSchema.has(fieldLabel)) {
-      errors.push(`Field '${fieldLabel}' is not a valid field.`);
+    // Accept either label keys or python-code keys
+    let effectiveLabel: string | null = null;
+    if (validationSchema.has(fieldKey)) {
+      effectiveLabel = fieldKey;
+    } else {
+      // try map code->label by scanning sections
+      for (const section of Object.keys(labelToCode)) {
+        const entries = (labelToCode as any)[section] as Record<string, string>;
+        for (const [label, code] of Object.entries(entries)) {
+          if (code === fieldKey) {
+            effectiveLabel = label;
+            break;
+          }
+        }
+        if (effectiveLabel) break;
+      }
+    }
+
+    if (!effectiveLabel || !validationSchema.has(effectiveLabel)) {
+      errors.push(`Field '${fieldKey}' is not a valid field.`);
       continue;
     }
 
-    const allowedValues = validationSchema.get(fieldLabel);
+    const allowedValues = validationSchema.get(effectiveLabel);
 
-    if (fieldLabel === "FP Input") {
+    if (effectiveLabel === "FP Input") {
       if (typeof submittedValue !== 'string' || submittedValue.trim() === '') {
         errors.push("Field 'FP Input' must be a non-empty string.");
       }
@@ -53,7 +72,7 @@ export function validateFormData(formData: Record<string, any>): ValidationResul
     }
 
     if (!allowedValues!.includes(submittedValue)) {
-      errors.push(`Invalid value for '${fieldLabel}'. Received '${submittedValue}', but expected one of: ${allowedValues!.join(', ')}.`);
+      errors.push(`Invalid value for '${effectiveLabel}'. Received '${submittedValue}', but expected one of: ${allowedValues!.join(', ')}.`);
     }
   }
 
