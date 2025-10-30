@@ -15,6 +15,8 @@ from bbn_inference.sensitivity_analysis import (
 )
 from bbn_inference.examples.example_for_composite_model import run_example_for_composite_model
 from bbn_inference.bbn_utils import run_sampling
+from bbn_inference.data import bayesian_data_from_json
+from bbn_inference.bbn_data_model import BayesianData
 
 router = APIRouter()
 
@@ -68,6 +70,9 @@ class FullAnalysisInput(BaseModel):
     confidence_goal: float
     failures: int
     trace_id: Optional[str] = Field(None, description="재사용할 trace_id (선택)")
+
+class InputJsonPayload(BaseModel):
+    input: Dict[str, Any]
 
 # ---------------- 0) trace 초기화 ----------------
 @router.post("/init-trace")
@@ -268,3 +273,19 @@ def download_result(file_name: str):
         media_type="application/json",
         filename=download_name,  # 다운로드 파일명 강제
     )
+
+# ---------------- X) JSON -> BayesianData 파싱 테스트/유틸 ----------------
+@router.post("/bbn/parse-input")
+def parse_input_to_bbn(payload: InputJsonPayload):
+    try:
+        bd: BayesianData = bayesian_data_from_json(payload.input)
+        # 간단한 요약 정보만 반환 (연결 확인용)
+        non_default = sum(1 for k, v in bd.attr_states.items())
+        return {
+            "message": "Parsed successfully",
+            "function_point": bd.function_point,
+            "complexity": bd.complexity,
+            "attributes_count": non_default,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to parse input: {e}")

@@ -146,3 +146,59 @@ def nrc_report_data():
     nrcReportData.attr_states["IC_VVASRG_state"] = State.Medium
     nrcReportData.attr_states["IC_VVFRG_state"] = State.Medium
     return nrcReportData
+
+def bayesian_data_from_json(input_json: dict) -> BayesianData:
+    """
+    Build a BayesianData instance from a JSON object structured by sections
+    with Python code keys inside sections. Accepts both label or code keys for FP.
+    Expected examples:
+      {
+        "FP": { "FP_Input": "56" },
+        "Requirement Dev": { "SR_SDP_state": "Medium", ... },
+        ...
+      }
+    """
+    bd = BayesianData()
+
+    def to_state(value: object) -> int:
+        if isinstance(value, str):
+            v = value.strip().lower()
+            if v == "high":
+                return State.High
+            if v == "medium":
+                return State.Medium
+            if v == "low":
+                return State.Low
+            # numeric strings fallthrough
+            try:
+                n = int(v)
+                return n  # assume 0/1/2 already mapped; caller ensures validity
+            except Exception:
+                return State.Medium
+        if isinstance(value, (int, float)):
+            try:
+                n = int(value)
+                return n
+            except Exception:
+                return State.Medium
+        return State.Medium
+
+    # FP parsing (accept both label and code key)
+    fp_section = input_json.get("FP", {}) or {}
+    fp_val = fp_section.get("FP_Input") or fp_section.get("FP Input")
+    if fp_val is not None:
+        try:
+            bd.set_function_point(int(str(fp_val)))
+        except Exception:
+            pass
+
+    # Attributes parsing: scan all sections and set matching code keys
+    for section_key, section_obj in input_json.items():
+        if not isinstance(section_obj, dict):
+            continue
+        for key, v in section_obj.items():
+            if key in bd.attr_states:
+                bd.attr_states[key] = to_state(v)
+
+    # Default any missing attributes remain as initialized
+    return bd

@@ -48,7 +48,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "System Sofware Quanlification",
+        label: "System Software Qualification",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -73,15 +73,15 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Concpet Documentation Evaluation",
+        label: "Concept Documentation Evaluation",
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Sofware User Requirement Allocation Analysis",
+        label: "Software User Requirement Allocation Analysis",
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Sofware Requirement Evaluation",
+        label: "Software Requirement Evaluation",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -109,7 +109,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "System Sofware Quanlification",
+        label: "System Software Qualification",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -125,7 +125,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Acitivity Summary Report",
+        label: "Activity Summary Report",
         values: ["Low", "Medium", "High"],
       },
     ],
@@ -134,11 +134,11 @@ export const TABS = [
     label: "Design Dev",
     children: [
       {
-        label: "Development Sofware Architecture",
+        label: "Development Software Architecture",
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Development Sofware Design",
+        label: "Development Software Design",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -162,7 +162,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Sofware Component Test Plan",
+        label: "Software Component Test Plan",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -178,7 +178,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "System Software Quanlification",
+        label: "System Software Qualification",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -243,7 +243,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "System Sofware Quanlification",
+        label: "System Software Qualification",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -259,7 +259,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Acitivity Summary Report",
+        label: "Activity Summary Report",
         values: ["Low", "Medium", "High"],
       },
     ],
@@ -292,7 +292,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Sofware Component Test Case",
+        label: "Software Component Test Case",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -300,7 +300,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Sofware Acceptance Test Case",
+        label: "Software Acceptance Test Case",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -312,7 +312,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "System Software Quanlification",
+        label: "System Software Qualification",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -361,7 +361,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Sofware Component Test Case",
+        label: "Software Component Test Case",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -373,7 +373,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Sofware Acceptance Test Case",
+        label: "Software Acceptance Test Case",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -385,7 +385,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "System Software Quanlification Test Procedure",
+        label: "System Software Qualification Test Procedure",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -401,7 +401,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Acitivity Summary Report",
+        label: "Activity Summary Report",
         values: ["Low", "Medium", "High"],
       },
     ],
@@ -430,15 +430,15 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "System Sofware Acceptance Procedure Generation",
+        label: "System Software Acceptance Procedure Generation",
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "System Sofware Integration Test Execution",
+        label: "System Software Integration Test Execution",
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "System Sofware Quanlification Test Execution",
+        label: "System Software Qualification Test Execution",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -475,15 +475,15 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "System Sofware Acceptance Procedure Generation",
+        label: "System Software Acceptance Procedure Generation",
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "System Sofware Integration Test Execution",
+        label: "System Software Integration Test Execution",
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "System Sofware Quanlification Test Execution",
+        label: "System Software Qualification Test Execution",
         values: ["Low", "Medium", "High"],
       },
       {
@@ -501,7 +501,7 @@ export const TABS = [
     ],
   },
   {
-    label: "Installlation and Checkout Dev",
+    label: "Installation and Checkout Dev",
     children: [
       {
         label: "Installation Procedure Generation",
@@ -526,7 +526,7 @@ export const TABS = [
     ],
   },
   {
-    label: "Installlation and Checkout V&V",
+    label: "Installation and Checkout V&V",
     children: [
       {
         label: "Installation Procedure Generation",
@@ -549,7 +549,7 @@ export const TABS = [
         values: ["Low", "Medium", "High"],
       },
       {
-        label: "Acitivity Summary Report",
+        label: "Activity Summary Report",
         values: ["Low", "Medium", "High"],
       },
       {
