@@ -2,14 +2,33 @@
 // ================== API CONFIGURATION ==================
 // =======================================================
 
-// 환경 변수에서 API URL 로드 (Vite는 import.meta.env 사용)
-// .env 파일에 다음 변수들을 설정하세요:
-// VITE_API_BASE_URL=https://bm5kx387h8.execute-api.ap-northeast-2.amazonaws.com/prod
-// VITE_API_BASE_URL_SST=https://a2gxqrwnzi.execute-api.ap-northeast-2.amazonaws.com
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bm5kx387h8.execute-api.ap-northeast-2.amazonaws.com/prod';
-const API_BASE_URL_SST = import.meta.env.VITE_API_BASE_URL_SST || 'https://a2gxqrwnzi.execute-api.ap-northeast-2.amazonaws.com';
-// 개발 환경에서는 로컬 서버 사용 가능
-// const API_BASE_URL_SST = import.meta.env.DEV ? 'http://localhost:8000' : import.meta.env.VITE_API_BASE_URL_SST;
+// Load API URL from environment variables (Vite uses import.meta.env)
+// ⚠️ Security: Environment variables are required. Please configure .env file.
+// See .env.example for reference.
+// Note: REST API Gateway URLs include stage path (/prod).
+
+function getRequiredEnvVar(name: string): string {
+  const value = import.meta.env[name];
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable: ${name}\n` +
+      `Please create a .env file with ${name} set to your API Gateway URL.\n` +
+      `See .env.example for reference.`
+    );
+  }
+  return value;
+}
+
+const API_BASE_URL = getRequiredEnvVar('VITE_API_BASE_URL');
+const API_BASE_URL_SST = getRequiredEnvVar('VITE_API_BASE_URL_SST');
+const API_KEY = getRequiredEnvVar('VITE_API_KEY');
+
+// Common headers for API requests
+// Note: REST API is protected by Usage Plan + API Key
+const getApiHeaders = () => ({
+  'Content-Type': 'application/json',
+  'x-api-key': API_KEY,
+});
 
 // =======================================================
 // ================ BAYESIAN PAGE ENDPOINTS ==============
@@ -25,7 +44,7 @@ export const startSimulation = async (formData: object): Promise<string> => {
 
   const response = await fetch(`${API_BASE_URL}/simulations/bayesian`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getApiHeaders(),
     body: JSON.stringify(requestBody),
   });
 
@@ -47,7 +66,9 @@ export const startSimulation = async (formData: object): Promise<string> => {
  * @returns The full status object from the backend
  */
 export const getJobStatus = async (jobId: string) => {
-  const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`);
+  const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+    headers: getApiHeaders(),
+  });
   if (!response.ok) throw new Error('Failed to fetch job status.');
   return response.json();
 };
@@ -58,7 +79,10 @@ export const getJobStatus = async (jobId: string) => {
  * @returns The final JSON results from the S3 file
  */
 export const getResults = async (jobId: string) => {
-  const urlResponse = await fetch(`${API_BASE_URL}/jobs/${jobId}/results-url`, { method: 'POST' });
+  const urlResponse = await fetch(`${API_BASE_URL}/jobs/${jobId}/results-url`, {
+    method: 'POST',
+    headers: getApiHeaders(),
+  });
   if (!urlResponse.ok) throw new Error('Could not get results URL.');
   
   const { downloadUrl } = await urlResponse.json();
@@ -84,29 +108,28 @@ export const getResults = async (jobId: string) => {
 // ============== STATISTICAL PAGE ENDPOINTS =============
 // =======================================================
 
-// 입력 타입 (기존 유지)
 export type SensitivityIn  = { pfd_goal: number; confidence_goal: number; trace_id?: string | null; test_mode?: boolean };
 export type UpdatePfdIn    = { pfd_goal: number; demand: number; failures: number; trace_id?: string | null; test_mode?: boolean };
 export type FullAnalysisIn = { pfd_goal: number; confidence_goal: number; failures: number; trace_id?: string | null; test_mode?: boolean };
 
-// HybridTool 작업 요청 응답 (모든 trigger 함수 동일)
+// HybridTool job request response (same for all trigger functions)
 export type HybridToolJobResponse = {
   job_id: string;
   message: string;
   task_arn?: string;
 };
 
-// HybridTool 결과 조회 응답
+// HybridTool results response
 export type HybridToolResultsResponse = {
   job_id: string;
-  download_url?: string; // update-pfd, full-analysis에만 있음
-  data?: SensitivityAnalysisResult; // sensitivity-analysis에만 있음 (Lambda 직접 반환)
+  download_url?: string; // Only for update-pfd, full-analysis
+  data?: SensitivityAnalysisResult; // Only for sensitivity-analysis (returned directly from Lambda)
   status: 'completed' | 'not_found' | 'failed';
   s3_location?: string;
   message?: string;
 };
 
-// S3에서 다운로드한 결과 파일 구조 (sensitivity-analysis)
+// Result file structure from S3 (sensitivity-analysis)
 export type SensitivityAnalysisResult = {
   message: string;
   data: {
@@ -116,14 +139,14 @@ export type SensitivityAnalysisResult = {
   };
 };
 
-// 기존 동기 응답 타입 (호환성 유지 - 더 이상 사용 안 함)
+// Legacy synchronous response types (maintained for compatibility - no longer used)
 export type SensitivityOut = { data: { num_tests: number }; trace_id?: string | null };
 export type UpdatePfdOut   = { message?: string; trace_id?: string | null };
 export type FullAnalysisOut= { download_url?: string; trace_id?: string | null };
 
 /**
  * Performs sensitivity analysis to determine the number of required tests.
- * NOTE: trace_id는 전송되지만 HybridTool에서는 무시됨 (stateless 아키텍처)
+ * NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
  * @param payload - Input parameters for sensitivity analysis
  * @returns Job response with job_id for async processing
  */
@@ -132,7 +155,7 @@ export const sensitivityAnalysis = (payload: SensitivityIn) =>
 
 /**
  * Updates the Probability of Failure on Demand (PFD) based on observed data.
- * NOTE: trace_id는 전송되지만 HybridTool에서는 무시됨 (stateless 아키텍처)
+ * NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
  * @param payload - Input parameters for PFD update
  * @returns Job response with job_id for async processing
  */
@@ -141,7 +164,7 @@ export const updatePfd = (payload: UpdatePfdIn) =>
 
 /**
  * Runs a complete analysis including sensitivity analysis and PFD updates.
- * NOTE: trace_id는 전송되지만 HybridTool에서는 무시됨 (stateless 아키텍처)
+ * NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
  * @param payload - Input parameters for full analysis
  * @returns Job response with job_id for async processing
  */
@@ -149,7 +172,7 @@ export const fullAnalysis = (payload: FullAnalysisIn) =>
   postJSON<HybridToolJobResponse>('/api/v1/full-analysis', payload);
 
 /**
- * Gets the job status from DynamoDB (BayesianPage와 동일한 방식)
+ * Gets the job status from DynamoDB (same approach as BayesianPage)
  * @param jobId - The job ID returned from the trigger function
  * @returns Job status object with jobStatus field
  */
@@ -157,7 +180,8 @@ export const getHybridToolJobStatus = async (
   jobId: string
 ): Promise<{ jobId: string; jobStatus: string; jobType?: string; errorMessage?: string }> => {
   const response = await fetch(
-    `${API_BASE_URL_SST}/api/v1/jobs/${jobId}`
+    `${API_BASE_URL_SST}/api/v1/jobs/${jobId}`,
+    { headers: getApiHeaders() }
   );
 
   if (!response.ok) {
@@ -185,10 +209,11 @@ export const getHybridToolResults = async (
   type: 'sensitivity-analysis' | 'update-pfd' | 'full-analysis'
 ): Promise<HybridToolResultsResponse> => {
   const response = await fetch(
-    `${API_BASE_URL_SST}/api/v1/results/${jobId}?type=${type}`
+    `${API_BASE_URL_SST}/api/v1/results/${jobId}?type=${type}`,
+    { headers: getApiHeaders() }
   );
 
-  // 404는 정상적인 응답 (파일이 아직 생성되지 않음) - 폴링 계속
+  // 404 is a normal response (file not yet created) - continue polling
   if (response.status === 404) {
     const data = await response.json().catch(() => ({}));
     return {
@@ -199,7 +224,7 @@ export const getHybridToolResults = async (
     };
   }
 
-  // 404가 아닌 다른 에러는 throw
+  // Throw error for non-404 responses
   if (!response.ok) {
     let message = '';
     try {
@@ -236,7 +261,7 @@ const join = (base: string, path: string) =>
 async function postJSON<T = any>(path: string, body: any): Promise<T> {
   const res = await fetch(join(API_BASE_URL_SST, path), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getApiHeaders(),
     body: JSON.stringify(body ?? {}),
   });
 
@@ -261,7 +286,9 @@ async function postJSON<T = any>(path: string, body: any): Promise<T> {
  * @returns Parsed JSON response
  */
 export async function getJSON<T = any>(path: string): Promise<T> {
-  const res = await fetch(join(API_BASE_URL_SST, path));
+  const res = await fetch(join(API_BASE_URL_SST, path), {
+    headers: getApiHeaders(),
+  });
   if (!res.ok) {
     let message = await res.text().catch(() => '');
     try { message = (await res.json())?.message ?? message; } catch {}
@@ -270,5 +297,10 @@ export async function getJSON<T = any>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// Debug logging for development
-console.log('API_BASE_URL_SST =', API_BASE_URL_SST);
+// Log only in development environment
+if (import.meta.env.DEV) {
+  console.log('API Configuration loaded:', {
+    API_BASE_URL: API_BASE_URL.substring(0, 50) + '...',
+    API_BASE_URL_SST: API_BASE_URL_SST.substring(0, 50) + '...'
+  });
+}
