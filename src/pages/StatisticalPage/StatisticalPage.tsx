@@ -161,14 +161,14 @@ export default function StatisticalPage() {
     return `${mins}분 ${secs}초`;
   };
 
-  // 예상 대기 시간 추정 (간단한 선형 추정)
+  // Estimate remaining time (simple linear estimation)
   const estimateRemainingTime = (): string | null => {
-    if (!isPolling || elapsedTime < 10) return null; // 최소 10초 이후에 추정 시작
-    // sensitivity-analysis는 보통 1-2분, full-analysis는 5-10분
-    // 간단하게 평균 3분으로 가정 (실제로는 히스토리 기반으로 개선 가능)
-    const avgTime = currentJobType === 'full-analysis' ? 300 : 120; // full: 5분, 나머지: 2분
+    if (!isPolling || elapsedTime < 10) return null; // Start estimation after minimum 10 seconds
+    // sensitivity-analysis usually takes 1-2 minutes, full-analysis takes 5-10 minutes
+    // Assume average 3 minutes (could be improved with history-based estimation)
+    const avgTime = currentJobType === 'full-analysis' ? 300 : 120; // full: 5 min, others: 2 min
     const remaining = Math.max(0, avgTime - elapsedTime);
-    if (remaining < 30) return null; // 30초 이하면 표시 안 함
+    if (remaining < 30) return null; // Don't display if less than 30 seconds remaining
     return formatElapsedTime(remaining);
   };
 

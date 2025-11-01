@@ -70,8 +70,8 @@ This project uses environment variables to configure API endpoints. **Important:
    # Bayesian API Gateway URL
    VITE_API_BASE_URL=https://YOUR_API_GATEWAY_ID.execute-api.ap-northeast-2.amazonaws.com/prod
 
-   # SST (Statistical) API Gateway URL
-   VITE_API_BASE_URL_SST=https://YOUR_API_GATEWAY_ID.execute-api.ap-northeast-2.amazonaws.com
+   # SST (Statistical) API Gateway URL (REST API - 스테이지 경로 포함)
+   VITE_API_BASE_URL_SST=https://YOUR_API_GATEWAY_ID.execute-api.ap-northeast-2.amazonaws.com/prod
    ```
 
 3. Replace `YOUR_API_GATEWAY_ID` with your actual API Gateway IDs.
