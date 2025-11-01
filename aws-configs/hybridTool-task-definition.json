@@ -1,0 +1,31 @@
+{
+  "family": "hybrid-tool-pymc-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "4096",
+  "memory": "8192",
+  "executionRoleArn": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/BayesianSimulationFargateTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "hybrid-tool-container",
+      "image": "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${DOCKER_IMAGE_TAG}",
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/npp-hybrid-tool",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "hybrid-tool"
+        }
+      },
+      "environment": [
+        {
+          "name": "AWS_REGION",
+          "value": "${AWS_REGION}"
+        }
+      ]
+    }
+  ]
+}
+

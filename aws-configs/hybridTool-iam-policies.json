@@ -1,0 +1,108 @@
+{
+  "taskExecutionRolePolicy": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        "Resource": "*"
+      }
+    ]
+  },
+  "taskRolePolicy": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "s3:PutObject",
+          "s3:GetObject"
+        ],
+        "Resource": "arn:aws:s3:::hybrid-tool-results/*"
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "dynamodb:UpdateItem"
+        ],
+        "Resource": "arn:aws:dynamodb:${AWS_REGION}:${AWS_ACCOUNT_ID}:table/*"
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        "Resource": "arn:aws:logs:${AWS_REGION}:${AWS_ACCOUNT_ID}:log-group:/ecs/npp-hybrid-tool:*"
+      }
+    ]
+  },
+  "lambdaTriggerRolePolicy": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "ecs:RunTask",
+          "ecs:DescribeTasks"
+        ],
+        "Resource": "*"
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "iam:PassRole"
+        ],
+        "Resource": [
+          "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole",
+          "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskRole"
+        ]
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "dynamodb:PutItem"
+        ],
+        "Resource": "arn:aws:dynamodb:${AWS_REGION}:${AWS_ACCOUNT_ID}:table/*"
+      }
+    ]
+  },
+  "lambdaGetResultsRolePolicy": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "s3:GetObject",
+          "s3:HeadObject",
+          "s3:ListBucket"
+        ],
+        "Resource": [
+          "arn:aws:s3:::hybrid-tool-results/*",
+          "arn:aws:s3:::hybrid-tool-results"
+        ]
+      }
+    ]
+  },
+  "lambdaGetJobStatusRolePolicy": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "dynamodb:GetItem"
+        ],
+        "Resource": "arn:aws:dynamodb:${AWS_REGION}:${AWS_ACCOUNT_ID}:table/*"
+      }
+    ]
+  }
+}
+
+
