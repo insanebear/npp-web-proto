@@ -1,0 +1,15 @@
+# Minimal dependencies for Lambda (FastAPI server not required)
+# NumPy is installed first in Dockerfile
+
+# Scientific computing and Bayesian inference
+numpy==1.26.4
+scipy==1.13.1
+h5py==3.11.0
+pymc==5.25.0
+pytensor==2.31.7
+arviz==0.22.0
+
+# AWS services
+boto3==1.35.0
+botocore==1.35.0
+
