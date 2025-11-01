@@ -256,6 +256,7 @@ cython_debug/
 
 # Local lambda env (do not commit)
 scripts/.lambda-env
+scripts/.hybridTool-env
 
 # Lambda build and downloads (do not commit)
 lambda/bundle.zip
