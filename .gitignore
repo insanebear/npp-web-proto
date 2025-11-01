@@ -260,6 +260,7 @@ scripts/.hybridTool-env
 
 # Lambda build and downloads (do not commit)
 lambda/bundle.zip
+lambda/hybridTool/*.zip
 lambda-build/
 lambda/aws-live/*.zip
 lambda/aws-live/extracted/__MACOSX/
