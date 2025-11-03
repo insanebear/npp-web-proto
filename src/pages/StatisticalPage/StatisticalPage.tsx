@@ -29,6 +29,9 @@ export default function StatisticalPage() {
   const [currentJobType, setCurrentJobType] = useState<'sensitivity-analysis' | 'update-pfd' | 'full-analysis' | null>(null);
   const isDevelopment = import.meta.env.DEV;
   const [testMode, setTestMode] = useState(false); // Test mode (only enabled in development)
+  const [sensitivityCompletedTime, setSensitivityCompletedTime] = useState<number | null>(null);
+  const [updatePfdCompletedTime, setUpdatePfdCompletedTime] = useState<number | null>(null);
+  const [fullAnalysisCompletedTime, setFullAnalysisCompletedTime] = useState<number | null>(null);
   const elapsedTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pollingRef = useRef<{ jobId: string; type: string; attempts: number; startTime: number } | null>(null);
 
@@ -54,7 +57,8 @@ export default function StatisticalPage() {
   const pollResults = async (
     jobId: string,
     type: 'sensitivity-analysis' | 'update-pfd' | 'full-analysis',
-    onComplete: (data: any, downloadUrl?: string) => void,
+    jobStartTime: number, // Job start time passed from handler
+    onComplete: (data: any, downloadUrl?: string, elapsedSeconds?: number) => void,
     onError: (error: string) => void
   ) => {
     let attempts = 0;
@@ -79,6 +83,8 @@ export default function StatisticalPage() {
           const response = await api.getHybridToolResults(jobId, type);
           
           if (response.status === 'completed') {
+            // Calculate elapsed time from job start
+            const completedElapsedTime = Math.floor((Date.now() - jobStartTime) / 1000);
             // All types return data directly from Lambda (solves presigned URL issues)
             if (response.data) {
               setIsPolling(false);
@@ -91,12 +97,12 @@ export default function StatisticalPage() {
                 const blob = new Blob([jsonStr], { type: 'application/json' });
                 downloadUrl = URL.createObjectURL(blob);
               }
-              onComplete(response.data, downloadUrl);
+              onComplete(response.data, downloadUrl, completedElapsedTime);
             } else if (response.download_url) {
               // Maintain compatibility with legacy approach
               setIsPolling(false);
               setCurrentJobType(null);
-              onComplete(null, response.download_url);
+              onComplete(null, response.download_url, completedElapsedTime);
             } else {
               // Status is COMPLETED but no results found - error handling
               setIsPolling(false);
@@ -161,23 +167,13 @@ export default function StatisticalPage() {
     return `${mins}분 ${secs}초`;
   };
 
-  // Estimate remaining time (simple linear estimation)
-  const estimateRemainingTime = (): string | null => {
-    if (!isPolling || elapsedTime < 10) return null; // Start estimation after minimum 10 seconds
-    // sensitivity-analysis usually takes 1-2 minutes, full-analysis takes 5-10 minutes
-    // Assume average 3 minutes (could be improved with history-based estimation)
-    const avgTime = currentJobType === 'full-analysis' ? 300 : 120; // full: 5 min, others: 2 min
-    const remaining = Math.max(0, avgTime - elapsedTime);
-    if (remaining < 30) return null; // Don't display if less than 30 seconds remaining
-    return formatElapsedTime(remaining);
-  };
-
   const handleSensitivitySubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg(null);
     setLoading(true);
     setDownloadLink(null);
     setSensitivityJobId(null);
+    setSensitivityCompletedTime(null);
 
     // Quick validation
     const p = parseFloat(pfdGoal);
@@ -201,15 +197,20 @@ export default function StatisticalPage() {
       const jobId = jobResponse.job_id;
       setSensitivityJobId(jobId);
       setLoading(false);
+      const jobStartTime = Date.now(); // Record job start time
       setIsPolling(true);
       setCurrentJobType('sensitivity-analysis');
 
       pollResults(
         jobId,
         'sensitivity-analysis',
-        (resultData: SensitivityAnalysisResult) => {
+        jobStartTime,
+        (resultData: SensitivityAnalysisResult, _downloadUrl, elapsedSeconds) => {
           setTests(Number(resultData.data.num_tests));
           setErrorMsg(null);
+          if (elapsedSeconds !== undefined) {
+            setSensitivityCompletedTime(elapsedSeconds);
+          }
         },
         (error) => {
           setErrorMsg(`Sensitivity Analysis 오류: ${error}`);
@@ -229,6 +230,7 @@ export default function StatisticalPage() {
     setLoading(true);
     setDownloadLink(null);
     setUpdatePfdJobId(null);
+    setUpdatePfdCompletedTime(null);
 
     const p = parseFloat(pfdGoal);
     if (!Number.isFinite(p)) {
@@ -251,15 +253,20 @@ export default function StatisticalPage() {
       const jobId = jobResponse.job_id;
       setUpdatePfdJobId(jobId);
       setLoading(false);
+      const jobStartTime = Date.now(); // Record job start time
       setIsPolling(true);
       setCurrentJobType('update-pfd');
 
       pollResults(
         jobId,
         'update-pfd',
-        () => {
+        jobStartTime,
+        (_data, _downloadUrl, elapsedSeconds) => {
           setErrorMsg(null);
           // Update PFD only needs success confirmation
+          if (elapsedSeconds !== undefined) {
+            setUpdatePfdCompletedTime(elapsedSeconds);
+          }
         },
         (error) => {
           setErrorMsg(`Update PFD 오류: ${error}`);
@@ -277,6 +284,7 @@ export default function StatisticalPage() {
     setLoading(true);
     setDownloadLink(null);
     setFullAnalysisJobId(null);
+    setFullAnalysisCompletedTime(null);
 
     const p = parseFloat(pfdGoal);
     const c = parseFloat(confidenceGoal);
@@ -300,16 +308,21 @@ export default function StatisticalPage() {
       const jobId = jobResponse.job_id;
       setFullAnalysisJobId(jobId);
       setLoading(false);
+      const jobStartTime = Date.now(); // Record job start time
       setIsPolling(true);
       setCurrentJobType('full-analysis');
 
       pollResults(
         jobId,
         'full-analysis',
-        (_, downloadUrl) => {
+        jobStartTime,
+        (_, downloadUrl, elapsedSeconds) => {
           if (downloadUrl) {
             setDownloadLink(downloadUrl);
             setErrorMsg(null);
+          }
+          if (elapsedSeconds !== undefined) {
+            setFullAnalysisCompletedTime(elapsedSeconds);
           }
         },
         (error) => {
@@ -370,20 +383,25 @@ export default function StatisticalPage() {
           </section>
 
           {(loading || isPolling) && (
-            <div css={cssObj.container} style={{ marginTop: 8 }}>
-              <p>
-                {loading ? '요청 중입니다...' : '계산 중입니다...'}
-              </p>
-              {isPolling && (
-                <div style={{ marginTop: 8, fontSize: '14px', color: '#666' }}>
-                  <div>경과 시간: {formatElapsedTime(elapsedTime)}</div>
-                  {estimateRemainingTime() && (
-                    <div style={{ marginTop: 4 }}>
-                      예상 남은 시간: 약 {estimateRemainingTime()}
-                    </div>
-                  )}
-                </div>
-              )}
+            <div css={cssObj.container} style={{ marginTop: 8, marginBottom: 8 }}>
+              <div style={{
+                border: '1px solid #2563EB',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <p style={{ margin: 0, fontSize: '14px', color: '#1F2937', fontWeight: loading ? 500 : 700 }}>
+                  {loading ? '요청 중입니다...' : '계산 중입니다...'}
+                </p>
+                {!loading && isPolling && (
+                  <div style={{ fontSize: '14px', color: '#1F2937' }}>
+                    경과 시간: {formatElapsedTime(elapsedTime)}
+                  </div>
+                )}
+              </div>
             </div>
           )}
           {errorMsg && (
@@ -424,13 +442,20 @@ export default function StatisticalPage() {
                     required
                   />
                 </div>
-                <button 
-                  type="submit" 
-                  css={cssObj.saveButton} 
-                  disabled={loading || isPolling || (sensitivityJobId !== null && currentJobType === 'sensitivity-analysis')}
-                >
-                  {isPolling && currentJobType === 'sensitivity-analysis' ? '계산 중...' : 'Calculate Number of Tests'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button 
+                    type="submit" 
+                    css={cssObj.saveButton} 
+                    disabled={loading || isPolling || (sensitivityJobId !== null && currentJobType === 'sensitivity-analysis')}
+                  >
+                    {isPolling && currentJobType === 'sensitivity-analysis' ? '계산 중...' : 'Calculate Number of Tests'}
+                  </button>
+                  {sensitivityCompletedTime !== null && (
+                    <span style={{ color: '#666', fontSize: '14px' }}>
+                      ({formatElapsedTime(sensitivityCompletedTime)} 소요)
+                    </span>
+                  )}
+                </div>
 
                 {/* 결과 미니 표시 */}
                 {tests > 0 && (
@@ -467,26 +492,40 @@ export default function StatisticalPage() {
                     required
                   />
                 </div>
-                <button 
-                  type="submit" 
-                  css={cssObj.saveButton} 
-                  disabled={loading || isPolling || (updatePfdJobId !== null && currentJobType === 'update-pfd')}
-                >
-                  {isPolling && currentJobType === 'update-pfd' ? '처리 중...' : 'Update'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button 
+                    type="submit" 
+                    css={cssObj.saveButton} 
+                    disabled={loading || isPolling || (updatePfdJobId !== null && currentJobType === 'update-pfd')}
+                  >
+                    {isPolling && currentJobType === 'update-pfd' ? '처리 중...' : 'Update'}
+                  </button>
+                  {updatePfdCompletedTime !== null && (
+                    <span style={{ color: '#666', fontSize: '14px' }}>
+                      ({formatElapsedTime(updatePfdCompletedTime)} 소요)
+                    </span>
+                  )}
+                </div>
               </form>
             </div>
 
             {/* 3. Full Analysis */}
             <div css={[cssObj.settingBox, cssObj.longSettingBox]}>
               <h2>3. Full Analysis (Save JSON)</h2>
-              <button
-                css={cssObj.saveButton}
-                onClick={handleFullAnalysisSubmit}
-                disabled={loading || isPolling || (fullAnalysisJobId !== null && currentJobType === 'full-analysis')}
-              >
-                {isPolling && currentJobType === 'full-analysis' ? '분석 중...' : 'Run Full Analysis and Save'}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  css={cssObj.saveButton}
+                  onClick={handleFullAnalysisSubmit}
+                  disabled={loading || isPolling || (fullAnalysisJobId !== null && currentJobType === 'full-analysis')}
+                >
+                  {isPolling && currentJobType === 'full-analysis' ? '분석 중...' : 'Run Full Analysis and Save'}
+                </button>
+                {fullAnalysisCompletedTime !== null && (
+                  <span style={{ color: '#666', fontSize: '14px' }}>
+                    ({formatElapsedTime(fullAnalysisCompletedTime)} 소요)
+                  </span>
+                )}
+              </div>
 
               {downloadLink && (
                 <p css={cssObj.output} style={{ marginTop: 12 }}>
