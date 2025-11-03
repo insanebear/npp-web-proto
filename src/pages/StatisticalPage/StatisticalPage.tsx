@@ -161,17 +161,6 @@ export default function StatisticalPage() {
     return `${mins}분 ${secs}초`;
   };
 
-  // Estimate remaining time (simple linear estimation)
-  const estimateRemainingTime = (): string | null => {
-    if (!isPolling || elapsedTime < 10) return null; // Start estimation after minimum 10 seconds
-    // sensitivity-analysis usually takes 1-2 minutes, full-analysis takes 5-10 minutes
-    // Assume average 3 minutes (could be improved with history-based estimation)
-    const avgTime = currentJobType === 'full-analysis' ? 300 : 120; // full: 5 min, others: 2 min
-    const remaining = Math.max(0, avgTime - elapsedTime);
-    if (remaining < 30) return null; // Don't display if less than 30 seconds remaining
-    return formatElapsedTime(remaining);
-  };
-
   const handleSensitivitySubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -377,11 +366,6 @@ export default function StatisticalPage() {
               {isPolling && (
                 <div style={{ marginTop: 8, fontSize: '14px', color: '#666' }}>
                   <div>경과 시간: {formatElapsedTime(elapsedTime)}</div>
-                  {estimateRemainingTime() && (
-                    <div style={{ marginTop: 4 }}>
-                      예상 남은 시간: 약 {estimateRemainingTime()}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
