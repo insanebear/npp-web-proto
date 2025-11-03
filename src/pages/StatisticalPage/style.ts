@@ -96,10 +96,11 @@ export const cssObj = {
   `,
   settingsGrid: css`
   display: grid;
-  grid-template-columns: 2fr 2fr;  
-  column-gap: 20%;   /* responsive horizontal gap */
-  row-gap: 3%;      /* responsive vertical gap */
-  width: 90%;
+  grid-template-columns: 1fr 1fr;  
+  column-gap: 24px;
+  row-gap: 24px;
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
 `,
 
