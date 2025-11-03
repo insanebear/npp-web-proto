@@ -14,7 +14,7 @@ export default function StatisticalPage() {
   const [pfdGoal, setPfdGoal] = useState("");
   const [confidenceGoal, setConfidenceGoal] = useState("");
   // NOTE: trace_id is sent but ignored by HybridTool (stateless architecture, maintained for compatibility)
-  const [traceId, setTraceId] = useState<string | null>(null);
+  const [traceId, _setTraceId] = useState<string | null>(null);
   const [tests, setTests] = useState<number>(0);
   const [failures, setFailures] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
