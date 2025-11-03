@@ -383,15 +383,25 @@ export default function StatisticalPage() {
           </section>
 
           {(loading || isPolling) && (
-            <div css={cssObj.container} style={{ marginTop: 8 }}>
-              <p>
-                {loading ? '요청 중입니다...' : '계산 중입니다...'}
-              </p>
-              {isPolling && (
-                <div style={{ marginTop: 8, fontSize: '14px', color: '#666' }}>
-                  <div>경과 시간: {formatElapsedTime(elapsedTime)}</div>
-                </div>
-              )}
+            <div css={cssObj.container} style={{ marginTop: 8, marginBottom: 8 }}>
+              <div style={{
+                border: '1px solid #2563EB',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <p style={{ margin: 0, fontSize: '14px', color: '#1F2937', fontWeight: loading ? 500 : 700 }}>
+                  {loading ? '요청 중입니다...' : '계산 중입니다...'}
+                </p>
+                {!loading && isPolling && (
+                  <div style={{ fontSize: '14px', color: '#1F2937' }}>
+                    경과 시간: {formatElapsedTime(elapsedTime)}
+                  </div>
+                )}
+              </div>
             </div>
           )}
           {errorMsg && (
