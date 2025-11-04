@@ -20,6 +20,7 @@ export default function StatisticalPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
+  const [fullAnalysisResultData, setFullAnalysisResultData] = useState<any | null>(null);
   const [sensitivityJobId, setSensitivityJobId] = useState<string | null>(null);
   const [updatePfdJobId, setUpdatePfdJobId] = useState<string | null>(null);
   const [fullAnalysisJobId, setFullAnalysisJobId] = useState<string | null>(null);
@@ -28,7 +29,7 @@ export default function StatisticalPage() {
   const [elapsedTime, setElapsedTime] = useState(0); // Elapsed time in seconds
   const [currentJobType, setCurrentJobType] = useState<'sensitivity-analysis' | 'update-pfd' | 'full-analysis' | null>(null);
   const isDevelopment = import.meta.env.DEV;
-  const [testMode, setTestMode] = useState(false); // Test mode (only enabled in development)
+  const [testMode, setTestMode] = useState(isDevelopment); // Test mode (default true in development, only enabled in development)
   const [sensitivityCompletedTime, setSensitivityCompletedTime] = useState<number | null>(null);
   const [updatePfdCompletedTime, setUpdatePfdCompletedTime] = useState<number | null>(null);
   const [fullAnalysisCompletedTime, setFullAnalysisCompletedTime] = useState<number | null>(null);
@@ -91,13 +92,15 @@ export default function StatisticalPage() {
               setCurrentJobType(null);
               // For full-analysis, create download_url from data if needed
               let downloadUrl = response.download_url;
+              let resultData = response.data;
               if (type === 'full-analysis' && !downloadUrl && response.data) {
                 // Create blob URL on frontend
                 const jsonStr = JSON.stringify(response.data, null, 2);
                 const blob = new Blob([jsonStr], { type: 'application/json' });
                 downloadUrl = URL.createObjectURL(blob);
+                resultData = response.data; // Store the data for viewing/downloading
               }
-              onComplete(response.data, downloadUrl, completedElapsedTime);
+              onComplete(resultData, downloadUrl, completedElapsedTime);
             } else if (response.download_url) {
               // Maintain compatibility with legacy approach
               setIsPolling(false);
@@ -283,6 +286,7 @@ export default function StatisticalPage() {
     setErrorMsg(null);
     setLoading(true);
     setDownloadLink(null);
+    setFullAnalysisResultData(null);
     setFullAnalysisJobId(null);
     setFullAnalysisCompletedTime(null);
 
@@ -316,11 +320,14 @@ export default function StatisticalPage() {
         jobId,
         'full-analysis',
         jobStartTime,
-        (_, downloadUrl, elapsedSeconds) => {
+        (resultData, downloadUrl, elapsedSeconds) => {
+          if (resultData) {
+            setFullAnalysisResultData(resultData);
+          }
           if (downloadUrl) {
             setDownloadLink(downloadUrl);
-            setErrorMsg(null);
           }
+          setErrorMsg(null);
           if (elapsedSeconds !== undefined) {
             setFullAnalysisCompletedTime(elapsedSeconds);
           }
@@ -527,13 +534,81 @@ export default function StatisticalPage() {
                 )}
               </div>
 
-              {downloadLink && (
-                <p css={cssObj.output} style={{ marginTop: 12 }}>
-                  저장됨:&nbsp;
-                  <a href={downloadLink} target="_blank" rel="noreferrer">
-                    결과 JSON 다운로드
-                  </a>
-                </p>
+              {(fullAnalysisResultData || downloadLink) && (
+                <div css={cssObj.output} style={{ marginTop: 12, display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <span style={{ color: '#666', fontSize: '14px' }}>결과:</span>
+                  {fullAnalysisResultData && (
+                    <>
+                      <button
+                        onClick={() => {
+                          const jsonStr = JSON.stringify(fullAnalysisResultData, null, 2);
+                          const newWindow = window.open();
+                          if (newWindow) {
+                            newWindow.document.write(`<pre style="padding: 20px; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;">${jsonStr}</pre>`);
+                            newWindow.document.title = 'Full Analysis 결과';
+                          }
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#2563EB',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        결과보기
+                      </button>
+                      <button
+                        onClick={() => {
+                          const jsonStr = JSON.stringify(fullAnalysisResultData, null, 2);
+                          const blob = new Blob([jsonStr], { type: 'application/json' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = `full-analysis-result-${Date.now()}.json`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          URL.revokeObjectURL(url);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#10B981',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        다운로드
+                      </button>
+                    </>
+                  )}
+                  {downloadLink && !fullAnalysisResultData && (
+                    <a 
+                      href={downloadLink} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#2563EB',
+                        color: '#FFFFFF',
+                        textDecoration: 'none',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        display: 'inline-block'
+                      }}
+                    >
+                      결과보기
+                    </a>
+                  )}
+                </div>
               )}
             </div>
           </div>
