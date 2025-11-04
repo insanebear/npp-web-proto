@@ -62,6 +62,7 @@ const Menu = ({
           minHeight: '87.2%',
           padding: '2rem',
           minWidth: '300px',
+          overflow: 'visible',
         }}
       >
         {/* --- CONDITIONAL RENDERING: FP Input vs. Dropdowns --- */}
@@ -108,12 +109,13 @@ const Menu = ({
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: '3rem 1.5rem',
+              overflow: 'visible',
             }}
           >
             {activeLabelAndDropdowns?.children.map((child: any) => {
               const uniqueKey = `${activeLabelAndDropdowns.label}/${child.label}`;
               return (
-                <div key={uniqueKey} style={{ position: 'relative', minHeight: '100px' }}>
+                <div key={uniqueKey} style={{ position: 'relative', minHeight: '100px', overflow: 'visible', paddingBottom: '120px' }}>
                   <DropDown
                     label={child.label}
                     label_color="text-gray-800"
