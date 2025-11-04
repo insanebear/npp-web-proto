@@ -90,8 +90,9 @@ const DropDown: React.FC<DropDownProps> = ({
       <div style={{ 
         position: 'relative', 
         width: '100%', 
-        height: height 
-      }}>
+        height: height
+      }}
+      >
         <Button
           text={selectedOption}
           onClick={() => setIsOpen(prev => !prev)}
@@ -113,9 +114,9 @@ const DropDown: React.FC<DropDownProps> = ({
               border: '1px solid #e5e7eb',
               borderRadius: '8px',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-              zIndex: 10,
+              zIndex: 1000,
               top: '100%',
-              marginTop: '30px'
+              marginTop: '20px'
             }}
           >
             {options.map(option => (
