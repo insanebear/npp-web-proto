@@ -72,6 +72,116 @@ export const cssObj = {
     margin-top: 80px;
     margin-bottom: 24px;
   `,
+  bbnSelectorBox: css`
+    width: 90%;
+    max-width: 1200px;
+    background-color: ${COLORS.white};
+    border: 1px solid ${COLORS.gray200};
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    margin-bottom: 16px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  `,
+  bbnSelectorHeader: css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    h2 {
+      font-size: ${FONT_SIZE.base};
+      font-weight: 600;
+      color: ${COLORS.gray800};
+      margin: 0;
+    }
+    p {
+      margin: 4px 0 0;
+      font-size: ${FONT_SIZE.xs};
+      color: ${COLORS.gray500};
+    }
+  `,
+  bbnSelect: css`
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid ${COLORS.gray300};
+    background-color: ${COLORS.white};
+    font-size: ${FONT_SIZE.sm};
+    color: ${COLORS.gray800};
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    &:focus {
+      outline: none;
+      border-color: ${COLORS.blue600};
+      box-shadow: 0 0 0 1px ${COLORS.blue600};
+    }
+  `,
+  bbnMetaInfo: css`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: ${FONT_SIZE.xs};
+    color: ${COLORS.gray600};
+  `,
+  bbnActionRow: css`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  `,
+  bbnButton: css`
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: ${FONT_SIZE.sm};
+    font-weight: 500;
+    transition: background-color 0.2s;
+  `,
+  bbnPrimaryButton: css`
+    background-color: ${COLORS.blue600};
+    color: ${COLORS.white};
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  `,
+  bbnSecondaryButton: css`
+    background-color: ${COLORS.green600};
+    color: ${COLORS.white};
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  `,
+  bbnRefreshButton: css`
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: ${FONT_SIZE.sm};
+    font-weight: 500;
+    background-color: ${COLORS.gray700};
+    color: ${COLORS.white};
+    transition: background-color 0.2s;
+    &:hover {
+      background-color: ${COLORS.gray600};
+    }
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  `,
+  bbnMessage: css`
+    font-size: ${FONT_SIZE.xs};
+    color: ${COLORS.gray600};
+  `,
+  bbnErrorText: css`
+    font-size: ${FONT_SIZE.xs};
+    color: #dc2626;
+  `,
   title: css`
     font-size: ${FONT_SIZE["3xl"]};
     color: ${COLORS.gray800};

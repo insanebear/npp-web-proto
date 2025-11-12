@@ -129,6 +129,29 @@ export type HybridToolResultsResponse = {
   message?: string;
 };
 
+// BBN result listing
+export type BbnResultItem = {
+  key: string;
+  name: string;
+  size?: number;
+  last_modified?: string;
+};
+
+export type BbnResultListResponse = {
+  bucket: string;
+  prefix: string;
+  count: number;
+  items: BbnResultItem[];
+};
+
+export type BbnResultFileResponse = {
+  bucket: string;
+  key: string;
+  size?: number;
+  last_modified?: string;
+  data: any;
+};
+
 // Result file structure from S3 (sensitivity-analysis)
 export type SensitivityAnalysisResult = {
   message: string;
@@ -237,6 +260,20 @@ export const getHybridToolResults = async (
   }
 
   return response.json();
+};
+
+// =======================================================
+// ============= BBN RESULT MANAGEMENT ENDPOINTS =========
+// =======================================================
+
+export const listBbnResultFiles = (limit?: number) => {
+  const search = typeof limit === 'number' ? `?limit=${encodeURIComponent(limit)}` : '';
+  return getJSON<BbnResultListResponse>(`/api/v1/results${search}`);
+};
+
+export const fetchBbnResultFile = (key: string) => {
+  const params = new URLSearchParams({ key });
+  return getJSON<BbnResultFileResponse>(`/api/v1/results?${params.toString()}`);
 };
 
 // =======================================================
