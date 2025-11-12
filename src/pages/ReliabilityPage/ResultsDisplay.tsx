@@ -16,25 +16,43 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
       return;
     }
 
-    // Remove __rawText from output before saving (it's only for display)
-    const { __rawText, ...cleanOutput } = results as any;
+    const resultsAny = results as any;
+    
+    // Check if results already contain complete JSON structure (input + output)
+    if (resultsAny.input && resultsAny.output) {
+      const { __rawText, ...cleanResults } = resultsAny;
+      const jsonString = JSON.stringify(cleanResults, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      a.download = `simulation-results-${timestamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else {
+      // Fallback: combine simulationInput and results (for backward compatibility)
+      const { __rawText, ...cleanOutput } = resultsAny;
 
-    const combinedData = {
-      input: simulationInput,
-      output: cleanOutput,
-    };
+      const combinedData = {
+        input: simulationInput,
+        output: cleanOutput,
+      };
 
-    const jsonString = JSON.stringify(combinedData, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    a.download = `simulation-results-${timestamp}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      const jsonString = JSON.stringify(combinedData, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      a.download = `simulation-results-${timestamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   };
 
   const renderResults = () => {
@@ -50,14 +68,20 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
       'IC_Total_Remained_Defect': 5
     } as Record<string, number>;
     
-    // Support both shapes: metrics at root or nested under output
+    // Support both shapes: complete JSON (input + output) or output-only format
     const container: any = results as any;
-    const metrics: any = (container && (container.PFD || container.SR_Total_Remained_Defect))
-      ? container
-      : (container && container.output);
+    
+    const metrics: any = (container && container.input && container.output)
+      ? container.output
+      : ((container && (container.PFD || container.SR_Total_Remained_Defect))
+        ? container
+        : (container && container.output));
 
-    // Determine traces presence for summary label
-    const hasTraces = Boolean((container && container.traces) || (metrics && metrics.traces));
+    const hasTraces = Boolean(
+      (container && container.output && container.output.traces) ||
+      (container && container.traces) ||
+      (metrics && metrics.traces)
+    );
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -110,7 +134,6 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
             </div>
           </>
         ) : (
-          // Fallback: plain statistical output format
           <pre style={{
             flexGrow: 1,
             backgroundColor: '#f3f4f6',
@@ -123,7 +146,6 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
           </pre>
         )}
 
-        {/* Raw JSON viewer: prefer container raw text, then metrics raw text, then pretty-printed */}
         <details style={{ marginTop: '16px' }}>
           <summary style={{ 
             cursor: 'pointer', 
