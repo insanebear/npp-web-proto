@@ -209,6 +209,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.*.local
 .venv
 env/
 venv/
@@ -251,3 +253,21 @@ cython_debug/
 .bashrc
 
 .cursor/
+
+# Local lambda env (do not commit)
+scripts/.lambda-env
+scripts/.hybridTool-env
+
+# Lambda build and downloads (do not commit)
+lambda/bundle.zip
+lambda/hybridTool/*.zip
+lambda-build/
+lambda/aws-live/*.zip
+lambda/aws-live/extracted/__MACOSX/
+
+# Temporary documentation folder
+tempDoc/
+
+# AWS 환경 설정 파일 (민감 정보 포함)
+current-env.json
+current-env-temp.json

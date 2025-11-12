@@ -25,7 +25,7 @@ const ReliabilityPage: React.FC<ReliabilityPageProps> = ({ jobId, jobStatus, res
     <>
       <Background />
       <SelectionBar
-        width="300px" height="6.4%" shape="sharp-rectangle" x="150px" y="9.6%" color="bg-gray-800" scale={0.7}
+        width="300px" height="6.4%" shape="sharp-rectangle" x="150px" y="9.6%" color="bg-gray-800"
         onFileUpload={onFileUpload}
         pendingFile={pendingFile}
         onFileSelect={onFileSelect}
@@ -55,15 +55,22 @@ const ReliabilityPage: React.FC<ReliabilityPageProps> = ({ jobId, jobStatus, res
         {isLoading && <StatusIndicator jobId={jobId!} jobStatus={jobStatus!} />}
 
         {error && (
-          <div className="p-8 bg-red-100 border border-red-400 rounded-lg text-red-800 text-center">
-            <h3 className="font-bold">An Error Occurred</h3>
+          <div style={{
+            padding: '32px',
+            backgroundColor: '#fee2e2',
+            border: '1px solid #f87171',
+            borderRadius: '8px',
+            color: '#991b1b',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ fontWeight: 'bold', marginBottom: '8px' }}>An Error Occurred</h3>
             <p>{error}</p>
           </div>
         )}
 
         {!results && !isLoading && !error && (
-          <div className="text-white text-center">
-            <h2 className="text-2xl">No Simulation Job Specified</h2>
+          <div style={{ color: '#ffffff', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '24px', marginBottom: '8px' }}>No Simulation Job Specified</h2>
             <p>Please start a new simulation or upload a result file.</p>
           </div>
         )}

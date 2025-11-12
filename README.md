@@ -54,6 +54,50 @@ Install [Docker](https://www.docker.com/) from the official source based on your
 ### Note:
 Depending on computer, Docker may not be available even after installation because of various reasons such as outdated windows edition, or certain permissions such as  virtualization are disabled. For these, you should look for tutorials on them. Usually, Mac doesn't have such issues after installation. 
 
+## Environment Variables Configuration
+
+This project uses environment variables to configure API endpoints. **Important: Do not commit sensitive information to the repository.**
+
+### Setting up environment variables
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit the `.env` file and set your API Gateway endpoints:
+   ```bash
+   # Bayesian API Gateway URL
+   VITE_API_BASE_URL=https://YOUR_API_GATEWAY_ID.execute-api.ap-northeast-2.amazonaws.com/prod
+
+   # SST (Statistical) API Gateway URL (REST API - 스테이지 경로 포함)
+   VITE_API_BASE_URL_SST=https://YOUR_API_GATEWAY_ID.execute-api.ap-northeast-2.amazonaws.com/prod
+   ```
+
+3. Replace `YOUR_API_GATEWAY_ID` with your actual API Gateway IDs.
+
+### Available Environment Variables
+
+- `VITE_API_BASE_URL`: Base URL for the Bayesian API Gateway endpoint
+- `VITE_API_BASE_URL_SST`: Base URL for the Statistical (SST) API Gateway endpoint
+
+### Security Notes
+
+⚠️ **Important Security Reminders:**
+
+- The `.env` file contains sensitive information and is automatically excluded from Git via `.gitignore`
+- Never commit `.env` files to the repository
+- Use `.env.example` as a template for team members (this file can be committed)
+- If you accidentally committed sensitive information, remove it from Git history immediately
+
+### Local Development
+
+For local development, you can override the SST API URL to point to a local server:
+
+```bash
+VITE_API_BASE_URL_SST=http://localhost:8000
+```
+
 # How to see the UI
 Open your project folder  using a text editor such as VS Code. Next, open the terminal. Then, run ``npm run dev`` which will initialize a webpage at the ``localhost`` with a certain port number. You can hover on the link to go to the website or type the link in the browser.
 

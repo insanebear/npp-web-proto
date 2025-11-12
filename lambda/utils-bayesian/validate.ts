@@ -1,35 +1,22 @@
 /**
- * ⚠️  WARNING: DELETE CANDIDATE  ⚠️
- * ================================================
- * This TypeScript file is NOT currently in use.
- * The actual Lambda function uses JavaScript versions of these utilities
- * that are deployed directly in AWS Lambda console.
- * 
- * CONSIDER DELETING THIS FILE:
- * - This appears to be a development/reference version
- * - The actual running Lambda uses JS versions (parser.js, tabs.js, validate.js)
- * - No deployment configuration found in the project
- * 
- * If keeping for reference, ensure it matches the deployed JS versions.
- * ================================================
+ * Validation utility (repo-managed TS)
+ * - Validates flattened form data against the validationSchema
+ * - Settings fields are allowed/bypassed
+ * - Last synced with live JS in lambda/aws-live/extracted.
  */
 
-// --- /utils-bayesian/validate.ts ---
-
 import { validationSchema } from './tabs';
+import { labelToCode } from './labelToCode';
 
-// Define a type for the function's return value for clarity
 interface ValidationResult {
   isValid: boolean;
   errors: string[];
 }
 
-// The formData is expected to be a flat JSON object with string keys and any value type from the form.
 export function validateFormData(formData: Record<string, any>): ValidationResult {
   console.log("Received request for validation.");
   const errors: string[] = [];
 
-  // Define the settings fields that should be allowed but not validated against the schema.
   const settingsFields = new Set<string>([
       "nChains", 
       "nIter", 
@@ -37,42 +24,55 @@ export function validateFormData(formData: Record<string, any>): ValidationResul
       "nThin",
       "autoCloseWinBugs",
       "computeDIC", 
-      "workingDir"
+      "workingDir",
+      "includeTraceData"
   ]);
 
   if (typeof formData !== 'object' || formData === null) {
     return { isValid: false, errors: ["Request body must be a valid JSON object."] };
   }
 
-  for (const fieldLabel in formData) {
-    const submittedValue = formData[fieldLabel];
+  for (const fieldKey in formData) {
+    const submittedValue = formData[fieldKey];
 
-    // If the current field is a known setting, skip the rest of the validation.
-    if (settingsFields.has(fieldLabel)) {
+    if (settingsFields.has(fieldKey)) {
       continue;
     }
 
-    // 1. Check if the submitted field is a known, valid field from the TABS schema.
-    if (!validationSchema.has(fieldLabel)) {
-      errors.push(`Field '${fieldLabel}' is not a valid field.`);
+    // Accept either label keys or python-code keys
+    let effectiveLabel: string | null = null;
+    if (validationSchema.has(fieldKey)) {
+      effectiveLabel = fieldKey;
+    } else {
+      // try map code->label by scanning sections
+      for (const section of Object.keys(labelToCode)) {
+        const entries = (labelToCode as any)[section] as Record<string, string>;
+        for (const [label, code] of Object.entries(entries)) {
+          if (code === fieldKey) {
+            effectiveLabel = label;
+            break;
+          }
+        }
+        if (effectiveLabel) break;
+      }
+    }
+
+    if (!effectiveLabel || !validationSchema.has(effectiveLabel)) {
+      errors.push(`Field '${fieldKey}' is not a valid field.`);
       continue;
     }
 
-    const allowedValues = validationSchema.get(fieldLabel);
+    const allowedValues = validationSchema.get(effectiveLabel);
 
-    // 2. Handle the special case for "FP Input".
-    if (fieldLabel === "FP Input") {
+    if (effectiveLabel === "FP Input") {
       if (typeof submittedValue !== 'string' || submittedValue.trim() === '') {
         errors.push("Field 'FP Input' must be a non-empty string.");
       }
       continue;
     }
 
-    // 3. For all other fields, check if the submitted value is in the allowed list.
-    // The '!' tells TypeScript that we are sure 'allowedValues' is not undefined here
-    // because we already checked with validationSchema.has().
     if (!allowedValues!.includes(submittedValue)) {
-      errors.push(`Invalid value for '${fieldLabel}'. Received '${submittedValue}', but expected one of: ${allowedValues!.join(', ')}.`);
+      errors.push(`Invalid value for '${effectiveLabel}'. Received '${submittedValue}', but expected one of: ${allowedValues!.join(', ')}.`);
     }
   }
 

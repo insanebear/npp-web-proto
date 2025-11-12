@@ -2,9 +2,33 @@
 // ================== API CONFIGURATION ==================
 // =======================================================
 
-const API_BASE_URL = 'https://bm5kx387h8.execute-api.ap-northeast-2.amazonaws.com/prod';
-// const API_BASE_URL_SST = 'https://a2gxqrwnzi.execute-api.ap-northeast-2.amazonaws.com';
-const API_BASE_URL_SST = 'http://localhost:8000';
+// Load API URL from environment variables (Vite uses import.meta.env)
+// ⚠️ Security: Environment variables are required. Please configure .env file.
+// See .env.example for reference.
+// Note: REST API Gateway URLs include stage path (/prod).
+
+function getRequiredEnvVar(name: string): string {
+  const value = import.meta.env[name];
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable: ${name}\n` +
+      `Please create a .env file with ${name} set to your API Gateway URL.\n` +
+      `See .env.example for reference.`
+    );
+  }
+  return value;
+}
+
+const API_BASE_URL = getRequiredEnvVar('VITE_API_BASE_URL');
+const API_BASE_URL_SST = getRequiredEnvVar('VITE_API_BASE_URL_SST');
+const API_KEY = getRequiredEnvVar('VITE_API_KEY');
+
+// Common headers for API requests
+// Note: REST API is protected by Usage Plan + API Key
+const getApiHeaders = () => ({
+  'Content-Type': 'application/json',
+  'x-api-key': API_KEY,
+});
 
 // =======================================================
 // ================ BAYESIAN PAGE ENDPOINTS ==============
@@ -20,7 +44,7 @@ export const startSimulation = async (formData: object): Promise<string> => {
 
   const response = await fetch(`${API_BASE_URL}/simulations/bayesian`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getApiHeaders(),
     body: JSON.stringify(requestBody),
   });
 
@@ -42,7 +66,9 @@ export const startSimulation = async (formData: object): Promise<string> => {
  * @returns The full status object from the backend
  */
 export const getJobStatus = async (jobId: string) => {
-  const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`);
+  const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+    headers: getApiHeaders(),
+  });
   if (!response.ok) throw new Error('Failed to fetch job status.');
   return response.json();
 };
@@ -53,53 +79,165 @@ export const getJobStatus = async (jobId: string) => {
  * @returns The final JSON results from the S3 file
  */
 export const getResults = async (jobId: string) => {
-  const urlResponse = await fetch(`${API_BASE_URL}/jobs/${jobId}/results-url`, { method: 'POST' });
+  const urlResponse = await fetch(`${API_BASE_URL}/jobs/${jobId}/results-url`, {
+    method: 'POST',
+    headers: getApiHeaders(),
+  });
   if (!urlResponse.ok) throw new Error('Could not get results URL.');
   
   const { downloadUrl } = await urlResponse.json();
   
   const resultsResponse = await fetch(downloadUrl);
   if (!resultsResponse.ok) throw new Error('Could not download results file from S3.');
-  
-  return resultsResponse.json();
+  // Preserve the original JSON text as-is
+  const rawText = await resultsResponse.text();
+  try {
+    const parsed = rawText ? JSON.parse(rawText) : {};
+    // Attach the original raw text so the UI can display it unchanged
+    if (parsed && typeof parsed === 'object') {
+      (parsed as any).__rawText = rawText;
+    }
+    return parsed;
+  } catch {
+    // If parsing fails, return an object containing only the raw text
+    return { __rawText: rawText } as any;
+  }
 };
 
 // =======================================================
 // ============== STATISTICAL PAGE ENDPOINTS =============
 // =======================================================
 
-export type SensitivityIn  = { pfd_goal: number; confidence_goal: number; trace_id?: string | null };
+export type SensitivityIn  = { pfd_goal: number; confidence_goal: number; trace_id?: string | null; test_mode?: boolean };
+export type UpdatePfdIn    = { pfd_goal: number; demand: number; failures: number; trace_id?: string | null; test_mode?: boolean };
+export type FullAnalysisIn = { pfd_goal: number; confidence_goal: number; failures: number; trace_id?: string | null; test_mode?: boolean };
+
+// HybridTool job request response (same for all trigger functions)
+export type HybridToolJobResponse = {
+  job_id: string;
+  message: string;
+  task_arn?: string;
+};
+
+// HybridTool results response
+export type HybridToolResultsResponse = {
+  job_id: string;
+  download_url?: string; // Only for update-pfd, full-analysis
+  data?: SensitivityAnalysisResult; // Only for sensitivity-analysis (returned directly from Lambda)
+  status: 'completed' | 'not_found' | 'failed';
+  s3_location?: string;
+  message?: string;
+};
+
+// Result file structure from S3 (sensitivity-analysis)
+export type SensitivityAnalysisResult = {
+  message: string;
+  data: {
+    num_tests: number;
+    prior_mean: number;
+    prior_confidence: number;
+  };
+};
+
+// Legacy synchronous response types (maintained for compatibility - no longer used)
 export type SensitivityOut = { data: { num_tests: number }; trace_id?: string | null };
-
-export type UpdatePfdIn    = { pfd_goal: number; demand: number; failures: number; trace_id?: string | null };
 export type UpdatePfdOut   = { message?: string; trace_id?: string | null };
-
-export type FullAnalysisIn = { pfd_goal: number; confidence_goal: number; failures: number; trace_id?: string | null };
 export type FullAnalysisOut= { download_url?: string; trace_id?: string | null };
 
 /**
  * Performs sensitivity analysis to determine the number of required tests.
+ * NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
  * @param payload - Input parameters for sensitivity analysis
- * @returns Analysis results including number of tests required
+ * @returns Job response with job_id for async processing
  */
 export const sensitivityAnalysis = (payload: SensitivityIn) =>
-  postJSON<SensitivityOut>('/sensitivity-analysis', payload);
+  postJSON<HybridToolJobResponse>('/api/v1/sensitivity-analysis', payload);
 
 /**
  * Updates the Probability of Failure on Demand (PFD) based on observed data.
+ * NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
  * @param payload - Input parameters for PFD update
- * @returns Update confirmation message
+ * @returns Job response with job_id for async processing
  */
 export const updatePfd = (payload: UpdatePfdIn) =>
-  postJSON<UpdatePfdOut>('/update-pfd', payload);
+  postJSON<HybridToolJobResponse>('/api/v1/update-pfd', payload);
 
 /**
  * Runs a complete analysis including sensitivity analysis and PFD updates.
+ * NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
  * @param payload - Input parameters for full analysis
- * @returns Download URL for the analysis results
+ * @returns Job response with job_id for async processing
  */
 export const fullAnalysis = (payload: FullAnalysisIn) =>
-  postJSON<FullAnalysisOut>('/full-analysis', payload);
+  postJSON<HybridToolJobResponse>('/api/v1/full-analysis', payload);
+
+/**
+ * Gets the job status from DynamoDB (same approach as BayesianPage)
+ * @param jobId - The job ID returned from the trigger function
+ * @returns Job status object with jobStatus field
+ */
+export const getHybridToolJobStatus = async (
+  jobId: string
+): Promise<{ jobId: string; jobStatus: string; jobType?: string; errorMessage?: string }> => {
+  const response = await fetch(
+    `${API_BASE_URL_SST}/api/v1/jobs/${jobId}`,
+    { headers: getApiHeaders() }
+  );
+
+  if (!response.ok) {
+    let message = '';
+    try {
+      const data = await response.json();
+      message = data.message || `HTTP ${response.status}`;
+    } catch {
+      message = await response.text().catch(() => `HTTP ${response.status}`);
+    }
+    throw new Error(message);
+  }
+
+  return response.json();
+};
+
+/**
+ * Gets the results for a hybrid tool job.
+ * @param jobId - The job ID returned from the trigger function
+ * @param type - The type of analysis (sensitivity-analysis, update-pfd, full-analysis)
+ * @returns Results response with download URL or status
+ */
+export const getHybridToolResults = async (
+  jobId: string,
+  type: 'sensitivity-analysis' | 'update-pfd' | 'full-analysis'
+): Promise<HybridToolResultsResponse> => {
+  const response = await fetch(
+    `${API_BASE_URL_SST}/api/v1/results/${jobId}?type=${type}`,
+    { headers: getApiHeaders() }
+  );
+
+  // 404 is a normal response (file not yet created) - continue polling
+  if (response.status === 404) {
+    const data = await response.json().catch(() => ({}));
+    return {
+      job_id: jobId,
+      status: 'not_found' as const,
+      message: data.message || 'Results not found',
+      ...data
+    };
+  }
+
+  // Throw error for non-404 responses
+  if (!response.ok) {
+    let message = '';
+    try {
+      const data = await response.json();
+      message = data.message || `HTTP ${response.status}`;
+    } catch {
+      message = await response.text().catch(() => `HTTP ${response.status}`);
+    }
+    throw new Error(message);
+  }
+
+  return response.json();
+};
 
 // =======================================================
 // ================== HELPER FUNCTIONS ===================
@@ -123,7 +261,7 @@ const join = (base: string, path: string) =>
 async function postJSON<T = any>(path: string, body: any): Promise<T> {
   const res = await fetch(join(API_BASE_URL_SST, path), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getApiHeaders(),
     body: JSON.stringify(body ?? {}),
   });
 
@@ -148,7 +286,9 @@ async function postJSON<T = any>(path: string, body: any): Promise<T> {
  * @returns Parsed JSON response
  */
 export async function getJSON<T = any>(path: string): Promise<T> {
-  const res = await fetch(join(API_BASE_URL_SST, path));
+  const res = await fetch(join(API_BASE_URL_SST, path), {
+    headers: getApiHeaders(),
+  });
   if (!res.ok) {
     let message = await res.text().catch(() => '');
     try { message = (await res.json())?.message ?? message; } catch {}
@@ -157,5 +297,10 @@ export async function getJSON<T = any>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// Debug logging for development
-console.log('API_BASE_URL_SST =', API_BASE_URL_SST);
+// Log only in development environment
+if (import.meta.env.DEV) {
+  console.log('API Configuration loaded:', {
+    API_BASE_URL: API_BASE_URL.substring(0, 50) + '...',
+    API_BASE_URL_SST: API_BASE_URL_SST.substring(0, 50) + '...'
+  });
+}

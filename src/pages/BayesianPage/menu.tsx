@@ -2,6 +2,7 @@
 
 import Button from "../../utilities/button";
 import DropDown from "../../utilities/dropdown";
+import SelectionBar from "../../utilities/searchbar";
 import { TABS } from "../../constants/tabs";
 
 const Menu = ({
@@ -9,38 +10,59 @@ const Menu = ({
   setActiveLabel,
   inputValues,
   onInputChange,
-  activeLabelAndDropdowns
+  activeLabelAndDropdowns,
+  onFileUpload,
+  pendingFile,
+  onFileSelect
 }: any) => {
   const labels = TABS.map(tab => tab.label);
-  const labelSeparation = 6;
+  const labelSeparationPx = 48; // fixed spacing in pixels
+  const firstButtonTopPx = 150; // fixed top offset for the first button
 
   return (
     <>
-      {/* --- Left-side Tab Buttons --- */}
-      {labels.map((label, index) => (
-        <Button
-          key={label}
-          text={label}
-          active={activeLabel === label}
-          onClick={() => setActiveLabel(label)}
-          x={'0%'}
-          y={`${23 + index * labelSeparation}%`}
-          width={'300px'}
-          height={'5%'}
-          shape={'smooth'}
-        />
-      ))}
+      {/* --- Left sidebar: fixed search bar on top + fixed buttons --- */}
+      <div style={{ position: 'absolute', top: '64px', left: 0, width: '300px', bottom: 0, zIndex: 20 }}>
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <SelectionBar
+            width="300px"
+            height="60px"
+            shape="sharp-rectangle"
+            x="150px"
+            y="30px"
+            color="bg-gray-800"
+            onFileUpload={onFileUpload}
+            pendingFile={pendingFile}
+            onFileSelect={onFileSelect}
+          />
+
+          {labels.map((label, index) => (
+            <Button
+              key={label}
+              text={label}
+              active={activeLabel === label}
+              onClick={() => setActiveLabel(label)}
+              x={'0'}
+              y={`${firstButtonTopPx + index * labelSeparationPx}px`}
+              width={'300px'}
+              height={'44px'}
+              shape={'smooth'}
+            />
+          ))}
+        </div>
+      </div>
 
       {/* --- Main container for the right-side inputs --- */}
       <div
         style={{
           position: 'absolute',
-          top: '12.8%',
+          top: '160px',
           left: '300px',
           right: '2%',
           minHeight: '87.2%',
           padding: '2rem',
           minWidth: '300px',
+          overflow: 'visible',
         }}
       >
         {/* --- CONDITIONAL RENDERING: FP Input vs. Dropdowns --- */}
@@ -87,12 +109,13 @@ const Menu = ({
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: '3rem 1.5rem',
+              overflow: 'visible',
             }}
           >
             {activeLabelAndDropdowns?.children.map((child: any) => {
               const uniqueKey = `${activeLabelAndDropdowns.label}/${child.label}`;
               return (
-                <div key={uniqueKey} style={{ position: 'relative', minHeight: '100px' }}>
+                <div key={uniqueKey} style={{ position: 'relative', minHeight: '100px', overflow: 'visible', paddingBottom: '120px' }}>
                   <DropDown
                     label={child.label}
                     label_color="text-gray-800"
