@@ -28,6 +28,7 @@ from bbn_inference.sensitivity_analysis import (
 )
 from bbn_inference.examples.example_for_composite_model import run_example_for_composite_model
 from bbn_inference.bbn_utils import run_sampling
+from bbn_input_loader import load_bayesian_data_from_env
 
 
 def main():
@@ -43,6 +44,8 @@ def main():
     s3_bucket = os.environ.get("S3_BUCKET")
     aws_region = os.environ.get("AWS_REGION", "ap-northeast-2")
     test_mode = os.environ.get("TEST_MODE", "false").lower() == "true"
+    bbn_input_path = os.environ.get("BBN_INPUT_PATH")
+    bbn_input_bucket = os.environ.get("BBN_INPUT_BUCKET")
     jobs_table_name = os.environ.get("JOBS_TABLE_NAME")
     
     if not job_id:
@@ -63,6 +66,9 @@ def main():
     print(f"[CONFIG] DEMAND: {demand}")
     print(f"[CONFIG] FAILURES: {failures}")
     print(f"[CONFIG] S3_BUCKET: {s3_bucket}")
+    print(f"[CONFIG] BBN_INPUT_PATH: {bbn_input_path or 'default (nrc_report_data)'}")
+    if bbn_input_bucket:
+        print(f"[CONFIG] BBN_INPUT_BUCKET: {bbn_input_bucket}")
     
     dynamodb_client = None
     if jobs_table_name:
@@ -82,6 +88,24 @@ def main():
             print(f"[WARNING] Failed to update DynamoDB status to RUNNING: {str(e)}")
     
     try:
+        bbn_data = load_bayesian_data_from_env(
+            bbn_input_path,
+            bbn_input_bucket,
+        )
+        
+        # Determine BBN input source for result metadata
+        bbn_input_info = {}
+        if bbn_input_path and bbn_input_bucket:
+            bbn_input_info = {
+                "source": "s3",
+                "bucket": bbn_input_bucket,
+                "key": bbn_input_path
+            }
+        elif bbn_input_path:
+            bbn_input_info = {"source": "local", "path": bbn_input_path}
+        else:
+            bbn_input_info = {"source": "default", "description": "NRC report data (default)"}
+
         if test_mode:
             print("\n[TEST MODE] Skipping computation, using dummy values")
             print("[STEP 1] Trace generation skipped (TEST MODE)")
@@ -98,7 +122,7 @@ def main():
         else:
             # Generate trace
             print("\n[STEP 1] Generating composite model trace...")
-            trace = run_example_for_composite_model()
+            trace = run_example_for_composite_model(bbn_data)
             print("[STEP 1] Trace generation completed")
             
             # Trace preprocessing
@@ -135,6 +159,7 @@ def main():
                 "prior_mean": prior_mean,
                 "prior_confidence": before_conf,
             },
+            "bbn_input": bbn_input_info,
         }
         
         # Upload to S3

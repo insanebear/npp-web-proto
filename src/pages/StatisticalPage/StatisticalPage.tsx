@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
 import { Global } from "@emotion/react";
 import { cssObj } from "./style";
 import * as api from "../../services/apiService";
@@ -24,6 +24,18 @@ export default function StatisticalPage() {
   const [sensitivityJobId, setSensitivityJobId] = useState<string | null>(null);
   const [updatePfdJobId, setUpdatePfdJobId] = useState<string | null>(null);
   const [fullAnalysisJobId, setFullAnalysisJobId] = useState<string | null>(null);
+  const [usedBbnInput, setUsedBbnInput] = useState<{ source: string; bucket?: string; key?: string; description?: string; size?: number; path?: string } | null>(null);
+  const [usedBbnInputJobType, setUsedBbnInputJobType] = useState<'sensitivity-analysis' | 'update-pfd' | 'full-analysis' | null>(null);
+
+  const [bbnFiles, setBbnFiles] = useState<api.BbnResultItem[]>([]);
+  const [bbnBucketInfo, setBbnBucketInfo] = useState<{ bucket: string; prefix: string } | null>(null);
+  const [bbnFilesLoading, setBbnFilesLoading] = useState<boolean>(false);
+  const [bbnFilesError, setBbnFilesError] = useState<string | null>(null);
+  const [bbnLastRefreshed, setBbnLastRefreshed] = useState<Date | null>(null);
+  const [selectedBbnKey, setSelectedBbnKey] = useState<string>("");
+  const [selectedBbnData, setSelectedBbnData] = useState<any | null>(null);
+  const [bbnFileLoading, setBbnFileLoading] = useState<boolean>(false);
+  const [bbnFileMessage, setBbnFileMessage] = useState<string | null>(null);
 
   const [isPolling, setIsPolling] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0); // Elapsed time in seconds
@@ -54,6 +66,35 @@ export default function StatisticalPage() {
       }
     };
   }, [isPolling]);
+
+  const refreshBbnFiles = useCallback(async () => {
+    setBbnFilesLoading(true);
+    setBbnFilesError(null);
+    try {
+      const response = await api.listBbnResultFiles(200);
+      setBbnFiles(response.items ?? []);
+      setBbnBucketInfo({ bucket: response.bucket, prefix: response.prefix });
+      setBbnLastRefreshed(new Date());
+
+      if (selectedBbnKey) {
+        const exists = (response.items ?? []).some((item) => item.key === selectedBbnKey);
+        if (!exists) {
+          setSelectedBbnKey("");
+          setSelectedBbnData(null);
+          setBbnFileMessage(null);
+        }
+      }
+    } catch (err: any) {
+      console.error("Failed to load BBN result files:", err);
+      setBbnFilesError(err?.message ?? String(err));
+    } finally {
+      setBbnFilesLoading(false);
+    }
+  }, [selectedBbnKey]);
+
+  useEffect(() => {
+    refreshBbnFiles();
+  }, [refreshBbnFiles]);
 
   const pollResults = async (
     jobId: string,
@@ -170,6 +211,111 @@ export default function StatisticalPage() {
     return `${mins}분 ${secs}초`;
   };
 
+  const formatBytes = (size?: number): string => {
+    if (typeof size !== "number" || Number.isNaN(size) || size < 0) {
+      return "-";
+    }
+    if (size < 1024) {
+      return `${size} B`;
+    }
+    const units = ["KB", "MB", "GB", "TB"];
+    let value = size / 1024;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+    return `${value.toFixed(1)} ${units[unitIndex]}`;
+  };
+
+  const formatTimestamp = (value?: string | Date | null): string => {
+    if (!value) {
+      return "-";
+    }
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return typeof value === "string" ? value : "-";
+    }
+    return date.toLocaleString();
+  };
+
+  const formatFileLabel = (item: api.BbnResultItem): string => {
+    const parts = [item.name];
+    if (item.last_modified) {
+      parts.push(formatTimestamp(item.last_modified));
+    }
+    if (typeof item.size === "number") {
+      parts.push(formatBytes(item.size));
+    }
+    return parts.join(" • ");
+  };
+
+  const handleSelectBbnFile = async (key: string) => {
+    setSelectedBbnKey(key);
+    setSelectedBbnData(null);
+    setBbnFileMessage(null);
+
+    if (!key) {
+      return;
+    }
+
+    setBbnFileLoading(true);
+    try {
+      const response = await api.fetchBbnResultFile(key);
+      setSelectedBbnData(response.data);
+    } catch (err: any) {
+      console.error("Failed to load selected BBN file:", err);
+      setBbnFileMessage(err?.message ?? String(err));
+    } finally {
+      setBbnFileLoading(false);
+    }
+  };
+
+  const handleViewSelectedBbnData = () => {
+    if (!selectedBbnData) return;
+    const jsonStr = JSON.stringify(selectedBbnData, null, 2);
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(
+        `<pre style="padding: 20px; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;">${jsonStr}</pre>`
+      );
+      newWindow.document.title = "BBN 결과";
+    }
+  };
+
+  const handleDownloadSelectedBbnData = () => {
+    if (!selectedBbnData) return;
+    const jsonStr = JSON.stringify(selectedBbnData, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const fileName = selectedBbnKey ? selectedBbnKey.split("/").pop() : `bbn-result-${Date.now()}.json`;
+    link.href = url;
+    link.download = fileName ?? `bbn-result-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const selectedBbnMeta = selectedBbnKey
+    ? bbnFiles.find((item) => item.key === selectedBbnKey)
+    : undefined;
+
+  const buildBbnPayload = useCallback(() => {
+    // 선택된 BBN 파일이 있으면 S3 경로 전달
+    if (selectedBbnKey && selectedBbnKey.trim() && bbnBucketInfo?.bucket) {
+      const payload = {
+        bbn_input_s3_bucket: bbnBucketInfo.bucket,
+        bbn_input_s3_key: selectedBbnKey,
+      };
+      console.log('[BBN Payload] S3 path will be sent:', payload);
+      return payload;
+    }
+    console.log('[BBN Payload] No BBN file selected, using default');
+    return {};
+  }, [selectedBbnKey, bbnBucketInfo]);
+
   const handleSensitivitySubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -195,6 +341,7 @@ export default function StatisticalPage() {
         confidence_goal: c,
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
+        ...buildBbnPayload(),
       });
       
       const jobId = jobResponse.job_id;
@@ -214,6 +361,13 @@ export default function StatisticalPage() {
           if (elapsedSeconds !== undefined) {
             setSensitivityCompletedTime(elapsedSeconds);
           }
+          // Extract BBN input info from result
+          if (resultData && (resultData as any).bbn_input) {
+            setUsedBbnInput((resultData as any).bbn_input);
+          } else {
+            setUsedBbnInput({ source: 'default', description: 'NRC report data (default)' });
+          }
+          setUsedBbnInputJobType('sensitivity-analysis');
         },
         (error) => {
           setErrorMsg(`Sensitivity Analysis 오류: ${error}`);
@@ -251,6 +405,7 @@ export default function StatisticalPage() {
         failures,
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
+        ...buildBbnPayload(),
       });
       
       const jobId = jobResponse.job_id;
@@ -270,6 +425,13 @@ export default function StatisticalPage() {
           if (elapsedSeconds !== undefined) {
             setUpdatePfdCompletedTime(elapsedSeconds);
           }
+          // Extract BBN input info from result
+          if (_data && _data.bbn_input) {
+            setUsedBbnInput(_data.bbn_input);
+          } else {
+            setUsedBbnInput({ source: 'default', description: 'NRC report data (default)' });
+          }
+          setUsedBbnInputJobType('update-pfd');
         },
         (error) => {
           setErrorMsg(`Update PFD 오류: ${error}`);
@@ -307,6 +469,7 @@ export default function StatisticalPage() {
         failures,
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
+        ...buildBbnPayload(),
       });
       
       const jobId = jobResponse.job_id;
@@ -323,6 +486,13 @@ export default function StatisticalPage() {
         (resultData, downloadUrl, elapsedSeconds) => {
           if (resultData) {
             setFullAnalysisResultData(resultData);
+            // Extract BBN input info from result
+            if (resultData.input && resultData.input.bbn_input) {
+              setUsedBbnInput(resultData.input.bbn_input);
+            } else {
+              setUsedBbnInput({ source: 'default', description: 'NRC report data (default)' });
+            }
+            setUsedBbnInputJobType('full-analysis');
           }
           if (downloadUrl) {
             setDownloadLink(downloadUrl);
@@ -420,6 +590,100 @@ export default function StatisticalPage() {
             </div>
           )}
 
+        <div css={cssObj.bbnSelectorBox}>
+          <div css={cssObj.bbnSelectorHeader}>
+            <div>
+              <h2>BBN JSON Result Selection</h2>
+              <p>
+                {bbnBucketInfo
+                  ? `${bbnBucketInfo.bucket}/${bbnBucketInfo.prefix ?? ""}`
+                  : "버킷 정보를 불러오는 중입니다."}
+                {bbnBucketInfo && (
+                  <>
+                    {bbnLastRefreshed && (
+                      <span style={{ marginLeft: 8 }}>
+                        · 갱신: {formatTimestamp(bbnLastRefreshed)}
+                      </span>
+                    )}
+                    <span style={{ marginLeft: 8 }}>
+                      · 총 {bbnFiles.length.toLocaleString()}건
+                    </span>
+                  </>
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              css={cssObj.bbnRefreshButton}
+              onClick={refreshBbnFiles}
+              disabled={bbnFilesLoading}
+            >
+              {bbnFilesLoading ? "불러오는 중..." : "목록 새로고침"}
+            </button>
+          </div>
+
+          <select
+            css={cssObj.bbnSelect}
+            value={selectedBbnKey}
+            onChange={(e) => handleSelectBbnFile(e.target.value)}
+            disabled={bbnFilesLoading || bbnFiles.length === 0}
+          >
+            <option value="">파일을 선택하세요</option>
+            {bbnFiles.map((item) => (
+              <option key={item.key} value={item.key}>
+                {formatFileLabel(item)}
+              </option>
+            ))}
+          </select>
+
+          {bbnFilesError && (
+            <span css={cssObj.bbnErrorText}>
+              목록을 불러오는 데 실패했습니다: {bbnFilesError}
+            </span>
+          )}
+
+          {!bbnFilesLoading && bbnFiles.length === 0 && !bbnFilesError && (
+            <span css={cssObj.bbnMessage}>표시할 JSON 파일이 없습니다.</span>
+          )}
+
+          {selectedBbnMeta && (
+            <div css={cssObj.bbnMetaInfo}>
+              <span>파일명: {selectedBbnMeta.name}</span>
+              {typeof selectedBbnMeta.size === "number" && (
+                <span>크기: {formatBytes(selectedBbnMeta.size)}</span>
+              )}
+              {selectedBbnMeta.last_modified && (
+                <span>수정: {formatTimestamp(selectedBbnMeta.last_modified)}</span>
+              )}
+            </div>
+          )}
+
+          {bbnFileLoading && (
+            <span css={cssObj.bbnMessage}>선택한 파일을 불러오는 중입니다...</span>
+          )}
+
+          {bbnFileMessage && <span css={cssObj.bbnErrorText}>{bbnFileMessage}</span>}
+
+          {selectedBbnData && !bbnFileLoading && (
+            <div css={cssObj.bbnActionRow}>
+              <button
+                type="button"
+                css={[cssObj.bbnButton, cssObj.bbnPrimaryButton]}
+                onClick={handleViewSelectedBbnData}
+              >
+                결과보기
+              </button>
+              <button
+                type="button"
+                css={[cssObj.bbnButton, cssObj.bbnSecondaryButton]}
+                onClick={handleDownloadSelectedBbnData}
+              >
+                다운로드
+              </button>
+            </div>
+          )}
+        </div>
+
           <div css={cssObj.settingsGrid}>
             {/* 1. Sensitivity Analysis */}
             <div css={cssObj.settingBox}>
@@ -470,6 +734,22 @@ export default function StatisticalPage() {
                     계산된 <b>Number of Tests</b>: {tests}
                   </div>
                 )}
+                {/* 사용된 BBN 입력 정보 표시 */}
+                {usedBbnInput && usedBbnInputJobType === 'sensitivity-analysis' && (
+                  <div style={{ marginTop: 12, padding: '12px', backgroundColor: '#eff6ff', border: '1px solid #3b82f6', borderRadius: '6px', fontSize: '13px', color: '#1e40af' }}>
+                    <div style={{ fontWeight: '600', marginBottom: '4px' }}>사용된 BBN 입력:</div>
+                    <div style={{ color: '#374151' }}>
+                      {usedBbnInput.source === 's3' 
+                        ? `S3: ${usedBbnInput.bucket}/${usedBbnInput.key}`
+                        : usedBbnInput.source === 'default'
+                        ? usedBbnInput.description || '기본값 (NRC report data)'
+                        : usedBbnInput.source === 'inline'
+                        ? `인라인 JSON (${usedBbnInput.size} bytes)`
+                        : `로컬 파일: ${usedBbnInput.path}`
+                      }
+                    </div>
+                  </div>
+                )}
               </form>
             </div>
 
@@ -513,6 +793,22 @@ export default function StatisticalPage() {
                     </span>
                   )}
                 </div>
+                {/* 사용된 BBN 입력 정보 표시 */}
+                {usedBbnInput && usedBbnInputJobType === 'update-pfd' && (
+                  <div style={{ marginTop: 12, padding: '12px', backgroundColor: '#eff6ff', border: '1px solid #3b82f6', borderRadius: '6px', fontSize: '13px', color: '#1e40af' }}>
+                    <div style={{ fontWeight: '600', marginBottom: '4px' }}>사용된 BBN 입력:</div>
+                    <div style={{ color: '#374151' }}>
+                      {usedBbnInput.source === 's3' 
+                        ? `S3: ${usedBbnInput.bucket}/${usedBbnInput.key}`
+                        : usedBbnInput.source === 'default'
+                        ? usedBbnInput.description || '기본값 (NRC report data)'
+                        : usedBbnInput.source === 'inline'
+                        ? `인라인 JSON (${usedBbnInput.size} bytes)`
+                        : `로컬 파일: ${usedBbnInput.path}`
+                      }
+                    </div>
+                  </div>
+                )}
               </form>
             </div>
 
@@ -608,6 +904,22 @@ export default function StatisticalPage() {
                       결과보기
                     </a>
                   )}
+                </div>
+              )}
+              {/* 사용된 BBN 입력 정보 표시 */}
+              {usedBbnInput && usedBbnInputJobType === 'full-analysis' && (
+                <div style={{ marginTop: 12, padding: '12px', backgroundColor: '#eff6ff', border: '1px solid #3b82f6', borderRadius: '6px', fontSize: '13px', color: '#1e40af' }}>
+                  <div style={{ fontWeight: '600', marginBottom: '4px' }}>사용된 BBN 입력:</div>
+                  <div style={{ color: '#374151' }}>
+                    {usedBbnInput.source === 's3' 
+                      ? `S3: ${usedBbnInput.bucket}/${usedBbnInput.key}`
+                      : usedBbnInput.source === 'default'
+                      ? usedBbnInput.description || '기본값 (NRC report data)'
+                      : usedBbnInput.source === 'inline'
+                      ? `인라인 JSON (${usedBbnInput.size} bytes)`
+                      : `로컬 파일: ${usedBbnInput.path}`
+                    }
+                  </div>
                 </div>
               )}
             </div>

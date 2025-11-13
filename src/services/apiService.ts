@@ -108,9 +108,14 @@ export const getResults = async (jobId: string) => {
 // ============== STATISTICAL PAGE ENDPOINTS =============
 // =======================================================
 
-export type SensitivityIn  = { pfd_goal: number; confidence_goal: number; trace_id?: string | null; test_mode?: boolean };
-export type UpdatePfdIn    = { pfd_goal: number; demand: number; failures: number; trace_id?: string | null; test_mode?: boolean };
-export type FullAnalysisIn = { pfd_goal: number; confidence_goal: number; failures: number; trace_id?: string | null; test_mode?: boolean };
+type BbnInputOptions = {
+  bbn_input_s3_bucket?: string;
+  bbn_input_s3_key?: string;
+};
+
+export type SensitivityIn  = { pfd_goal: number; confidence_goal: number; trace_id?: string | null; test_mode?: boolean } & BbnInputOptions;
+export type UpdatePfdIn    = { pfd_goal: number; demand: number; failures: number; trace_id?: string | null; test_mode?: boolean } & BbnInputOptions;
+export type FullAnalysisIn = { pfd_goal: number; confidence_goal: number; failures: number; trace_id?: string | null; test_mode?: boolean } & BbnInputOptions;
 
 // HybridTool job request response (same for all trigger functions)
 export type HybridToolJobResponse = {
@@ -127,6 +132,29 @@ export type HybridToolResultsResponse = {
   status: 'completed' | 'not_found' | 'failed';
   s3_location?: string;
   message?: string;
+};
+
+// BBN result listing
+export type BbnResultItem = {
+  key: string;
+  name: string;
+  size?: number;
+  last_modified?: string;
+};
+
+export type BbnResultListResponse = {
+  bucket: string;
+  prefix: string;
+  count: number;
+  items: BbnResultItem[];
+};
+
+export type BbnResultFileResponse = {
+  bucket: string;
+  key: string;
+  size?: number;
+  last_modified?: string;
+  data: any;
 };
 
 // Result file structure from S3 (sensitivity-analysis)
@@ -237,6 +265,20 @@ export const getHybridToolResults = async (
   }
 
   return response.json();
+};
+
+// =======================================================
+// ============= BBN RESULT MANAGEMENT ENDPOINTS =========
+// =======================================================
+
+export const listBbnResultFiles = (limit?: number) => {
+  const search = typeof limit === 'number' ? `?limit=${encodeURIComponent(limit)}` : '';
+  return getJSON<BbnResultListResponse>(`/api/v1/results${search}`);
+};
+
+export const fetchBbnResultFile = (key: string) => {
+  const params = new URLSearchParams({ key });
+  return getJSON<BbnResultFileResponse>(`/api/v1/results?${params.toString()}`);
 };
 
 // =======================================================

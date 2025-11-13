@@ -128,6 +128,17 @@ def handler(event, context):
                 result['resultsPath'] = item['resultsPath']
             if 'errorMessage' in item:
                 result['errorMessage'] = item['errorMessage']
+            # BBN 입력 정보 추가
+            bbn_input_meta = {}
+            if 'bbnInputBucket' in item and item['bbnInputBucket']:
+                bbn_input_meta['bucket'] = item['bbnInputBucket']
+            if 'bbnInputKey' in item and item['bbnInputKey']:
+                bbn_input_meta['key'] = item['bbnInputKey']
+            if bbn_input_meta:
+                bbn_input_meta['source'] = 's3'
+                result['bbnInput'] = bbn_input_meta
+            elif not bbn_input_meta:
+                result['bbnInput'] = {'source': 'default', 'description': 'NRC report data (default)'}
             
             print(f"Successfully retrieved job status: {job_id} -> {result['jobStatus']}")
             

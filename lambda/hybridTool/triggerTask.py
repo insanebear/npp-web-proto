@@ -96,6 +96,8 @@ def handler(event, context):
         confidence_goal = float(body.get('confidence_goal', 0))
         failures = int(body.get('failures', 0))
         test_mode = body.get('test_mode', False)
+        bbn_input_s3_bucket = body.get('bbn_input_s3_bucket')
+        bbn_input_s3_key = body.get('bbn_input_s3_key')
         
         # 입력 검증
         if pfd_goal <= 0:
@@ -152,6 +154,7 @@ def handler(event, context):
     
     print(f"Starting ECS Task for full analysis, job_id: {job_id}")
     print(f"Parameters: pfd_goal={pfd_goal}, confidence_goal={confidence_goal}, failures={failures}")
+    print(f"BBN Input - S3 Bucket: {bbn_input_s3_bucket or 'None'}, S3 Key: {bbn_input_s3_key or 'None'}")
     
     # DynamoDB에 작업 상태 저장 (PENDING)
     if JOBS_TABLE_NAME:
@@ -166,7 +169,9 @@ def handler(event, context):
                     'pfdGoal': str(pfd_goal),
                     'confidenceGoal': str(confidence_goal),
                     'failures': str(failures),
-                    'testMode': str(test_mode).lower()
+                    'testMode': str(test_mode).lower(),
+                    'bbnInputBucket': bbn_input_s3_bucket or '',
+                    'bbnInputKey': bbn_input_s3_key or ''
                 }
             )
             print(f"Job status saved to DynamoDB: {job_id}")
@@ -187,6 +192,23 @@ def handler(event, context):
                 sg.strip() for sg in SECURITY_GROUP_IDS if sg.strip()
             ]
         
+        environment_overrides = [
+            {'name': 'TASK_TYPE', 'value': 'full_analysis'},
+            {'name': 'JOB_ID', 'value': job_id},
+            {'name': 'PFD_GOAL', 'value': str(pfd_goal)},
+            {'name': 'CONFIDENCE_GOAL', 'value': str(confidence_goal)},
+            {'name': 'FAILURES', 'value': str(failures)},
+            {'name': 'S3_BUCKET', 'value': S3_BUCKET},
+            {'name': 'AWS_REGION', 'value': AWS_REGION},
+            {'name': 'TEST_MODE', 'value': 'true' if test_mode else 'false'},
+            {'name': 'JOBS_TABLE_NAME', 'value': JOBS_TABLE_NAME or ''}
+        ]
+
+        if bbn_input_s3_key:
+            environment_overrides.append({'name': 'BBN_INPUT_PATH', 'value': bbn_input_s3_key})
+        if bbn_input_s3_bucket:
+            environment_overrides.append({'name': 'BBN_INPUT_BUCKET', 'value': bbn_input_s3_bucket})
+
         response = ecs_client.run_task(
             cluster=CLUSTER_NAME,
             taskDefinition=TASK_DEFINITION,
@@ -195,17 +217,7 @@ def handler(event, context):
             overrides={
                 'containerOverrides': [{
                     'name': CONTAINER_NAME,
-                    'environment': [
-                        {'name': 'TASK_TYPE', 'value': 'full_analysis'},
-                        {'name': 'JOB_ID', 'value': job_id},
-                        {'name': 'PFD_GOAL', 'value': str(pfd_goal)},
-                        {'name': 'CONFIDENCE_GOAL', 'value': str(confidence_goal)},
-                        {'name': 'FAILURES', 'value': str(failures)},
-                        {'name': 'S3_BUCKET', 'value': S3_BUCKET},
-                        {'name': 'AWS_REGION', 'value': AWS_REGION},
-                        {'name': 'TEST_MODE', 'value': 'true' if test_mode else 'false'},
-                        {'name': 'JOBS_TABLE_NAME', 'value': JOBS_TABLE_NAME or ''}
-                    ]
+                    'environment': environment_overrides
                 }]
             }
         )

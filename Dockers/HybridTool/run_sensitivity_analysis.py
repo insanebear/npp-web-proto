@@ -27,6 +27,7 @@ from bbn_inference.sensitivity_analysis import (
     get_confidence,
 )
 from bbn_inference.examples.example_for_composite_model import run_example_for_composite_model
+from bbn_input_loader import load_bayesian_data_from_env
 
 
 def main():
@@ -41,6 +42,8 @@ def main():
     s3_bucket = os.environ.get("S3_BUCKET")
     aws_region = os.environ.get("AWS_REGION", "ap-northeast-2")
     test_mode = os.environ.get("TEST_MODE", "false").lower() == "true"
+    bbn_input_path = os.environ.get("BBN_INPUT_PATH")
+    bbn_input_bucket = os.environ.get("BBN_INPUT_BUCKET")
     jobs_table_name = os.environ.get("JOBS_TABLE_NAME")
     
     dynamodb_client = None
@@ -58,6 +61,9 @@ def main():
     print(f"[CONFIG] PFD_GOAL: {pfd_goal}")
     print(f"[CONFIG] CONFIDENCE_GOAL: {confidence_goal}")
     print(f"[CONFIG] S3_BUCKET: {s3_bucket}")
+    print(f"[CONFIG] BBN_INPUT_PATH: {bbn_input_path or 'default (nrc_report_data)'}")
+    if bbn_input_bucket:
+        print(f"[CONFIG] BBN_INPUT_BUCKET: {bbn_input_bucket}")
     
     # DynamoDB 상태 업데이트: RUNNING
     if jobs_table_name and dynamodb_client:
@@ -73,6 +79,27 @@ def main():
             print(f"[WARNING] Failed to update DynamoDB status to RUNNING: {str(e)}")
     
     try:
+        print(f"[DEBUG] Loading BBN data from: path={bbn_input_path}, bucket={bbn_input_bucket}")
+        bbn_data = load_bayesian_data_from_env(
+            bbn_input_path,
+            bbn_input_bucket,
+        )
+        print(f"[DEBUG] BBN data loaded successfully. FP={bbn_data.function_point}, complexity={bbn_data.complexity}")
+        print(f"[DEBUG] Sample attr_states: {dict(list(bbn_data.attr_states.items())[:5])}")
+        
+        # Determine BBN input source for result metadata
+        bbn_input_info = {}
+        if bbn_input_path and bbn_input_bucket:
+            bbn_input_info = {
+                "source": "s3",
+                "bucket": bbn_input_bucket,
+                "key": bbn_input_path
+            }
+        elif bbn_input_path:
+            bbn_input_info = {"source": "local", "path": bbn_input_path}
+        else:
+            bbn_input_info = {"source": "default", "description": "NRC report data (default)"}
+
         if test_mode:
             print("\n[TEST MODE] Skipping computation, using dummy values")
             print("[STEP 1] Trace generation skipped (TEST MODE)")
@@ -86,8 +113,14 @@ def main():
         else:
             # Generate trace
             print("\n[STEP 1] Generating composite model trace...")
-            trace = run_example_for_composite_model()
-            print("[STEP 1] Trace generation completed")
+            try:
+                trace = run_example_for_composite_model(bbn_data)
+                print("[STEP 1] Trace generation completed")
+            except Exception as trace_error:
+                print(f"[ERROR] Trace generation failed: {str(trace_error)}", file=sys.stderr)
+                import traceback
+                traceback.print_exc()
+                raise
             
             # 2. Sensitivity Analysis
             print("\n[STEP 2] Running sensitivity analysis...")
@@ -109,6 +142,7 @@ def main():
                 "prior_mean": prior_mean,
                 "prior_confidence": prior_conf,
             },
+            "bbn_input": bbn_input_info,
         }
         
         # Upload to S3
