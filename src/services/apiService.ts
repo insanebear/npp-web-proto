@@ -108,9 +108,14 @@ export const getResults = async (jobId: string) => {
 // ============== STATISTICAL PAGE ENDPOINTS =============
 // =======================================================
 
-export type SensitivityIn  = { pfd_goal: number; confidence_goal: number; trace_id?: string | null; test_mode?: boolean };
-export type UpdatePfdIn    = { pfd_goal: number; demand: number; failures: number; trace_id?: string | null; test_mode?: boolean };
-export type FullAnalysisIn = { pfd_goal: number; confidence_goal: number; failures: number; trace_id?: string | null; test_mode?: boolean };
+type BbnInputOptions = {
+  bbn_input_s3_bucket?: string;
+  bbn_input_s3_key?: string;
+};
+
+export type SensitivityIn  = { pfd_goal: number; confidence_goal: number; trace_id?: string | null; test_mode?: boolean } & BbnInputOptions;
+export type UpdatePfdIn    = { pfd_goal: number; demand: number; failures: number; trace_id?: string | null; test_mode?: boolean } & BbnInputOptions;
+export type FullAnalysisIn = { pfd_goal: number; confidence_goal: number; failures: number; trace_id?: string | null; test_mode?: boolean } & BbnInputOptions;
 
 // HybridTool job request response (same for all trigger functions)
 export type HybridToolJobResponse = {

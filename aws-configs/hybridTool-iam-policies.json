@@ -25,7 +25,10 @@
           "s3:PutObject",
           "s3:GetObject"
         ],
-        "Resource": "arn:aws:s3:::hybrid-tool-results/*"
+        "Resource": [
+          "arn:aws:s3:::hybrid-tool-results/*",
+          "arn:aws:s3:::bayesian-simulation-results-bucket/*"
+        ]
       },
       {
         "Effect": "Allow",

@@ -151,12 +151,23 @@ def bayesian_data_from_json(input_json: dict) -> BayesianData:
     """
     Build a BayesianData instance from a JSON object structured by sections
     with Python code keys inside sections. Accepts both label or code keys for FP.
-    Expected examples:
-      {
-        "FP": { "FP_Input": "56" },
-        "Requirement Dev": { "SR_SDP_state": "Medium", ... },
-        ...
-      }
+    
+    Supports two JSON formats:
+    1. Direct format:
+       {
+         "FP": { "FP_Input": "56" },
+         "Requirement Dev": { "SR_SDP_state": "Medium", ... },
+         ...
+       }
+    2. BBN result format (with input/output wrapper):
+       {
+         "input": {
+           "FP": { "FP_Input": "56" },
+           "Requirement Dev": { "SR_SDP_state": "Medium", ... },
+           ...
+         },
+         "output": { ... }
+       }
     """
     bd = BayesianData()
 
@@ -172,16 +183,26 @@ def bayesian_data_from_json(input_json: dict) -> BayesianData:
             # numeric strings fallthrough
             try:
                 n = int(v)
-                return n  # assume 0/1/2 already mapped; caller ensures validity
+                # Ensure valid state (0, 1, or 2)
+                if n in [State.High, State.Medium, State.Low]:
+                    return n
+                return State.Medium
             except Exception:
                 return State.Medium
         if isinstance(value, (int, float)):
             try:
                 n = int(value)
-                return n
+                # Ensure valid state (0, 1, or 2)
+                if n in [State.High, State.Medium, State.Low]:
+                    return n
+                return State.Medium
             except Exception:
                 return State.Medium
         return State.Medium
+
+    # Handle BBN result format (with input/output wrapper)
+    if "input" in input_json and isinstance(input_json["input"], dict):
+        input_json = input_json["input"]
 
     # FP parsing (accept both label and code key)
     fp_section = input_json.get("FP", {}) or {}

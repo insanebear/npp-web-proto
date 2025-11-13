@@ -1,10 +1,12 @@
 import arviz as az
 import os
+from typing import Optional
 
 from bbn_inference.bbn_utils import run_sampling
 from bbn_inference.data import nrc_report_data
 from bbn_inference.composite_model import *
 from bbn_inference.generic_model import create_generic_model
+from bbn_inference.bbn_data_model import BayesianData
 import pymc as pm
 
 import pytensor
@@ -22,9 +24,9 @@ def run_example_for_generic_model():
     generic_trace.to_netcdf(filename=filename)
 
 # this one is fast
-def run_example_for_composite_model():
+def run_example_for_composite_model(data_override: Optional[BayesianData] = None):
 
-    data = nrc_report_data()
+    data = data_override or nrc_report_data()
     SR_Dev_model = create_SR_Dev_model(data.attr_states)
     SR_VV_model = create_SR_VV_model(data.attr_states)
     SD_Dev_model = create_SD_Dev_model(data.attr_states)
