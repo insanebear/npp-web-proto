@@ -24,6 +24,8 @@ export default function StatisticalPage() {
   const [sensitivityJobId, setSensitivityJobId] = useState<string | null>(null);
   const [updatePfdJobId, setUpdatePfdJobId] = useState<string | null>(null);
   const [fullAnalysisJobId, setFullAnalysisJobId] = useState<string | null>(null);
+  const [usedBbnInput, setUsedBbnInput] = useState<{ source: string; bucket?: string; key?: string; description?: string; size?: number; path?: string } | null>(null);
+  const [usedBbnInputJobType, setUsedBbnInputJobType] = useState<'sensitivity-analysis' | 'update-pfd' | 'full-analysis' | null>(null);
 
   const [bbnFiles, setBbnFiles] = useState<api.BbnResultItem[]>([]);
   const [bbnBucketInfo, setBbnBucketInfo] = useState<{ bucket: string; prefix: string } | null>(null);
@@ -300,6 +302,20 @@ export default function StatisticalPage() {
     ? bbnFiles.find((item) => item.key === selectedBbnKey)
     : undefined;
 
+  const buildBbnPayload = useCallback(() => {
+    // 선택된 BBN 파일이 있으면 S3 경로 전달
+    if (selectedBbnKey && selectedBbnKey.trim() && bbnBucketInfo?.bucket) {
+      const payload = {
+        bbn_input_s3_bucket: bbnBucketInfo.bucket,
+        bbn_input_s3_key: selectedBbnKey,
+      };
+      console.log('[BBN Payload] S3 path will be sent:', payload);
+      return payload;
+    }
+    console.log('[BBN Payload] No BBN file selected, using default');
+    return {};
+  }, [selectedBbnKey, bbnBucketInfo]);
+
   const handleSensitivitySubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -325,6 +341,7 @@ export default function StatisticalPage() {
         confidence_goal: c,
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
+        ...buildBbnPayload(),
       });
       
       const jobId = jobResponse.job_id;
@@ -344,6 +361,13 @@ export default function StatisticalPage() {
           if (elapsedSeconds !== undefined) {
             setSensitivityCompletedTime(elapsedSeconds);
           }
+          // Extract BBN input info from result
+          if (resultData && (resultData as any).bbn_input) {
+            setUsedBbnInput((resultData as any).bbn_input);
+          } else {
+            setUsedBbnInput({ source: 'default', description: 'NRC report data (default)' });
+          }
+          setUsedBbnInputJobType('sensitivity-analysis');
         },
         (error) => {
           setErrorMsg(`Sensitivity Analysis 오류: ${error}`);
@@ -381,6 +405,7 @@ export default function StatisticalPage() {
         failures,
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
+        ...buildBbnPayload(),
       });
       
       const jobId = jobResponse.job_id;
@@ -400,6 +425,13 @@ export default function StatisticalPage() {
           if (elapsedSeconds !== undefined) {
             setUpdatePfdCompletedTime(elapsedSeconds);
           }
+          // Extract BBN input info from result
+          if (_data && _data.bbn_input) {
+            setUsedBbnInput(_data.bbn_input);
+          } else {
+            setUsedBbnInput({ source: 'default', description: 'NRC report data (default)' });
+          }
+          setUsedBbnInputJobType('update-pfd');
         },
         (error) => {
           setErrorMsg(`Update PFD 오류: ${error}`);
@@ -437,6 +469,7 @@ export default function StatisticalPage() {
         failures,
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
+        ...buildBbnPayload(),
       });
       
       const jobId = jobResponse.job_id;
@@ -453,6 +486,13 @@ export default function StatisticalPage() {
         (resultData, downloadUrl, elapsedSeconds) => {
           if (resultData) {
             setFullAnalysisResultData(resultData);
+            // Extract BBN input info from result
+            if (resultData.input && resultData.input.bbn_input) {
+              setUsedBbnInput(resultData.input.bbn_input);
+            } else {
+              setUsedBbnInput({ source: 'default', description: 'NRC report data (default)' });
+            }
+            setUsedBbnInputJobType('full-analysis');
           }
           if (downloadUrl) {
             setDownloadLink(downloadUrl);
@@ -694,6 +734,22 @@ export default function StatisticalPage() {
                     계산된 <b>Number of Tests</b>: {tests}
                   </div>
                 )}
+                {/* 사용된 BBN 입력 정보 표시 */}
+                {usedBbnInput && usedBbnInputJobType === 'sensitivity-analysis' && (
+                  <div style={{ marginTop: 12, padding: '12px', backgroundColor: '#eff6ff', border: '1px solid #3b82f6', borderRadius: '6px', fontSize: '13px', color: '#1e40af' }}>
+                    <div style={{ fontWeight: '600', marginBottom: '4px' }}>사용된 BBN 입력:</div>
+                    <div style={{ color: '#374151' }}>
+                      {usedBbnInput.source === 's3' 
+                        ? `S3: ${usedBbnInput.bucket}/${usedBbnInput.key}`
+                        : usedBbnInput.source === 'default'
+                        ? usedBbnInput.description || '기본값 (NRC report data)'
+                        : usedBbnInput.source === 'inline'
+                        ? `인라인 JSON (${usedBbnInput.size} bytes)`
+                        : `로컬 파일: ${usedBbnInput.path}`
+                      }
+                    </div>
+                  </div>
+                )}
               </form>
             </div>
 
@@ -737,6 +793,22 @@ export default function StatisticalPage() {
                     </span>
                   )}
                 </div>
+                {/* 사용된 BBN 입력 정보 표시 */}
+                {usedBbnInput && usedBbnInputJobType === 'update-pfd' && (
+                  <div style={{ marginTop: 12, padding: '12px', backgroundColor: '#eff6ff', border: '1px solid #3b82f6', borderRadius: '6px', fontSize: '13px', color: '#1e40af' }}>
+                    <div style={{ fontWeight: '600', marginBottom: '4px' }}>사용된 BBN 입력:</div>
+                    <div style={{ color: '#374151' }}>
+                      {usedBbnInput.source === 's3' 
+                        ? `S3: ${usedBbnInput.bucket}/${usedBbnInput.key}`
+                        : usedBbnInput.source === 'default'
+                        ? usedBbnInput.description || '기본값 (NRC report data)'
+                        : usedBbnInput.source === 'inline'
+                        ? `인라인 JSON (${usedBbnInput.size} bytes)`
+                        : `로컬 파일: ${usedBbnInput.path}`
+                      }
+                    </div>
+                  </div>
+                )}
               </form>
             </div>
 
@@ -832,6 +904,22 @@ export default function StatisticalPage() {
                       결과보기
                     </a>
                   )}
+                </div>
+              )}
+              {/* 사용된 BBN 입력 정보 표시 */}
+              {usedBbnInput && usedBbnInputJobType === 'full-analysis' && (
+                <div style={{ marginTop: 12, padding: '12px', backgroundColor: '#eff6ff', border: '1px solid #3b82f6', borderRadius: '6px', fontSize: '13px', color: '#1e40af' }}>
+                  <div style={{ fontWeight: '600', marginBottom: '4px' }}>사용된 BBN 입력:</div>
+                  <div style={{ color: '#374151' }}>
+                    {usedBbnInput.source === 's3' 
+                      ? `S3: ${usedBbnInput.bucket}/${usedBbnInput.key}`
+                      : usedBbnInput.source === 'default'
+                      ? usedBbnInput.description || '기본값 (NRC report data)'
+                      : usedBbnInput.source === 'inline'
+                      ? `인라인 JSON (${usedBbnInput.size} bytes)`
+                      : `로컬 파일: ${usedBbnInput.path}`
+                    }
+                  </div>
                 </div>
               )}
             </div>

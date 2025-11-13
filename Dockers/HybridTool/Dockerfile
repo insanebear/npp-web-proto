@@ -21,6 +21,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY server/ /app/server/
 COPY Dockers/HybridTool/run_*.py /app/
+COPY Dockers/HybridTool/bbn_input_loader.py /app/
 
 # Make scripts executable
 RUN chmod +x /app/run_*.py
