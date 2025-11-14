@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import Background from './background';
 import Menu from './menu';
-import { TABS } from '../../shared/constants/tabs';
-import { getCodeKey } from '../../shared/constants/labelToCode';
-import { useAppState } from '../../shared/contexts/AppStateContext';
-import { useSimulation } from '../../shared/hooks/useSimulation';
-import { useFileUpload } from '../../shared/hooks/useFileUpload';
-import { useBayesianFileUpload } from '../../shared/hooks/useBayesianFileUpload';
-import { useAppSettings } from '../../shared/hooks/useAppSettings';
+import { TABS } from '../../../shared/constants/tabs';
+import { getCodeKey } from '../../../shared/constants/labelToCode';
+import { useAppState } from '../../../shared/contexts/AppStateContext';
+import { useSimulation } from '../../../shared/hooks/useSimulation';
+import { useFileUpload } from '../../../shared/hooks/useFileUpload';
+import { useBayesianFileUpload } from '../../../shared/hooks/useBayesianFileUpload';
+import { useAppSettings } from '../../../shared/hooks/useAppSettings';
 
 function BayesianPage() {
 

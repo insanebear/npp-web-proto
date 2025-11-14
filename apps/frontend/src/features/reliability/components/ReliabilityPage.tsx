@@ -1,14 +1,14 @@
 // FILE: src/pages/ReliabilityPage/ReliabilityPage.tsx
 
 import React from 'react';
-import Background from "../BayesianPage/background";
+import Background from "../../bayesian/components/background";
 import StatusIndicator from './StatusIndicator';
 import ResultsDisplay from './ResultsDisplay';
-import SelectionBar from '../../shared/utilities/searchbar';
-import { useAppState } from '../../shared/contexts/AppStateContext';
-import { useSimulation } from '../../shared/hooks/useSimulation';
-import { useFileUpload } from '../../shared/hooks/useFileUpload';
-import { useReliabilityFileUpload } from '../../shared/hooks/useReliabilityFileUpload';
+import SelectionBar from '../../../shared/utilities/searchbar';
+import { useAppState } from '../../../shared/contexts/AppStateContext';
+import { useSimulation } from '../../../shared/hooks/useSimulation';
+import { useFileUpload } from '../../../shared/hooks/useFileUpload';
+import { useReliabilityFileUpload } from '../../../shared/hooks/useReliabilityFileUpload';
 
 const ReliabilityPage: React.FC = () => {
   // Get state from Context

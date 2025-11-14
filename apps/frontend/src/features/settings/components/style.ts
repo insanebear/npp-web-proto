@@ -1,7 +1,6 @@
 import { css } from "@emotion/react";
-// Make sure these paths are correct for your project structure
-import { COLORS } from '../../shared/constants/COLORS';
-import { FONT_SIZE } from "../../shared/constants/FONT_SIZE";
+import { COLORS } from '../../../shared/constants/COLORS';
+import { FONT_SIZE } from "../../../shared/constants/FONT_SIZE";
 
 export const cssObj = {
 

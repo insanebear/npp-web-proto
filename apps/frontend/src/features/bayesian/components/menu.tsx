@@ -1,9 +1,9 @@
 // FILE: src/pages/BayesianPage/menu.tsx
 
-import Button from "../../shared/utilities/button";
-import DropDown from "../../shared/utilities/dropdown";
-import SelectionBar from "../../shared/utilities/searchbar";
-import { TABS } from "../../shared/constants/tabs";
+import Button from "../../../shared/utilities/button";
+import DropDown from "../../../shared/utilities/dropdown";
+import SelectionBar from "../../../shared/utilities/searchbar";
+import { TABS } from "../../../shared/constants/tabs";
 
 const Menu = ({
   activeLabel,

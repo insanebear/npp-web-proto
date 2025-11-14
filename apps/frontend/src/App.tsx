@@ -1,10 +1,10 @@
 // FILE: src/App.tsx
 import { Routes, Route } from 'react-router-dom';
 
-import BayesianPage from './pages/BayesianPage/BayesianPage';
-import StatisticalPage from "./pages/StatisticalPage/StatisticalPage";
-import SettingsPage from "./pages/SettingsPage/SettingsPage";
-import ReliabilityPage from "./pages/ReliabilityPage/ReliabilityPage";
+import BayesianPage from './features/bayesian/components/BayesianPage';
+import StatisticalPage from "./features/statistical/components/StatisticalPage";
+import SettingsPage from "./features/settings/components/SettingsPage";
+import ReliabilityPage from "./features/reliability/components/ReliabilityPage";
 
 function App() {
   const BayesianPageComponent = <BayesianPage />;

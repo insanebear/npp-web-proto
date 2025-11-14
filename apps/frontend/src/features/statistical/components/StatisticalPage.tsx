@@ -2,8 +2,8 @@
 import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
 import { Global } from "@emotion/react";
 import { cssObj } from "./style";
-import * as api from "../../shared/services/apiService";
-import type { SensitivityAnalysisResult } from "../../shared/services/apiService";
+import * as api from "../../../shared/services/apiService";
+import type { SensitivityAnalysisResult } from "../../../shared/services/apiService";
 
 // Polling configuration
 const POLL_INTERVAL = 5000; // 5 seconds

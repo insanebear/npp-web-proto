@@ -1,5 +1,5 @@
-import { COLORS } from '../../shared/constants/COLORS'
-import { FONT_SIZE } from "../../shared/constants/FONT_SIZE";
+import { COLORS } from '../../../shared/constants/COLORS'
+import { FONT_SIZE } from "../../../shared/constants/FONT_SIZE";
 import { css } from "@emotion/react";
 
 export const cssObj = {
