@@ -5,19 +5,36 @@ import Background from './background';
 import Menu from './menu';
 import { TABS } from '../../constants/tabs';
 import { getCodeKey } from '../../constants/labelToCode';
+import { useAppState } from '../../shared/contexts/AppStateContext';
+import { useSimulation } from '../../shared/hooks/useSimulation';
+import { useFileUpload } from '../../shared/hooks/useFileUpload';
+import { useBayesianFileUpload } from '../../shared/hooks/useBayesianFileUpload';
+import { useAppSettings } from '../../hooks/useAppSettings';
 
-// All props are now passed down from App.tsx
-function BayesianPage({
-  settings,
-  onStartSimulation,
-  jobStatus,
-  jobError,
-  onFileUpload,
-  pendingFile,
-  onFileSelect,
-  inputValues,
-  onInputChange
-}: any) {
+function BayesianPage() {
+
+  // Get state from Context
+  const {
+    jobStatus,
+    error: jobError,
+    pendingFile,
+    inputValues,
+    setInputValues,
+  } = useAppState();
+
+  // Get settings
+  const settings = useAppSettings();
+
+  // Get handlers from hooks
+  const { handleStartSimulation } = useSimulation();
+  const { handleFileSelect } = useFileUpload();
+  const { handleBayesianUpload } = useBayesianFileUpload();
+
+  // Input change handler
+  const handleInputChange = (key: string, value: string) => {
+    setInputValues(prev => ({ ...prev, [key]: value }));
+  };
+
   // The active tab state remains local. We'll default to the new "FP" tab.
   const [activeLabel, setActiveLabel] = useState('FP');
   const [includeTraceData, setIncludeTraceData] = useState(false);
@@ -27,7 +44,7 @@ function BayesianPage({
     const payload = formatPayload(inputValues, settings);
     // Include trace data setting in the payload
     payload.settings.includeTraceData = includeTraceData;
-    onStartSimulation(payload);
+    handleStartSimulation(payload);
   };
 
   const activeLabelAndDropdowns = TABS.find(tab => tab.label === activeLabel);
@@ -53,11 +70,11 @@ function BayesianPage({
         activeLabel={activeLabel}
         setActiveLabel={setActiveLabel}
         inputValues={inputValues} // Pass unified state down
-        onInputChange={onInputChange} // Pass unified handler down
+        onInputChange={handleInputChange} // Pass unified handler down
         activeLabelAndDropdowns={activeLabelAndDropdowns}
-        onFileUpload={onFileUpload}
+        onFileUpload={handleBayesianUpload}
         pendingFile={pendingFile}
-        onFileSelect={onFileSelect}
+        onFileSelect={handleFileSelect}
       />
       {/* Fixed-width control box positioned below Settings */}
       <div className="absolute" style={{ 
