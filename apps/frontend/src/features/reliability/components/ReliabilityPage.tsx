@@ -1,7 +1,7 @@
 // FILE: src/pages/ReliabilityPage/ReliabilityPage.tsx
 
 import React from 'react';
-import Background from "../../bayesian/components/background";
+import Background from '../../../shared/components/Background';
 import StatusIndicator from './StatusIndicator';
 import ResultsDisplay from './ResultsDisplay';
 import SelectionBar from '../../../shared/utilities/searchbar';

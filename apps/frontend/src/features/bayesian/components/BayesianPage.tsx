@@ -1,7 +1,7 @@
 // FILE: src/pages/BayesianPage/BayesianPage.tsx
 
 import { useState } from 'react';
-import Background from './background';
+import Background from '../../../shared/components/Background';
 import Menu from './menu';
 import { TABS } from '../../../shared/constants/tabs';
 import { getCodeKey } from '../../../shared/constants/labelToCode';
