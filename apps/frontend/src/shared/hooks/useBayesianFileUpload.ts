@@ -1,5 +1,3 @@
-// FILE: src/shared/hooks/useBayesianFileUpload.ts
-
 // TODO: Consider integration with useReliabilityFileUpload (~70% common logic) before rename
 // TODO: Rename to useLoadBayesianInput - current name doesn't clearly indicate purpose
 

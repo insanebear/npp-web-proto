@@ -1,5 +1,3 @@
-// FILE: src/utilities/searchbar.tsx
-
 import React, { useRef, type CSSProperties } from 'react';
 
 const SearchIcon = ({ size }: { size: number }) => (

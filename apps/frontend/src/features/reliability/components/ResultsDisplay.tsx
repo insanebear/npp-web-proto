@@ -1,5 +1,3 @@
-// FILE: src/pages/ReliabilityPage/ResultsDisplay.tsx
-
 import React from 'react';
 
 interface ResultsDisplayProps {

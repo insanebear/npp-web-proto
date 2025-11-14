@@ -1,4 +1,3 @@
-// FILE: src/App.tsx
 import { Routes, Route } from 'react-router-dom';
 
 import BayesianPage from './features/bayesian/components/BayesianPage';

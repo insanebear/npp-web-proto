@@ -1,8 +1,5 @@
-// FILE: src/hooks/useAppSettings.ts
-
 import { useState, type Dispatch, type SetStateAction } from 'react';
 
-// FIXED: Changed from 'interface' to 'type' for better module compatibility
 export type AppSettings = {
   nChains: number;
   nIter: number;

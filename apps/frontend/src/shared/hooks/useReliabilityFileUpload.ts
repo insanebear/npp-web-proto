@@ -1,5 +1,3 @@
-// FILE: src/shared/hooks/useReliabilityFileUpload.ts
-
 // TODO: Consider integration with useBayesianFileUpload (~70% common logic) before rename
 // TODO: Rename to useLoadReliabilityResult - current name doesn't clearly indicate purpose
 

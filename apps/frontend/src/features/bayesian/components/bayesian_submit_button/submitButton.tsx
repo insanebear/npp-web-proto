@@ -1,5 +1,3 @@
-// FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\BayesianPage\bayesian_submit_button\submitButton.tsx
-
 import React from 'react';
 import Button from '../../../../shared/utilities/button';
 

@@ -1,5 +1,3 @@
-// FILE: src/pages/BayesianPage/menu.tsx
-
 import Button from "../../../shared/utilities/button";
 import DropDown from "../../../shared/utilities/dropdown";
 import SelectionBar from "../../../shared/utilities/searchbar";

@@ -1,8 +1,5 @@
-// FILE: src/utilities/button.tsx
-
 import React, { type CSSProperties } from 'react';
 
-// ADDED: Props interface
 interface ButtonProps {
   text: string;
   active?: boolean;
@@ -17,7 +14,7 @@ interface ButtonProps {
   x?: string;
   y?: string;
   customClasses?: string;
-  disabled?: boolean; // ADDED: The missing disabled prop
+  disabled?: boolean;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -78,7 +75,6 @@ const Button: React.FC<ButtonProps> = ({
 
   const paddingStyles = !width && !height ? { padding: '8px 20px' } : {};
 
-  // FIXED: Explicitly typed the style object
   const buttonStyle: CSSProperties = {
     position: 'absolute',
     top: y,
@@ -102,7 +98,7 @@ const Button: React.FC<ButtonProps> = ({
     <button
       onClick={onClick}
       style={buttonStyle}
-      disabled={disabled} // FIXED: Added disabled attribute
+      disabled={disabled}
     >
       {text}
     </button>

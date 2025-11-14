@@ -1,5 +1,3 @@
-// FILE: src/shared/hooks/useSimulation.ts
-
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';

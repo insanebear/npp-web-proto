@@ -1,5 +1,3 @@
-// FILE: src/pages/ReliabilityPage/ReliabilityPage.tsx
-
 import React from 'react';
 import Background from '../../../shared/components/Background';
 import StatusIndicator from './StatusIndicator';

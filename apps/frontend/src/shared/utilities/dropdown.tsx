@@ -1,9 +1,5 @@
-// FILE: src/utilities/dropdown.tsx
-
 import React, { useState, useEffect, useRef, type CSSProperties } from 'react';
 import Button from './button';
-
-// ADDED: Props interface
 interface DropDownProps {
   options: readonly string[] | string[];
   selectedOption: string;

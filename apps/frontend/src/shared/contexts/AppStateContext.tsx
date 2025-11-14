@@ -1,5 +1,3 @@
-// FILE: src/shared/contexts/AppStateContext.tsx
-
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import { TABS } from '../constants/tabs';

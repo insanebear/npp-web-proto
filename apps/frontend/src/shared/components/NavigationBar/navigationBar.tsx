@@ -1,10 +1,7 @@
-// FILE: src/NavigationBar/navigationBar.tsx
-
 import React, { Children, cloneElement, type CSSProperties, type ReactElement } from 'react';
 import { useLocation } from 'react-router-dom';
 import type { NavItemProps } from './navItem';
 
-// ADDED: A type definition for the component's props
 type Shape = 'smooth-rectangle' | 'sharp-rectangle' | 'pill' | 'circle';
 
 interface NavigationBarProps {

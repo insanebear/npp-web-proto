@@ -1,5 +1,3 @@
-// FILE: src/utilities/rectangle.tsx
-
 import React, { useState, Children, cloneElement, type CSSProperties, type ReactElement } from 'react';
 
 type Shape = 'smooth-rectangle' | 'sharp-rectangle' | 'pill' | 'circle';

@@ -1,5 +1,3 @@
-// FILE: src/pages/SettingsPage/SettingsPage.tsx
-
 /** @jsxImportSource @emotion/react */
 import { cssObj } from "./style";
 import { useState, type ChangeEvent } from "react";
@@ -28,7 +26,6 @@ export default function SettingsPage() {
     UnsavednThin: nThin,
   });
 
-  // FIXED: Added types for event and key
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>, key: string) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     const valueKey = determineValue(key);
@@ -55,7 +52,6 @@ export default function SettingsPage() {
     else { return 'text' }
   }
 
-  // FIXED: Added a return type
   const determineValue = (key: string): keyof typeof inputValues | null => {
     if (key === 'N1') return 'UnsavednChains';
     if (key === 'N2') return 'UnsavednIter';
@@ -80,7 +76,7 @@ export default function SettingsPage() {
           <h1 css={cssObj.title}>BBN Hyperparameters</h1>
         </section>
         <section css={cssObj.settingsGrid}>
-          {settingsFields.map(({ label, key }) => { // FIXED: removed non-existent 'long' property
+          {settingsFields.map(({ label, key }) => {
             const valueKey = determineValue(key);
             const inputType = determineType(key);
             if (!valueKey) return null;
