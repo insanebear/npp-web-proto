@@ -3,8 +3,10 @@
 import { useAppState } from './shared/contexts/AppStateContext';
 import { Routes, Route } from 'react-router-dom';
 import { useSimulation } from './shared/hooks/useSimulation';
+
+// TODO: Consider integration of useBayesianFileUpload and useReliabilityFileUpload (~70% common logic) before rename
+// TODO: Rename hooks: useFileUpload → useFileSelect, useBayesianFileUpload → useLoadBayesianInput, useReliabilityFileUpload → useLoadReliabilityResult
 import { useFileUpload } from './shared/hooks/useFileUpload';
-import { useReliabilityFileUpload } from './shared/hooks/useReliabilityFileUpload';
 import { useBayesianFileUpload } from './shared/hooks/useBayesianFileUpload';
 
 import BayesianPage from './pages/BayesianPage/BayesianPage';
@@ -26,22 +28,18 @@ function App() {
 
   // Get state from Context
   const {
-    jobId,
     jobStatus,
-    results,
     error,
-    simulationInput,
     pendingFile,
     inputValues,
     setInputValues
   } = useAppState();
 
   // Get simulation handlers from hook
-  const { handleStartSimulation, handleReset } = useSimulation();
+  const { handleStartSimulation } = useSimulation();
 
   // Get file upload handlers from hooks
   const { handleFileSelect } = useFileUpload();
-  const { handleReliabilityUpload } = useReliabilityFileUpload();
   const { handleBayesianUpload } = useBayesianFileUpload();
 
   // ===========================================
@@ -77,26 +75,11 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={BayesianPageComponent} />
-      <Route path="/bayesian" element={BayesianPageComponent} />
-      <Route path="/statistical" element={<StatisticalPage />} />
-      <Route path="/settings" element={<SettingsPage/>} />
-      <Route
-        path="/reliability-views/:jobId?"
-        element={
-          <ReliabilityPage
-            jobId={jobId}
-            jobStatus={jobStatus}
-            results={results}
-            error={error}
-            onReset={handleReset}
-            simulationInput={simulationInput}
-            onFileUpload={handleReliabilityUpload}
-            pendingFile={pendingFile}
-            onFileSelect={handleFileSelect}
-          />
-        }
-      />
+      <Route path="/" element={ BayesianPageComponent } />
+      <Route path="/bayesian" element={ BayesianPageComponent } />
+      <Route path="/statistical" element={ <StatisticalPage/> } />
+      <Route path="/settings" element={ <SettingsPage/> } />
+      <Route path="/reliability-views/:jobId?" element={ <ReliabilityPage/> } />
     </Routes>
   );
 }

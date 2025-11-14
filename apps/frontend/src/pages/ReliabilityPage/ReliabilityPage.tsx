@@ -5,20 +5,29 @@ import Background from "../BayesianPage/background";
 import StatusIndicator from './StatusIndicator';
 import ResultsDisplay from './ResultsDisplay';
 import SelectionBar from '../../utilities/searchbar';
+import { useAppState } from '../../shared/contexts/AppStateContext';
+import { useSimulation } from '../../shared/hooks/useSimulation';
+import { useFileUpload } from '../../shared/hooks/useFileUpload';
+import { useReliabilityFileUpload } from '../../shared/hooks/useReliabilityFileUpload';
 
-interface ReliabilityPageProps {
-  jobId: string | null;
-  jobStatus: string | null;
-  results: any | null;
-  error: string | null;
-  onReset: () => void;
-  simulationInput: object | null;
-  onFileUpload: (fileContent: string) => void;
-  pendingFile: File | null;
-  onFileSelect: (file: File) => void;
-}
+const ReliabilityPage: React.FC = () => {
+  // Get state from Context
+  const {
+    jobId,
+    jobStatus,
+    results,
+    error,
+    simulationInput,
+    pendingFile,
+  } = useAppState();
 
-const ReliabilityPage: React.FC<ReliabilityPageProps> = ({ jobId, jobStatus, results, error, onReset, simulationInput, onFileUpload, pendingFile, onFileSelect }) => {
+  // Get simulation handlers from hook
+  const { handleReset } = useSimulation();
+
+  // Get file upload handlers from hooks
+  const { handleFileSelect } = useFileUpload();
+  const { handleReliabilityUpload } = useReliabilityFileUpload();
+
   const isLoading = !!jobId && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED';
 
   return (
@@ -26,9 +35,9 @@ const ReliabilityPage: React.FC<ReliabilityPageProps> = ({ jobId, jobStatus, res
       <Background />
       <SelectionBar
         width="300px" height="6.4%" shape="sharp-rectangle" x="150px" y="9.6%" color="bg-gray-800"
-        onFileUpload={onFileUpload}
+        onFileUpload={handleReliabilityUpload}
         pendingFile={pendingFile}
-        onFileSelect={onFileSelect}
+        onFileSelect={handleFileSelect}
       />
 
       {/* Main content area - positioned in the right panel */}
@@ -47,7 +56,7 @@ const ReliabilityPage: React.FC<ReliabilityPageProps> = ({ jobId, jobStatus, res
         {results && (
           <ResultsDisplay
             results={results}
-            onReset={onReset}
+            onReset={handleReset}
             simulationInput={simulationInput}
           />
         )}
