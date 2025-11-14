@@ -1,6 +1,7 @@
 // FILE: src/App.tsx
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useAppState } from './shared/contexts/AppStateContext';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 import BayesianPage from './pages/BayesianPage/BayesianPage';
@@ -10,39 +11,6 @@ import ReliabilityPage from "./pages/ReliabilityPage/ReliabilityPage";
 
 import { useAppSettings } from './hooks/useAppSettings';
 import * as apiService from './services/apiService';
-import { TABS } from './constants/tabs';
-import { getCodeKey } from './constants/labelToCode';
-
-// ===========================================
-// HELPER FUNCTIONS
-// ===========================================
-
-/**
- * Initialize or reset all input values to their default state
- * @param initialData - Optional data to pre-populate inputs
- * @returns Initial state object for input values
- */
-const initializeInputState = (initialData?: any) => {
-  const initialState: { [key: string]: string } = {};
-  TABS.forEach(tab => {
-    tab.children.forEach(child => {
-      const key = `${tab.label}/${child.label}`;
-      const uploadedSection = initialData?.[tab.label] || {};
-      const uploadedValueByLabel = uploadedSection?.[child.label];
-      const codeKey = getCodeKey(tab.label, child.label) || child.label;
-      const uploadedValueByCode = uploadedSection?.[codeKey];
-
-      // Special handling for the new FP input
-      if (tab.label === 'FP') {
-        initialState[key] = uploadedValueByLabel ?? uploadedValueByCode ?? '56'; // Default FP to 56
-      } else {
-        // Use the uploaded value, or default to 'Medium' for dropdowns
-        initialState[key] = (uploadedValueByLabel ?? uploadedValueByCode) || child.values[1];
-      }
-    });
-  });
-  return initialState;
-};
 
 // ===========================================
 // MAIN APP COMPONENT
@@ -57,18 +25,24 @@ function App() {
   // STATE MANAGEMENT
   // ===========================================
 
-  // Simulation-related state
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [jobStatus, setJobStatus] = useState<string | null>(null);
-  const [results, setResults] = useState<any | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [simulationInput, setSimulationInput] = useState<object | null>(null);
-
-  // File-related state
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-
-  // Input values state (unified state for all form inputs)
-  const [inputValues, setInputValues] = useState(() => initializeInputState());
+  // Get state from Context
+  const {
+    jobId,
+    setJobId,
+    jobStatus,
+    setJobStatus,
+    results,
+    setResults,
+    error,
+    setError,
+    simulationInput,
+    setSimulationInput,
+    pendingFile,
+    setPendingFile,
+    inputValues,
+    setInputValues,
+    initializeInputState,
+  } = useAppState();
 
   // ===========================================
   // SIMULATION EVENT HANDLERS
