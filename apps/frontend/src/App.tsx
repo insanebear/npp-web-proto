@@ -1,8 +1,11 @@
 // FILE: src/App.tsx
 
-import { useEffect } from 'react';
 import { useAppState } from './shared/contexts/AppStateContext';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
+import { useSimulation } from './shared/hooks/useSimulation';
+import { useFileUpload } from './shared/hooks/useFileUpload';
+import { useReliabilityFileUpload } from './shared/hooks/useReliabilityFileUpload';
+import { useBayesianFileUpload } from './shared/hooks/useBayesianFileUpload';
 
 import BayesianPage from './pages/BayesianPage/BayesianPage';
 import StatisticalPage from "./pages/StatisticalPage/StatisticalPage";
@@ -10,7 +13,6 @@ import SettingsPage from "./pages/SettingsPage/SettingsPage";
 import ReliabilityPage from "./pages/ReliabilityPage/ReliabilityPage";
 
 import { useAppSettings } from './hooks/useAppSettings';
-import * as apiService from './services/apiService';
 
 // ===========================================
 // MAIN APP COMPONENT
@@ -18,9 +20,6 @@ import * as apiService from './services/apiService';
 
 function App() {
   const settingsProps = useAppSettings();
-  const navigate = useNavigate();
-  const location = useLocation();
-
   // ===========================================
   // STATE MANAGEMENT
   // ===========================================
@@ -28,128 +27,22 @@ function App() {
   // Get state from Context
   const {
     jobId,
-    setJobId,
     jobStatus,
-    setJobStatus,
     results,
-    setResults,
     error,
-    setError,
     simulationInput,
-    setSimulationInput,
     pendingFile,
-    setPendingFile,
     inputValues,
-    setInputValues,
-    initializeInputState,
+    setInputValues
   } = useAppState();
 
-  // ===========================================
-  // SIMULATION EVENT HANDLERS
-  // ===========================================
+  // Get simulation handlers from hook
+  const { handleStartSimulation, handleReset } = useSimulation();
 
-  /**
-   * Start a new simulation with the provided form data
-   * @param formData - The form data containing simulation parameters
-   */
-  const handleStartSimulation = async (formData: object) => {
-    setError(null);
-    setResults(null);
-    setJobStatus('Submitting...');
-    setSimulationInput(formData);
-    try {
-      const newJobId = await apiService.startSimulation(formData);
-      setJobId(newJobId);
-      navigate(`/reliability-views/${newJobId}`);
-    } catch (err: any) {
-      setError(err.message);
-      setJobStatus(null);
-    }
-  };
-
-  /**
-   * Reset all application state to initial values
-   */
-  const handleReset = () => {
-    setJobId(null);
-    setJobStatus(null);
-    setResults(null);
-    setError(null);
-    setSimulationInput(null);
-    setPendingFile(null);
-    setInputValues(initializeInputState());
-    navigate('/');
-  };
-
-  // ===========================================
-  // FILE UPLOAD HANDLERS
-  // ===========================================
-
-  /**
-   * Handle file selection for upload
-   * @param file - The selected file
-   */
-  const handleFileSelect = (file: File) => {
-    setPendingFile(file);
-  };
-
-  /**
-   * Handle file upload for Reliability page (results display)
-   * @param fileContent - The content of the uploaded file
-   */
-  const handleReliabilityUpload = (fileContent: string) => {
-    try {
-      const data = JSON.parse(fileContent);
-      if (typeof data === 'object' && data !== null && 'output' in data) {
-        const output = (data as any).output;
-        if (output && typeof output === 'object') {
-          // Preserve the full uploaded JSON text for the Raw viewer
-          (output as any).__rawText = fileContent;
-        }
-        setResults(output);
-        setSimulationInput(data.input || null);
-        setJobId('local');
-        setJobStatus('COMPLETED');
-        setError(null);
-        navigate('/reliability-views/local');
-        setPendingFile(null);
-      } else {
-        throw new Error("Invalid file. JSON must contain an 'output' key.");
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to parse the uploaded file.');
-    }
-  };
-
-  /**
-   * Handle file upload for Bayesian page (input loading)
-   * @param fileContent - The content of the uploaded file
-   */
-  const handleBayesianUpload = (fileContent: string) => {
-    try {
-      const data = JSON.parse(fileContent);
-      if (typeof data === 'object' && data !== null && data.input && data.output) {
-        setResults(data.output);
-        setSimulationInput(data.input);
-        const { settings } = data.input;
-        if (settings) {
-          settingsProps.setnChains(Number(settings.nChains));
-          settingsProps.setnIter(Number(settings.nIter));
-          settingsProps.setnBurnin(Number(settings.nBurnin));
-          settingsProps.setnThin(Number(settings.nThin));
-          settingsProps.setcomputeDIC(settings.computeDIC === 'true');
-        }
-        setInputValues(initializeInputState(data.input));
-        setError(null);
-        alert("Inputs and settings have been loaded from the file. Results are available on the Reliability Views page.");
-        setPendingFile(null);
-      } else {
-        throw new Error("Invalid file. JSON must contain 'input' and 'output' keys.");
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to parse the uploaded file.');
-    }
-  };
+  // Get file upload handlers from hooks
+  const { handleFileSelect } = useFileUpload();
+  const { handleReliabilityUpload } = useReliabilityFileUpload();
+  const { handleBayesianUpload } = useBayesianFileUpload();
 
   // ===========================================
   // INPUT MANAGEMENT HANDLERS
@@ -163,48 +56,6 @@ function App() {
   const handleInputChange = (key: string, value: string) => {
     setInputValues(prev => ({ ...prev, [key]: value }));
   };
-
-  // ===========================================
-  // SIDE EFFECTS
-  // ===========================================
-
-  // Job status polling effect
-  useEffect(() => {
-    if (!jobId || jobStatus === 'COMPLETED' || jobStatus === 'FAILED' || jobId === 'local') {
-      return;
-    }
-    const intervalId = setInterval(async () => {
-      try {
-        const statusData = await apiService.getJobStatus(jobId);
-        setJobStatus(statusData.jobStatus);
-        if (statusData.jobStatus === 'FAILED') {
-          setError('The simulation job failed.');
-        }
-      } catch (err) {
-        setError('Failed to get job status.');
-        setJobId(null);
-      }
-    }, 5000);
-    return () => clearInterval(intervalId);
-  }, [jobId, jobStatus]);
-
-  // Results download effect
-  useEffect(() => {
-    if (jobStatus === 'COMPLETED' && jobId && jobId !== 'local') {
-      apiService.getResults(jobId)
-        .then(setResults)
-        .catch(() => setError('Failed to fetch final results.'));
-    }
-  }, [jobStatus, jobId]);
-
-  // URL job ID extraction effect
-  useEffect(() => {
-    const pathParts = location.pathname.split('/');
-    const urlJobId = pathParts[2];
-    if (pathParts[1] === 'reliability-views' && urlJobId && urlJobId !== 'local' && !jobId) {
-      setJobId(urlJobId);
-    }
-  }, [location.pathname, jobId]);
 
   // ===========================================
   // COMPONENT RENDERING
