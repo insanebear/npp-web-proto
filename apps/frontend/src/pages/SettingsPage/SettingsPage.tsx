@@ -3,7 +3,7 @@
 /** @jsxImportSource @emotion/react */
 import { cssObj } from "./style";
 import { useState, type ChangeEvent } from "react";
-import { useAppSettings } from "../../hooks/useAppSettings";
+import { useAppSettings } from "../../shared/hooks/useAppSettings";
 
 export default function SettingsPage() {
 

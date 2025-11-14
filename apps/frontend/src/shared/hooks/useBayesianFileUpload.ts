@@ -4,7 +4,7 @@
 // TODO: Rename to useLoadBayesianInput - current name doesn't clearly indicate purpose
 
 import { useAppState } from '../contexts/AppStateContext';
-import { useAppSettings } from '../../hooks/useAppSettings';
+import { useAppSettings } from './useAppSettings';
 
 export const useBayesianFileUpload = () => {
   const settingsProps = useAppSettings();

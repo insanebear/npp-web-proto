@@ -6,16 +6,16 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.tsx'
 
 import './index.css'
-import Layout from './NavigationBar/layout.tsx' 
+import Layout from './shared/components/NavigationBar/layout.tsx' 
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <AppStateProvider>
-        <Layout>
-          <App />
-        </Layout>
-      </AppStateProvider>
+    <AppStateProvider>
+      <Layout>
+        <App />
+      </Layout>
+    </AppStateProvider>
     </BrowserRouter>
   </StrictMode>,
 )

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
-import * as apiService from '../../services/apiService';
+import * as apiService from '../services/apiService';
 
 export const useSimulation = () => {
   const navigate = useNavigate();

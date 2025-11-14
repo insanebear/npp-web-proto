@@ -1,7 +1,7 @@
 // FILE: C:\Users\lab\Desktop\npp-web-proto\src\pages\BayesianPage\bayesian_submit_button\submitButton.tsx
 
 import React from 'react';
-import Button from '../../../utilities/button';
+import Button from '../../../shared/utilities/button';
 
 interface SubmitButtonProps {
   onClick: () => void;

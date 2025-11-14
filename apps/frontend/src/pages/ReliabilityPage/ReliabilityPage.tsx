@@ -4,7 +4,7 @@ import React from 'react';
 import Background from "../BayesianPage/background";
 import StatusIndicator from './StatusIndicator';
 import ResultsDisplay from './ResultsDisplay';
-import SelectionBar from '../../utilities/searchbar';
+import SelectionBar from '../../shared/utilities/searchbar';
 import { useAppState } from '../../shared/contexts/AppStateContext';
 import { useSimulation } from '../../shared/hooks/useSimulation';
 import { useFileUpload } from '../../shared/hooks/useFileUpload';

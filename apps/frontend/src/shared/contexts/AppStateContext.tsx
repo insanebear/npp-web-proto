@@ -2,8 +2,8 @@
 
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import { TABS } from '../../constants/tabs';
-import { getCodeKey } from '../../constants/labelToCode';
+import { TABS } from '../constants/tabs';
+import { getCodeKey } from '../constants/labelToCode';
 
 // ===========================================
 // HELPER FUNCTIONS
