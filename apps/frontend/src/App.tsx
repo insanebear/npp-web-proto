@@ -12,7 +12,7 @@ import StatisticalPage from "./pages/StatisticalPage/StatisticalPage";
 import SettingsPage from "./pages/SettingsPage/SettingsPage";
 import ReliabilityPage from "./pages/ReliabilityPage/ReliabilityPage";
 
-import { useAppSettings } from './hooks/useAppSettings';
+import { useAppSettings } from './hooks/useAppSettings'; 
 
 // ===========================================
 // MAIN APP COMPONENT
@@ -80,7 +80,7 @@ function App() {
       <Route path="/" element={BayesianPageComponent} />
       <Route path="/bayesian" element={BayesianPageComponent} />
       <Route path="/statistical" element={<StatisticalPage />} />
-      <Route path="/settings" element={<SettingsPage {...settingsProps}/>} />
+      <Route path="/settings" element={<SettingsPage/>} />
       <Route
         path="/reliability-views/:jobId?"
         element={

@@ -3,18 +3,22 @@
 /** @jsxImportSource @emotion/react */
 import { cssObj } from "./style";
 import { useState, type ChangeEvent } from "react";
-import type { AppSettings } from "../../hooks/useAppSettings";
+import { useAppSettings } from "../../hooks/useAppSettings";
 
-// FIXED: Use a partial AppSettings type for the props
-type SettingsPageProps = Pick<AppSettings,
-  'nChains' | 'nIter' | 'nBurnin' | 'computeDIC' | 'nThin' |
-  'setnChains' | 'setnIter' | 'setnBurnin' | 'setcomputeDIC' | 'setnThin'
->;
+export default function SettingsPage() {
 
-export default function SettingsPage({
-  nChains, nIter, nBurnin, computeDIC, nThin,
-  setnChains, setnIter, setnBurnin, setcomputeDIC, setnThin,
-}: SettingsPageProps) {
+  const {
+    nChains,
+    nIter,
+    nBurnin,
+    computeDIC,
+    nThin,
+    setnChains,
+    setnIter,
+    setnBurnin,
+    setcomputeDIC,
+    setnThin,
+  } = useAppSettings();
 
   const [inputValues, setInputValues] = useState({
     UnsavednChains: nChains,
