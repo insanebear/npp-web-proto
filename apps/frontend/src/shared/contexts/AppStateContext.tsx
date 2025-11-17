@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
+import type { SimulationResults, SimulationInput } from '../types';
 import { TABS } from '../constants/tabs';
 import { getCodeKey } from '../constants/labelToCode';
 
@@ -12,22 +13,30 @@ import { getCodeKey } from '../constants/labelToCode';
  * @param initialData - Optional data to pre-populate inputs
  * @returns Initial state object for input values
  */
-const initializeInputState = (initialData?: any) => {
+
+const normalizeToString = (value: string | number | boolean | undefined): string => {
+  if (value === undefined || value === null) return '';
+  return typeof value === 'string' ? value : String(value);
+};
+
+const initializeInputState = (initialData?: SimulationInput) => {
   const initialState: Record<string, string> = {};
   TABS.forEach(tab => {
     tab.children.forEach(child => {
+
       const key = `${tab.label}/${child.label}`;
       const uploadedSection = initialData?.[tab.label] || {};
-      const uploadedValueByLabel = uploadedSection?.[child.label];
+      const uploadedValueByLabel = normalizeToString(uploadedSection?.[child.label]);
       const codeKey = getCodeKey(tab.label, child.label) || child.label;
-      const uploadedValueByCode = uploadedSection?.[codeKey];
+      const uploadedValueByCode = normalizeToString(uploadedSection?.[codeKey]);
 
       // Special handling for the new FP input
       if (tab.label === 'FP') {
         initialState[key] = uploadedValueByLabel ?? uploadedValueByCode ?? '56'; // Default FP to 56
       } else {
         // Use the uploaded value, or default to 'Medium' for dropdowns
-        initialState[key] = (uploadedValueByLabel ?? uploadedValueByCode) || child.values[1];
+        const fallbackValue = child.values[1] !== undefined ? String(child.values[1]) : '';
+        initialState[key] = uploadedValueByLabel || uploadedValueByCode || fallbackValue;
       }
     });
   });
@@ -42,9 +51,9 @@ interface AppStateContextType {
   // Simulation-related state
   jobId: string | null;
   jobStatus: string | null;
-  results: any | null;
+  results: SimulationResults | null;
   error: string | null;
-  simulationInput: object | null;
+  simulationInput: SimulationInput | null;
 
   // File-related state
   pendingFile: File | null;
@@ -55,14 +64,14 @@ interface AppStateContextType {
   // State setters
   setJobId: (id: string | null) => void;
   setJobStatus: (status: string | null) => void;
-  setResults: (results: any | null) => void;
+  setResults: (results: SimulationResults | null) => void;
   setError: (error: string | null) => void;
-  setSimulationInput: (input: object | null) => void;
+  setSimulationInput: (input: SimulationInput | null) => void;
   setPendingFile: (file: File | null) => void;
   setInputValues: (values: { [key: string]: string } | ((prev: { [key: string]: string }) => { [key: string]: string })) => void;
 
   // Helper function
-  initializeInputState: (initialData?: any) => { [key: string]: string };
+  initializeInputState: (initialData?: SimulationInput) => { [key: string]: string };
 }
 
 // ===========================================
@@ -83,9 +92,9 @@ export const AppStateProvider = ({ children }: AppStateProviderProps) => {
   // Simulation-related state
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<string | null>(null);
-  const [results, setResults] = useState<any | null>(null);
+  const [results, setResults] = useState<SimulationResults | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [simulationInput, setSimulationInput] = useState<object | null>(null);
+  const [simulationInput, setSimulationInput] = useState<SimulationInput | null>(null);
 
   // File-related state
   const [pendingFile, setPendingFile] = useState<File | null>(null);

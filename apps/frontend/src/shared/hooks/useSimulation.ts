@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
 import * as apiService from '../services/apiService';
+import type { SimulationInput } from '../types';
 
 export const useSimulation = () => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export const useSimulation = () => {
    * Start a new simulation with the provided form data
    * @param formData - The form data containing simulation parameters
    */
-  const handleStartSimulation = async (formData: object) => {
+  const handleStartSimulation = async (formData: SimulationInput) => {
     setError(null);
     setResults(null);
     setJobStatus('Submitting...');
