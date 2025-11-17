@@ -6,11 +6,10 @@ import SettingsPage from "./features/settings/components/SettingsPage";
 import ReliabilityPage from "./features/reliability/components/ReliabilityPage";
 
 function App() {
-  const BayesianPageComponent = <BayesianPage />;
   return (
     <Routes>
-      <Route path="/" element={ BayesianPageComponent } />
-      <Route path="/bayesian" element={ BayesianPageComponent } />
+      <Route path="/" element={ <BayesianPage /> } />
+      <Route path="/bayesian" element={ <BayesianPage /> } />
       <Route path="/statistical" element={ <StatisticalPage/> } />
       <Route path="/settings" element={ <SettingsPage/> } />
       <Route path="/reliability-views/:jobId?" element={ <ReliabilityPage/> } />
