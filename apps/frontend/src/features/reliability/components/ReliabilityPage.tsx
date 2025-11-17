@@ -5,7 +5,7 @@ import ResultsDisplay from './ResultsDisplay';
 import SelectionBar from '../../../shared/utilities/searchbar';
 import { useAppState } from '../../../shared/contexts/AppStateContext';
 import { useSimulation } from '../../../shared/hooks/useSimulation';
-import { useFileUpload } from '../../../shared/hooks/useFileUpload';
+import { useFileSelect } from '../../../shared/hooks/useFileUpload';
 import { useReliabilityFileUpload } from '../../../shared/hooks/useReliabilityFileUpload';
 
 const ReliabilityPage: React.FC = () => {
@@ -23,7 +23,7 @@ const ReliabilityPage: React.FC = () => {
   const { handleReset } = useSimulation();
 
   // Get file upload handlers from hooks
-  const { handleFileSelect } = useFileUpload();
+  const { handleFileSelect } = useFileSelect();
   const { handleReliabilityUpload } = useReliabilityFileUpload();
 
   const isLoading = !!jobId && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED';

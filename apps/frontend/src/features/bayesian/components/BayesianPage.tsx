@@ -5,7 +5,7 @@ import { TABS } from '../../../shared/constants/tabs';
 import { getCodeKey } from '../../../shared/constants/labelToCode';
 import { useAppState } from '../../../shared/contexts/AppStateContext';
 import { useSimulation } from '../../../shared/hooks/useSimulation';
-import { useFileUpload } from '../../../shared/hooks/useFileUpload';
+import { useFileSelect } from '../../../shared/hooks/useFileUpload';
 import { useBayesianFileUpload } from '../../../shared/hooks/useBayesianFileUpload';
 import { useAppSettings } from '../../../shared/hooks/useAppSettings';
 
@@ -25,7 +25,7 @@ function BayesianPage() {
 
   // Get handlers from hooks
   const { handleStartSimulation } = useSimulation();
-  const { handleFileSelect } = useFileUpload();
+  const { handleFileSelect } = useFileSelect();
   const { handleBayesianUpload } = useBayesianFileUpload();
 
   // Input change handler
