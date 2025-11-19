@@ -1,9 +1,10 @@
 import React from 'react';
+import type { SimulationResults, SimulationInput, SimulationOutput } from '../../../shared/types';
 
 interface ResultsDisplayProps {
-  results: object;
+  results: SimulationResults;
   onReset: () => void;
-  simulationInput: object | null;
+  simulationInput: SimulationInput | null;
 }
 
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simulationInput }) => {
@@ -14,11 +15,9 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
       return;
     }
 
-    const resultsAny = results as any;
-    
     // Check if results already contain complete JSON structure (input + output)
-    if (resultsAny.input && resultsAny.output) {
-      const { __rawText, ...cleanResults } = resultsAny;
+    if (results.input && results.output) {
+      const { __rawText, ...cleanResults } = results;
       const jsonString = JSON.stringify(cleanResults, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -32,7 +31,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
       URL.revokeObjectURL(url);
     } else {
       // Fallback: combine simulationInput and results (for backward compatibility)
-      const { __rawText, ...cleanOutput } = resultsAny;
+      const { __rawText, ...cleanOutput } = results;
 
       const combinedData = {
         input: simulationInput,
@@ -67,19 +66,38 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
     } as Record<string, number>;
     
     // Support both shapes: complete JSON (input + output) or output-only format
-    const container: any = results as any;
-    
-    const metrics: any = (container && container.input && container.output)
-      ? container.output
-      : ((container && (container.PFD || container.SR_Total_Remained_Defect))
-        ? container
-        : (container && container.output));
+    // TODO: Confirm whether output-only payloads still occur. If not, simplify this path.
+    const isSimulationOutput = (data: SimulationResults | SimulationOutput): data is SimulationOutput => {
+      if (!data || typeof data !== 'object') return false;
+      const maybe = data as SimulationOutput;
+      return Boolean(
+        maybe.PFD ||
+        maybe.SR_Total_Remained_Defect ||
+        maybe.SD_Total_Remained_Defect ||
+        maybe.IM_Total_Remained_Defect ||
+        maybe.ST_Total_Remained_Defect ||
+        maybe.IC_Total_Remained_Defect
+      );
+    };
 
-    const hasTraces = Boolean(
-      (container && container.output && container.output.traces) ||
-      (container && container.traces) ||
-      (metrics && metrics.traces)
-    );
+    const metrics: SimulationOutput | undefined = (() => {
+      if (results.input && results.output) {
+        return results.output;
+      }
+      if (results.output) {
+        return results.output;
+      }
+      if (isSimulationOutput(results)) {
+        return results;
+      }
+      return undefined;
+    })();
+
+    const hasTraces = Boolean(metrics?.traces);
+    const rawJsonText =
+      results.__rawText ??
+      metrics?.__rawText ??
+      JSON.stringify(results, null, 2);
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -153,18 +171,18 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
           }}>
             View Raw JSON Data{hasTraces ? ' (traces included)' : ''}
           </summary>
-          <pre style={{
-            marginTop: '8px',
-            backgroundColor: '#f3f4f6',
-            padding: '16px',
-            borderRadius: '6px',
-            overflow: 'auto',
-            fontSize: '12px'
-          }}>{
-            (container && container.__rawText)
-              ?? (metrics && metrics.__rawText)
-              ?? JSON.stringify(results, null, 2)
-          }</pre>
+          <pre
+            style={{
+              marginTop: '8px',
+              backgroundColor: '#f3f4f6',
+              padding: '16px',
+              borderRadius: '6px',
+              overflow: 'auto',
+              fontSize: '12px'
+            }}
+          >
+            {rawJsonText}
+          </pre>
         </details>
       </div>
     );
