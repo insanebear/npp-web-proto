@@ -241,7 +241,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#059669'}
           title="Save input and output to a JSON file"
         >
-          Save Results
+          Download Results
         </button>
         <button
           onClick={onReset}
