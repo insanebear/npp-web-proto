@@ -16,15 +16,17 @@ fi
 : "${AWS_PROFILE:=default}"
 
 echo "[1/3] Building React project..."
+cd apps/frontend
 npm run build
+cd ../..
 
-if [ ! -d "dist" ]; then
+if [ ! -d "apps/frontend/dist" ]; then
   echo "Error: dist directory not found after build"
   exit 1
 fi
 
 echo "[2/3] Uploading to S3 bucket: $S3_BUCKET..."
-aws s3 sync dist/ s3://$S3_BUCKET/ \
+aws s3 sync apps/frontend/dist/ s3://$S3_BUCKET/ \
   --delete \
   --region "$AWS_REGION" \
   --profile "$AWS_PROFILE" \
@@ -33,7 +35,7 @@ aws s3 sync dist/ s3://$S3_BUCKET/ \
   --exclude "index.html"
 
 # HTML 파일은 별도로 업로드 (캐싱 없이)
-aws s3 sync dist/ s3://$S3_BUCKET/ \
+aws s3 sync apps/frontend/dist/ s3://$S3_BUCKET/ \
   --delete \
   --region "$AWS_REGION" \
   --profile "$AWS_PROFILE" \
