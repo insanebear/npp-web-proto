@@ -15,11 +15,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copy and install Python dependencies
-COPY server/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+COPY server_min/requirements.txt /app/requirements.txt
+RUN pip install --timeout 1000 -r requirements.txt
 
 # Copy project files
-COPY server/ /app/server/
+COPY server_min/ /app/server/
 COPY Dockers/HybridTool/run_*.py /app/
 COPY Dockers/HybridTool/bbn_input_loader.py /app/
 

@@ -16,6 +16,7 @@ Output:
 import os
 import sys
 import json
+from pathlib import Path
 import boto3
 from typing import Dict, Any
 
@@ -42,6 +43,9 @@ def main():
     s3_bucket = os.environ.get("S3_BUCKET")
     aws_region = os.environ.get("AWS_REGION", "ap-northeast-2")
     test_mode = os.environ.get("TEST_MODE", "false").lower() == "true"
+    test_output_dir = os.environ.get("TEST_OUTPUT_DIR")
+    if test_mode and not test_output_dir:
+        test_output_dir = os.path.join("tempDoc", "hybrid-tool-test")
     bbn_input_path = os.environ.get("BBN_INPUT_PATH")
     bbn_input_bucket = os.environ.get("BBN_INPUT_BUCKET")
     jobs_table_name = os.environ.get("JOBS_TABLE_NAME")
@@ -147,17 +151,22 @@ def main():
         
         # Upload to S3
         print("\n[STEP 3] Uploading results to S3...")
-        s3_client = boto3.client('s3', region_name=aws_region)
         s3_key = f"results/sensitivity-analysis-{job_id}.json"
-        
-        s3_client.put_object(
-            Bucket=s3_bucket,
-            Key=s3_key,
-            Body=json.dumps(result_json, indent=2),
-            ContentType="application/json"
-        )
-        
-        print(f"[STEP 3] Results uploaded to s3://{s3_bucket}/{s3_key}")
+        if test_output_dir:
+            output_path = Path(test_output_dir)
+            output_path.mkdir(parents=True, exist_ok=True)
+            local_file = output_path / s3_key.replace("/", "_")
+            local_file.write_text(json.dumps(result_json, indent=2), encoding="utf-8")
+            print(f"[TEST MODE] Results saved locally to {local_file}")
+        else:
+            s3_client = boto3.client('s3', region_name=aws_region)
+            s3_client.put_object(
+                Bucket=s3_bucket,
+                Key=s3_key,
+                Body=json.dumps(result_json, indent=2),
+                ContentType="application/json"
+            )
+            print(f"[STEP 3] Results uploaded to s3://{s3_bucket}/{s3_key}")
         
         # Update DynamoDB status: COMPLETED
         if jobs_table_name and dynamodb_client:
@@ -179,12 +188,16 @@ def main():
         print("HybridTool Sensitivity Analysis - Completed Successfully")
         print("=" * 80)
         
-        print(json.dumps({
+        completion_payload = {
             "status": "completed",
             "job_id": job_id,
-            "s3_location": f"s3://{s3_bucket}/{s3_key}",
             "num_tests": int(num_tests)
-        }))
+        }
+        if test_output_dir:
+            completion_payload["local_path"] = str(local_file)
+        else:
+            completion_payload["s3_location"] = f"s3://{s3_bucket}/{s3_key}"
+        print(json.dumps(completion_payload))
         
     except Exception as e:
         error_msg = f"Sensitivity analysis failed: {str(e)}"
