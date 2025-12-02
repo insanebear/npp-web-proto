@@ -203,6 +203,9 @@ def handler(event, context):
             {'name': 'AWS_REGION', 'value': AWS_REGION},
             {'name': 'TEST_MODE', 'value': 'true' if test_mode else 'false'},
             {'name': 'JOBS_TABLE_NAME', 'value': JOBS_TABLE_NAME or ''}
+            {'name': 'DRAWS', 'value': str(settings.get('nIter', 1000) - settings.get('nBurnin', 100))},
+            {'name': 'TUNE', 'value': str(settings.get('nBurnin', 100))},
+            {'name': 'CHAINS', 'value': str(settings.get('nChains', 4))},
         ]
 
         if bbn_input_s3_key:

@@ -51,6 +51,9 @@ def main():
     bbn_input_path = os.environ.get("BBN_INPUT_PATH")
     bbn_input_bucket = os.environ.get("BBN_INPUT_BUCKET")
     jobs_table_name = os.environ.get("JOBS_TABLE_NAME")
+    draws = int(os.environ.get("DRAWS", "1000"))
+    tune = int(os.environ.get("TUNE", "100"))
+    chains = int(os.environ.get("CHAINS", "4"))
     
     if not job_id:
         raise ValueError("JOB_ID environment variable is required")
@@ -144,7 +147,7 @@ def main():
                 observed_failures=failures,
                 pfd_trace=filtered_pfd_trace,
             )
-            updated_trace = run_sampling(model, draws=2000, tune=500)
+            updated_trace = run_sampling(model, draws=draws, tune=tune, chains=chains)
             
             updated_pfd_mean = updated_trace.posterior["pfd_prior"].mean().item()
             updated_conf = get_confidence(
