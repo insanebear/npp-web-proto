@@ -21,6 +21,7 @@ RUN pip install --timeout 1000 -r requirements.txt
 # Copy project files
 COPY server_min/ /app/server/
 COPY Dockers/HybridTool/run_*.py /app/
+COPY Dockers/HybridTool/task_common.py /app/
 COPY Dockers/HybridTool/bbn_input_loader.py /app/
 
 # Make scripts executable
