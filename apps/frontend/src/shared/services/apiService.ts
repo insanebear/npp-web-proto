@@ -113,9 +113,37 @@ type BbnInputOptions = {
   bbn_input_s3_key?: string;
 };
 
-export type SensitivityIn  = { pfd_goal: number; confidence_goal: number; trace_id?: string | null; test_mode?: boolean } & BbnInputOptions;
-export type UpdatePfdIn    = { pfd_goal: number; demand: number; failures: number; trace_id?: string | null; test_mode?: boolean } & BbnInputOptions;
-export type FullAnalysisIn = { pfd_goal: number; confidence_goal: number; failures: number; trace_id?: string | null; test_mode?: boolean } & BbnInputOptions;
+type HybridToolSettings = {
+  draws?: number;
+  tune?: number;
+  chains?: number;
+};
+
+export type SensitivityIn = { 
+  pfd_goal: number; 
+  confidence_goal: number; 
+  trace_id?: string | null; 
+  test_mode?: boolean;
+  settings?: HybridToolSettings;
+} & BbnInputOptions;
+
+export type UpdatePfdIn = { 
+  pfd_goal: number; 
+  demand: number; 
+  failures: number; 
+  trace_id?: string | null; 
+  test_mode?: boolean;
+  settings?: HybridToolSettings;
+} & BbnInputOptions;
+
+export type FullAnalysisIn = { 
+  pfd_goal: number; 
+  confidence_goal: number; 
+  failures: number; 
+  trace_id?: string | null; 
+  test_mode?: boolean;
+  settings?: HybridToolSettings;
+} & BbnInputOptions;
 
 // HybridTool job request response (same for all trigger functions)
 export type HybridToolJobResponse = {

@@ -72,14 +72,19 @@ cp scripts/.hybridTool-env.example scripts/.hybridTool-env
 # .hybridTool-env 파일을 편집하여 값 설정
 
 # Docker 이미지 빌드 및 ECR 푸시
-./scripts/deploy-hybridTool-docker.sh
+./tempDoc/scripts/deploy-hybridTool-docker.sh
 ```
 
 ## 로컬 테스트
 
+> **TIP**: 
+> 계산 없이 빠르게 확인하려면 `TEST_MODE=true` 설정
+> S3 업로드 없이 로컬에서 연산은 테스트하고 싶다면 
+> `TEST_OUTPUT_DIR` 환경 변수를 사용해 `tempDoc/hybrid-tool-test` 디렉터리를 호스트와 마운트 
+
 ```bash
 # Docker 이미지 빌드
-docker build -t hybrid-tool-pymc:test -f Dockers/HybridTool/Dockerfile .
+docker build -t hybrid-tool-pymc:test           -f Dockers/HybridTool/Dockerfile .
 
 # Sensitivity Analysis 테스트
 docker run --rm \
@@ -90,6 +95,19 @@ docker run --rm \
   -e S3_BUCKET=hybrid-tool-results \
   -e AWS_REGION=ap-northeast-2 \
   -v ~/.aws:/root/.aws:ro \
+  hybrid-tool-pymc:test
+
+# s3 업로드 없이 테스트 예시
+docker run --rm \
+  -e TASK_TYPE=sensitivity_analysis \
+  -e JOB_ID=real-run-1 \
+  -e PFD_GOAL=0.0001 \
+  -e CONFIDENCE_GOAL=0.95 \
+  -e S3_BUCKET=whatever \
+  -e AWS_REGION=ap-northeast-2 \
+  -e TEST_MODE=false \
+  -e TEST_OUTPUT_DIR=/app/tempDoc/hybrid-tool-test \
+  -v ./tempDoc/hybrid-tool-test:/app/tempDoc/hybrid-tool-test \
   hybrid-tool-pymc:test
 
 # Update PFD 테스트
@@ -104,6 +122,20 @@ docker run --rm \
   -v ~/.aws:/root/.aws:ro \
   hybrid-tool-pymc:test
 
+# s3 없이 테스트 예시
+docker run --rm \
+  -e TASK_TYPE=update_pfd \
+  -e JOB_ID=test-124 \
+  -e PFD_GOAL=0.0001 \
+  -e DEMAND=1000 \
+  -e FAILURES=0 \
+  -e S3_BUCKET=hybrid-tool-results \
+  -e AWS_REGION=ap-northeast-2 \
+  -e TEST_MODE=false \
+  -e TEST_OUTPUT_DIR=/app/tempDoc/hybrid-tool-test \
+  -v ./tempDoc/hybrid-tool-test:/app/tempDoc/hybrid-tool-test \
+  hybrid-tool-pymc:test
+
 # Full Analysis 테스트
 docker run --rm \
   -e TASK_TYPE=full_analysis \
@@ -114,6 +146,20 @@ docker run --rm \
   -e S3_BUCKET=hybrid-tool-results \
   -e AWS_REGION=ap-northeast-2 \
   -v ~/.aws:/root/.aws:ro \
+  hybrid-tool-pymc:test
+
+# s3 없이 테스트 예시
+  docker run --rm \
+  -e TASK_TYPE=full_analysis \
+  -e JOB_ID=local-full-001 \
+  -e PFD_GOAL=0.0001 \
+  -e CONFIDENCE_GOAL=0.95 \
+  -e FAILURES=0 \
+  -e S3_BUCKET=dummy \
+  -e AWS_REGION=ap-northeast-2 \
+  -e TEST_MODE=false \
+  -e TEST_OUTPUT_DIR=/app/tempDoc/hybrid-tool-test \
+  -v ./tempDoc/hybrid-tool-test:/app/tempDoc/hybrid-tool-test \
   hybrid-tool-pymc:test
 ```
 

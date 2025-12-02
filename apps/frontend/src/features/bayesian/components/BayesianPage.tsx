@@ -160,7 +160,6 @@ function BayesianPage() {
   );
 }
 
-// This function now works generically for all inputs, including FP.
 const formatPayload = (values: { [key: string]: string }, settings: any) => {
   const payload: { [key: string]: any } = {};
   for (const key in values) {
@@ -172,7 +171,7 @@ const formatPayload = (values: { [key: string]: string }, settings: any) => {
     const outKey = codeKey || childLabel; // fallback to label if mapping missing
     payload[tabLabel][outKey] = values[key];
   }
-  // No longer needed: payload['FP'] = { 'FP Input': '120' };
+  
   payload['settings'] = {
     nChains: String(settings.nChains),
     nIter: String(settings.nIter),

@@ -17,6 +17,7 @@ Output:
 import os
 import sys
 import json
+from pathlib import Path
 import boto3
 
 sys.path.insert(0, '/app/server')
@@ -44,9 +45,15 @@ def main():
     s3_bucket = os.environ.get("S3_BUCKET")
     aws_region = os.environ.get("AWS_REGION", "ap-northeast-2")
     test_mode = os.environ.get("TEST_MODE", "false").lower() == "true"
+    test_output_dir = os.environ.get("TEST_OUTPUT_DIR")
+    if test_mode and not test_output_dir:
+        test_output_dir = os.path.join("tempDoc", "hybrid-tool-test")
     bbn_input_path = os.environ.get("BBN_INPUT_PATH")
     bbn_input_bucket = os.environ.get("BBN_INPUT_BUCKET")
     jobs_table_name = os.environ.get("JOBS_TABLE_NAME")
+    draws = int(os.environ.get("DRAWS", "1000"))
+    tune = int(os.environ.get("TUNE", "100"))
+    chains = int(os.environ.get("CHAINS", "4"))
     
     if not job_id:
         raise ValueError("JOB_ID environment variable is required")
@@ -140,7 +147,7 @@ def main():
                 observed_failures=failures,
                 pfd_trace=filtered_pfd_trace,
             )
-            updated_trace = run_sampling(model, draws=2000, tune=500)
+            updated_trace = run_sampling(model, draws=draws, tune=tune, chains=chains)
             
             updated_pfd_mean = updated_trace.posterior["pfd_prior"].mean().item()
             updated_conf = get_confidence(
@@ -164,17 +171,22 @@ def main():
         
         # Upload to S3
         print("\n[STEP 4] Uploading results to S3...")
-        s3_client = boto3.client('s3', region_name=aws_region)
         s3_key = f"results/update-pfd-{job_id}.json"
-        
-        s3_client.put_object(
-            Bucket=s3_bucket,
-            Key=s3_key,
-            Body=json.dumps(result_json, indent=2),
-            ContentType="application/json"
-        )
-        
-        print(f"[STEP 4] Results uploaded to s3://{s3_bucket}/{s3_key}")
+        if test_output_dir:
+            output_path = Path(test_output_dir)
+            output_path.mkdir(parents=True, exist_ok=True)
+            local_file = output_path / s3_key.replace("/", "_")
+            local_file.write_text(json.dumps(result_json, indent=2), encoding="utf-8")
+            print(f"[TEST MODE] Results saved locally to {local_file}")
+        else:
+            s3_client = boto3.client('s3', region_name=aws_region)
+            s3_client.put_object(
+                Bucket=s3_bucket,
+                Key=s3_key,
+                Body=json.dumps(result_json, indent=2),
+                ContentType="application/json"
+            )
+            print(f"[STEP 4] Results uploaded to s3://{s3_bucket}/{s3_key}")
         
         # Update DynamoDB status: COMPLETED
         if jobs_table_name and dynamodb_client:
@@ -196,13 +208,17 @@ def main():
         print("HybridTool Update PFD - Completed Successfully")
         print("=" * 80)
         
-        print(json.dumps({
+        completion_payload = {
             "status": "completed",
             "job_id": job_id,
-            "s3_location": f"s3://{s3_bucket}/{s3_key}",
             "updated_pfd": updated_pfd_mean,
             "updated_confidence": updated_conf
-        }))
+        }
+        if test_output_dir:
+            completion_payload["local_path"] = str(local_file)
+        else:
+            completion_payload["s3_location"] = f"s3://{s3_bucket}/{s3_key}"
+        print(json.dumps(completion_payload))
         
     except Exception as e:
         error_msg = f"Update PFD failed: {str(e)}"
