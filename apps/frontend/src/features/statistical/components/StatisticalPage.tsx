@@ -4,6 +4,7 @@ import { Global } from "@emotion/react";
 import { cssObj } from "./style";
 import * as api from "../../../shared/services/apiService";
 import type { SensitivityAnalysisResult } from "../../../shared/services/apiService";
+import { useAppSettings } from '../../../shared/hooks/useAppSettings';
 
 // Polling configuration
 const POLL_INTERVAL = 5000; // 5 seconds
@@ -11,6 +12,7 @@ const MAX_WAIT_TIME = 1200000; // 20 minutes (milliseconds)
 const MAX_ATTEMPTS = 240; // Maximum 240 attempts (20 minutes / 5 seconds)
 
 export default function StatisticalPage() {
+  const settings = useAppSettings();
   const [pfdGoal, setPfdGoal] = useState("");
   const [confidenceGoal, setConfidenceGoal] = useState("");
   // NOTE: trace_id is sent but ignored by HybridTool (stateless architecture, maintained for compatibility)
@@ -316,6 +318,7 @@ export default function StatisticalPage() {
     return {};
   }, [selectedBbnKey, bbnBucketInfo]);
 
+  // 1) Sensitivity Analysis
   const handleSensitivitySubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -342,6 +345,11 @@ export default function StatisticalPage() {
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
         ...buildBbnPayload(),
+        settings: {
+          draws: settings.nIter - settings.nBurnin,
+          tune: settings.nBurnin,
+          chains: settings.nChains,
+        },
       });
       
       const jobId = jobResponse.job_id;
@@ -444,6 +452,7 @@ export default function StatisticalPage() {
     }
   };
 
+  // 3) Full Analysis
   const handleFullAnalysisSubmit = async () => {
     setErrorMsg(null);
     setLoading(true);

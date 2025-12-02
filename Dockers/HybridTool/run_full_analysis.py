@@ -52,7 +52,10 @@ def main():
     bbn_input_path = os.environ.get("BBN_INPUT_PATH")
     bbn_input_bucket = os.environ.get("BBN_INPUT_BUCKET")
     jobs_table_name = os.environ.get("JOBS_TABLE_NAME")
-    
+    draws = int(os.environ.get("DRAWS", "1000"))
+    tune = int(os.environ.get("TUNE", "100"))
+    chains = int(os.environ.get("CHAINS", "4"))
+
     if not job_id:
         raise ValueError("JOB_ID environment variable is required")
     if not s3_bucket:
@@ -153,6 +156,7 @@ def main():
             print(f"[STEP 2] Prior confidence @goal: {prior_conf}")
             
             # Full Analysis: iterate through demand_list and sample
+            # TODO: need to be reviewed why demand_list is set to hop by 500
             print("\n[STEP 3] Running full analysis with demand list...")
             demand_list = list(range(500, int(demand_required) + 500, 500))
             pfd_output = []
@@ -165,7 +169,7 @@ def main():
                     observed_failures=failures, 
                     pfd_trace=filtered_pfd_trace
                 )
-                updated_trace = run_sampling(model, draws=2000, tune=500)
+                updated_trace = run_sampling(model, draws=draws, tune=tune, chains=chains)
                 updated_mean = updated_trace.posterior["pfd_prior"].mean().item()
                 last_conf = get_confidence(
                     data=updated_trace.posterior["pfd_prior"], goal=pfd_goal
