@@ -61,10 +61,14 @@ def run_sensitivity_analysis(config: Dict[str, Any], bbn_data: Any) -> Dict[str,
     """Run Sensitivity Analysis"""
     pfd_goal = config["PFD_GOAL"]
     confidence_goal = config["CONFIDENCE_GOAL"]
+    draws = config["DRAWS"]
+    tune = config["TUNE"]
+    chains = config["CHAINS"]
+    thin = config["THIN"]
     
     # 1. Generate trace (Prior)
     print("\n[STEP 1] Generating composite model trace...")
-    trace = run_example_for_composite_model(bbn_data)
+    trace = run_example_for_composite_model(bbn_data, draws=draws, tune=tune, chains=chains, thin=thin)
     print("[STEP 1] Trace generation completed")
 
     # 2. Sensitivity Analysis & Prior Metrics
@@ -72,7 +76,8 @@ def run_sensitivity_analysis(config: Dict[str, Any], bbn_data: Any) -> Dict[str,
     
     # Calculate required demand
     num_tests = get_number_of_required_demand(
-        trace, pfd_goal=pfd_goal, confidence_goal=confidence_goal
+        trace, pfd_goal=pfd_goal, confidence_goal=confidence_goal,
+        draws=draws, tune=tune, chains=chains, thin=thin
     )
     
     # Calculate Prior PFD metrics (for context)

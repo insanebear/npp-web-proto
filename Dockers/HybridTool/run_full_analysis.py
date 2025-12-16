@@ -75,13 +75,14 @@ def run_full_analysis(config: Dict[str, Any], bbn_data: Any) -> Dict[str, Any]:
     
     # 1. Generate trace (Prior)
     print("\n[STEP 1] Generating composite model trace...")
-    trace = run_example_for_composite_model(bbn_data)
+    trace = run_example_for_composite_model(bbn_data, draws=draws, tune=tune, chains=chains, thin=thin)
     print("[STEP 1] Trace generation completed")
 
     # 2. Sensitivity Analysis: calculate required demand and Prior metrics
     print("\n[STEP 2] Running sensitivity analysis...")
     demand_required = get_number_of_required_demand(
-        trace, pfd_goal=pfd_goal, confidence_goal=confidence_goal
+        trace, pfd_goal=pfd_goal, confidence_goal=confidence_goal,
+        draws=draws, tune=tune, chains=chains, thin=thin
     )
     
     # Trace preprocessing for PFD update

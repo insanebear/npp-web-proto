@@ -76,7 +76,7 @@ def calculate_pfd_metrics(config: Dict[str, Any], bbn_data: Any) -> Dict[str, fl
     
     # 1. Generate trace (Prior)
     print("\n[STEP 1] Generating composite model trace...")
-    trace = run_example_for_composite_model(bbn_data)
+    trace = run_example_for_composite_model(bbn_data, draws=draws, tune=tune, chains=chains, thin=thin)
     print("[STEP 1] Trace generation completed")
     
     # 2. Trace preprocessing and Prior metrics
