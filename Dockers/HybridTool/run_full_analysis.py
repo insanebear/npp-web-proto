@@ -55,6 +55,10 @@ def get_job_config() -> Dict[str, Any]:
     print_base_config(config)
     print(f"[CONFIG] CONFIDENCE_GOAL: {config['CONFIDENCE_GOAL']}")
     print(f"[CONFIG] FAILURES: {config['FAILURES']}")
+    print(f"[CONFIG] DRAWS: {config['DRAWS']}")
+    print(f"[CONFIG] TUNE: {config['TUNE']}")
+    print(f"[CONFIG] CHAINS: {config['CHAINS']}")
+    print(f"[CONFIG] THIN: {config['THIN']}")
     
     return config
 
