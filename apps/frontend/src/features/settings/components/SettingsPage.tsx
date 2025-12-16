@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { cssObj } from "./style";
-import { useState, type ChangeEvent } from "react";
+import { useState, useEffect, type ChangeEvent } from "react";
 import { useAppSettings } from "../../../shared/hooks/useAppSettings";
 
 export default function SettingsPage() {
@@ -22,6 +22,15 @@ export default function SettingsPage() {
     UnsavednBurnin: nBurnin,
     UnsavednThin: nThin,
   });
+
+  useEffect(() => {
+    setInputValues({
+      UnsavednChains: nChains,
+      UnsavednIter: nIter,
+      UnsavednBurnin: nBurnin,
+      UnsavednThin: nThin,
+    });
+  }, [nChains, nIter, nBurnin, nThin]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>, key: string) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
