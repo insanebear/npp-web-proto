@@ -68,6 +68,7 @@ def calculate_pfd_metrics(config: Dict[str, Any], bbn_data: Any) -> Dict[str, fl
     draws = config["DRAWS"]
     tune = config["TUNE"]
     chains = config["CHAINS"]
+    thin = config["THIN"]
     
     # 1. Generate trace (Prior)
     print("\n[STEP 1] Generating composite model trace...")
@@ -89,7 +90,7 @@ def calculate_pfd_metrics(config: Dict[str, Any], bbn_data: Any) -> Dict[str, fl
         observed_failures=failures,
         pfd_trace=filtered_pfd_trace,
     )
-    updated_trace = run_sampling(model, draws=draws, tune=tune, chains=chains)
+    updated_trace = run_sampling(model, draws=draws, tune=tune, chains=chains, thin=thin)
     
     updated_pfd_mean = updated_trace.posterior["pfd_prior"].mean().item()
     updated_conf = get_confidence(
