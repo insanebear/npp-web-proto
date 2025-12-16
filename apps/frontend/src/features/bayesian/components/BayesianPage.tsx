@@ -177,7 +177,6 @@ const formatPayload = (values: { [key: string]: string }, settings: any) => {
     nIter: String(settings.nIter),
     nBurnin: String(settings.nBurnin),
     nThin: String(settings.nThin),
-    computeDIC: String(settings.computeDIC),
     workingDir: settings.workingDir,
   };
   return payload;

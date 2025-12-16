@@ -14,7 +14,6 @@ export interface SimulationInput {
         nIter?: number;
         nBurnin?: number;
         nThin?: number;
-        computeDIC?: boolean;
         workingDir?: string;
         includeTraceData?: boolean;
     };

@@ -5,6 +5,10 @@
 # stores simulation results as structured JSON in S3.
 # ===================================================================
 
+# TODO(2025-12-16)
+# `compute DIC` is not used in this algorithm below, and no purpose using it for now.
+# Need to remove lines related to `computeDIC.
+
 # --- 1. Load Required Libraries ---
 library("rjags")
 library("paws")     # AWS SDK for R

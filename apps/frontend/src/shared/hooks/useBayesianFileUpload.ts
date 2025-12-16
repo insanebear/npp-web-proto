@@ -27,7 +27,6 @@ export const useBayesianFileUpload = () => {
           settingsProps.setnIter(Number(settings.nIter));
           settingsProps.setnBurnin(Number(settings.nBurnin));
           settingsProps.setnThin(Number(settings.nThin));
-          settingsProps.setcomputeDIC(settings.computeDIC === 'true');
         }
         setInputValues(initializeInputState(data.input));
         setError(null);
