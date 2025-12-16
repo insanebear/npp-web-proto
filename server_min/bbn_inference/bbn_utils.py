@@ -72,11 +72,11 @@ def run_sampling(model, numpyro=False, draws=1000, tune=1000, chains=1, thin=1):
             # Need to be checked and reconsidered using another sampler like this. 251027
             try:
                 # 원래 NUTS 샘플러 시도
+                # Note: PyMC 5.x does not support thin parameter in pm.sample()
                 trace = pm.sample(
                     draws=draws,
                     tune=tune,
                     chains=chains,
-                    thin=thin,
                     init="adapt_diag",
                     target_accept=0.9
                 )
@@ -88,10 +88,15 @@ def run_sampling(model, numpyro=False, draws=1000, tune=1000, chains=1, thin=1):
                     draws=draws,
                     tune=tune,
                     chains=chains,
-                    thin=thin,
                     init="adapt_diag",
                     step=pm.Metropolis()
                 )
+    
+    # Apply thinning manually (PyMC 5.x requires post-sampling thinning)
+    if thin > 1:
+        trace = trace.sel(draw=slice(None, None, thin))
+        print(f"Applied thinning: keeping every {thin}-th sample")
+    
     end = time.time()
     print("sampling time: ", end - start)
     print_summary(trace)
