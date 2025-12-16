@@ -349,6 +349,7 @@ export default function StatisticalPage() {
           draws: settings.nIter - settings.nBurnin,
           tune: settings.nBurnin,
           chains: settings.nChains,
+          thin: settings.nThin,
         },
       });
       
