@@ -126,7 +126,7 @@ print(paste0(
   }
   jags_model <- jags.model(file = model.file, data = data, n.chains = nChains, n.adapt = nBurnin)
   update(jags_model, n.iter = nBurnin)
-  jags_samples <- coda.samples(jags_model, variable.names = parameters_to_save, n.iter = nIter)
+  jags_samples <- coda.samples(jags_model, variable.names = parameters_to_save, n.iter = nIter, thin = nThin)
   print("--- Simulation complete. ---")
 
   # --- 5. Process and Save Results as JSON ---
