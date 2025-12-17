@@ -98,6 +98,7 @@ def handler(event, context):
         test_mode = body.get('test_mode', False)
         bbn_input_s3_bucket = body.get('bbn_input_s3_bucket')
         bbn_input_s3_key = body.get('bbn_input_s3_key')
+        settings = body.get('settings', {})
         
         # 입력 검증
         if pfd_goal <= 0:
@@ -201,10 +202,11 @@ def handler(event, context):
             {'name': 'S3_BUCKET', 'value': S3_BUCKET},
             {'name': 'AWS_REGION', 'value': AWS_REGION},
             {'name': 'TEST_MODE', 'value': 'true' if test_mode else 'false'},
-            {'name': 'JOBS_TABLE_NAME', 'value': JOBS_TABLE_NAME or ''}
-            {'name': 'DRAWS', 'value': str(settings.get('nIter', 1000) - settings.get('nBurnin', 100))},
-            {'name': 'TUNE', 'value': str(settings.get('nBurnin', 100))},
-            {'name': 'CHAINS', 'value': str(settings.get('nChains', 4))},
+            {'name': 'JOBS_TABLE_NAME', 'value': JOBS_TABLE_NAME or ''},
+            {'name': 'DRAWS', 'value': str(settings.get('draws', 1000))},
+            {'name': 'TUNE', 'value': str(settings.get('tune', 100))},
+            {'name': 'CHAINS', 'value': str(settings.get('chains', 4))},
+            {'name': 'THIN', 'value': str(settings.get('thin', 1))},
         ]
 
         if bbn_input_s3_key:

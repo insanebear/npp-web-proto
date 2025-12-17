@@ -349,6 +349,7 @@ export default function StatisticalPage() {
           draws: settings.nIter - settings.nBurnin,
           tune: settings.nBurnin,
           chains: settings.nChains,
+          thin: settings.nThin,
         },
       });
       
@@ -414,6 +415,12 @@ export default function StatisticalPage() {
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
         ...buildBbnPayload(),
+        settings: {
+          draws: settings.nIter - settings.nBurnin,
+          tune: settings.nBurnin,
+          chains: settings.nChains,
+          thin: settings.nThin,
+        },
       });
       
       const jobId = jobResponse.job_id;
@@ -479,6 +486,12 @@ export default function StatisticalPage() {
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
         ...buildBbnPayload(),
+        settings: {
+          draws: settings.nIter - settings.nBurnin,
+          tune: settings.nBurnin,
+          chains: settings.nChains,
+          thin: settings.nThin,
+        },
       });
       
       const jobId = jobResponse.job_id;

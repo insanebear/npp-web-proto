@@ -5,6 +5,10 @@
 # stores simulation results as structured JSON in S3.
 # ===================================================================
 
+# TODO(2025-12-16)
+# `compute DIC` is not used in this algorithm below, and no purpose using it for now.
+# Need to remove lines related to `computeDIC.
+
 # --- 1. Load Required Libraries ---
 library("rjags")
 library("paws")     # AWS SDK for R
@@ -122,7 +126,7 @@ print(paste0(
   }
   jags_model <- jags.model(file = model.file, data = data, n.chains = nChains, n.adapt = nBurnin)
   update(jags_model, n.iter = nBurnin)
-  jags_samples <- coda.samples(jags_model, variable.names = parameters_to_save, n.iter = nIter)
+  jags_samples <- coda.samples(jags_model, variable.names = parameters_to_save, n.iter = nIter, thin = nThin)
   print("--- Simulation complete. ---")
 
   # --- 5. Process and Save Results as JSON ---

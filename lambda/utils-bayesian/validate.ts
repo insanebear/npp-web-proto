@@ -23,7 +23,6 @@ export function validateFormData(formData: Record<string, any>): ValidationResul
       "nBurnin", 
       "nThin",
       "autoCloseWinBugs",
-      "computeDIC", 
       "workingDir",
       "includeTraceData"
   ]);

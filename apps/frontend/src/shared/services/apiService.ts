@@ -117,6 +117,7 @@ type HybridToolSettings = {
   draws?: number;
   tune?: number;
   chains?: number;
+  thin?: number;
 };
 
 export type SensitivityIn = { 
