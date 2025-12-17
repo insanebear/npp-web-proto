@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 프로젝트 루트로 이동 (스크립트 위치 기준)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$PROJECT_ROOT"
+
 # 환경 변수 설정 파일이 있으면 로드
-CONFIG_FILE="scripts/.website-env"
+CONFIG_FILE="scripts/config/.website-env"
 if [ -f "$CONFIG_FILE" ]; then
   set -a
   . "$CONFIG_FILE"

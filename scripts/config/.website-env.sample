@@ -1,0 +1,9 @@
+# Website 배포 설정 파일
+# 이 파일을 .website-env로 복사하고 값을 설정하세요
+# 이 파일은 scripts/deploy-website.sh에서 사용됩니다
+
+export S3_BUCKET=your-s3-bucket-name
+export CLOUDFRONT_DISTRIBUTION=your-cloudfront-distribution-id
+export AWS_REGION=us-east-1
+export AWS_PROFILE=default
+

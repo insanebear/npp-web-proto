@@ -30,8 +30,8 @@ This JSON file uses environment variables. The following variables are required:
 
 Using deployment script (recommended):
 ```bash
-# scripts/.hybridTool-env 파일에 환경 변수 설정 후
-./scripts/deploy-hybridTool-task-definition.sh
+# scripts/config/.nppswrel-env 파일에 환경 변수 설정 후
+./scripts/deploy/hybridTool/deploy-hybridTool-task-definition.sh
 ```
 
 For manual registration, environment variables must be substituted:
