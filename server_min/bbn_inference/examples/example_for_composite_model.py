@@ -13,18 +13,9 @@ import pytensor
 
 pytensor.config.exception_verbosity = 'high'
 
-# this might take 10 minutes to run
-# this is for preprocessing. saving the number of generic defects in a local file and reading the trace as an input of the composite model
-def run_example_for_generic_model():
-    generic_model = create_generic_model()
-    generic_trace = run_sampling(model=generic_model, numpyro=True, draws=1000, tune=1000)
-    # save simulation traces into a local file
-    base_dir = os.path.dirname(__file__)
-    filename = os.path.join(base_dir, "generic_model_trace_data_1000.nc")
-    generic_trace.to_netcdf(filename=filename)
-
 # this one is fast
-def run_example_for_composite_model(data_override: Optional[BayesianData] = None):
+# ???: now this function name needs to be modified without "example"
+def run_example_for_composite_model(data_override: Optional[BayesianData] = None, draws: int = 1000, tune: int = 1000, chains: int = 1, thin: int = 1):
 
     data = data_override or nrc_report_data()
     SR_Dev_model = create_SR_Dev_model(data.attr_states)
@@ -38,16 +29,16 @@ def run_example_for_composite_model(data_override: Optional[BayesianData] = None
     IC_Dev_model = create_IC_Dev_model(data.attr_states)
     IC_VV_model = create_IC_VV_model(data.attr_states)
 
-    SR_Dev_trace = run_sampling(SR_Dev_model, True)
-    SR_VV_trace = run_sampling(SR_VV_model, True)
-    SD_Dev_trace = run_sampling(SD_Dev_model, True)
-    SD_VV_trace = run_sampling(SD_VV_model, True)
-    IM_Dev_trace = run_sampling(IM_Dev_model, True)
-    IM_VV_trace = run_sampling(IM_VV_model, True)
-    ST_Dev_trace = run_sampling(ST_Dev_model, True)
-    ST_VV_trace = run_sampling(ST_VV_model, True)
-    IC_Dev_trace = run_sampling(IC_Dev_model, True)
-    IC_VV_trace = run_sampling(IC_VV_model, True)
+    SR_Dev_trace = run_sampling(SR_Dev_model, numpyro=True, draws=draws, tune=tune, chains=chains, thin=thin)
+    SR_VV_trace = run_sampling(SR_VV_model, numpyro=True, draws=draws, tune=tune, chains=chains, thin=thin)
+    SD_Dev_trace = run_sampling(SD_Dev_model, numpyro=True, draws=draws, tune=tune, chains=chains, thin=thin)
+    SD_VV_trace = run_sampling(SD_VV_model, numpyro=True, draws=draws, tune=tune, chains=chains, thin=thin)
+    IM_Dev_trace = run_sampling(IM_Dev_model, numpyro=True, draws=draws, tune=tune, chains=chains, thin=thin)
+    IM_VV_trace = run_sampling(IM_VV_model, numpyro=True, draws=draws, tune=tune, chains=chains, thin=thin)
+    ST_Dev_trace = run_sampling(ST_Dev_model, numpyro=True, draws=draws, tune=tune, chains=chains, thin=thin)
+    ST_VV_trace = run_sampling(ST_VV_model, numpyro=True, draws=draws, tune=tune, chains=chains, thin=thin)
+    IC_Dev_trace = run_sampling(IC_Dev_model, numpyro=True, draws=draws, tune=tune, chains=chains, thin=thin)
+    IC_VV_trace = run_sampling(IC_VV_model, numpyro=True, draws=draws, tune=tune, chains=chains, thin=thin)
 
     # generic trace 파일 로드
     base_dir = os.path.dirname(__file__)
@@ -76,5 +67,5 @@ def run_example_for_composite_model(data_override: Optional[BayesianData] = None
             if hasattr(RV.tag, 'test_value') and isinstance(RV.tag.test_value, float):
                 RV.tag.test_value = pm.math.clip(RV.tag.test_value, -20, 20)
 
-    trace = run_sampling(model)
+    trace = run_sampling(model, draws=draws, tune=tune, chains=chains, thin=thin)
     return trace

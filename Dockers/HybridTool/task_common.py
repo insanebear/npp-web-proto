@@ -32,6 +32,7 @@ def get_base_config() -> Dict[str, Any]:
         "DRAWS": int(os.environ.get("DRAWS", "1000")),
         "TUNE": int(os.environ.get("TUNE", "100")),
         "CHAINS": int(os.environ.get("CHAINS", "4")),
+        "THIN": int(os.environ.get("THIN", "1")),
     }
     
     if config["TEST_MODE"] and not config["TEST_OUTPUT_DIR"]:
@@ -48,6 +49,14 @@ def validate_base_config(config: Dict[str, Any]) -> None:
         raise ValueError("S3_BUCKET environment variable is required")
     if config["PFD_GOAL"] <= 0:
         raise ValueError("PFD_GOAL must be a positive number")
+    if config["DRAWS"] <= 0:
+        raise ValueError("DRAWS must be a positive number")
+    if config["TUNE"] < 0:
+        raise ValueError("TUNE must be non-negative")
+    if config["CHAINS"] <= 0:
+        raise ValueError("CHAINS must be a positive number")
+    if config["THIN"] <= 0:
+        raise ValueError("THIN must be a positive number")
 
 
 def print_base_config(config: Dict[str, Any]) -> None:

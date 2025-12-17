@@ -23,7 +23,7 @@ demand_interval = 1000
 demand_start = 1000
 max_trial = 10 # used to prevent infinite loop
 
-def get_number_of_required_demand(trace, pfd_goal, confidence_goal):
+def get_number_of_required_demand(trace, pfd_goal, confidence_goal, draws, tune, chains, thin):
     # filter out outliers for interpolation
     filtered_pfd_trace = filter_outsiders(trace.posterior["PFD"])
 
@@ -44,7 +44,8 @@ def get_number_of_required_demand(trace, pfd_goal, confidence_goal):
         confidence = 0
         trial = 0
         while confidence < max_confidence:
-            demand_trace = run_sampling(model=demand_model_func(demand=demand, observed_failures=0, pfd_trace=filtered_pfd_trace))
+            demand_model = demand_model_func(demand=demand, observed_failures=0, pfd_trace=filtered_pfd_trace)
+            demand_trace = run_sampling(model=demand_model, draws=draws, tune=tune, chains=chains, thin=thin)
             confidence = get_confidence(demand_trace.posterior["pfd_prior"], pfd_goal)
             print("confidence: ", confidence)
             max_confidence = max(confidence, max_confidence)

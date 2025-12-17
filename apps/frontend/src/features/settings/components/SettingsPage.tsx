@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { cssObj } from "./style";
-import { useState, type ChangeEvent } from "react";
+import { useState, useEffect, type ChangeEvent } from "react";
 import { useAppSettings } from "../../../shared/hooks/useAppSettings";
 
 export default function SettingsPage() {
@@ -9,12 +9,10 @@ export default function SettingsPage() {
     nChains,
     nIter,
     nBurnin,
-    computeDIC,
     nThin,
     setnChains,
     setnIter,
     setnBurnin,
-    setcomputeDIC,
     setnThin,
   } = useAppSettings();
 
@@ -22,9 +20,17 @@ export default function SettingsPage() {
     UnsavednChains: nChains,
     UnsavednIter: nIter,
     UnsavednBurnin: nBurnin,
-    UnsavedcomputeDIC: computeDIC,
     UnsavednThin: nThin,
   });
+
+  useEffect(() => {
+    setInputValues({
+      UnsavednChains: nChains,
+      UnsavednIter: nIter,
+      UnsavednBurnin: nBurnin,
+      UnsavednThin: nThin,
+    });
+  }, [nChains, nIter, nBurnin, nThin]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>, key: string) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -41,7 +47,6 @@ export default function SettingsPage() {
     setnChains(Number(inputValues.UnsavednChains));
     setnIter(Number(inputValues.UnsavednIter));
     setnBurnin(Number(inputValues.UnsavednBurnin));
-    setcomputeDIC(inputValues.UnsavedcomputeDIC);
     setnThin(Number(inputValues.UnsavednThin));
     alert('Settings Saved!');
   }
@@ -57,7 +62,6 @@ export default function SettingsPage() {
     if (key === 'N2') return 'UnsavednIter';
     if (key === 'N3') return 'UnsavednBurnin';
     if (key === 'N4') return 'UnsavednThin';
-    if (key === 'B2') return 'UnsavedcomputeDIC';
     return null;
   }
 
@@ -66,7 +70,6 @@ export default function SettingsPage() {
     { label: "Number of Iterations", key: "N2" },
     { label: "Number of Burns", key: "N3" },
     { label: "Thinning Rate", key: "N4" },
-    { label: "Compute DIC, pD and deviance", key: "B2" },
   ];
 
   return (

@@ -60,7 +60,7 @@ def print_summary(data, round_to=5):
     else:
         print(az.summary(data, var_names=filtered_var_names(data), stat_funcs=func_dict, round_to=round_to, extend=False))
 
-def run_sampling(model, numpyro=False, draws=1000, tune=1000, chains=1):
+def run_sampling(model, numpyro=False, draws=1000, tune=1000, chains=1, thin=1):
     pytensor.config.exception_verbosity = 'high'  # 디버깅 정보 상세 출력
 
     start = time.time()
@@ -72,6 +72,7 @@ def run_sampling(model, numpyro=False, draws=1000, tune=1000, chains=1):
             # Need to be checked and reconsidered using another sampler like this. 251027
             try:
                 # 원래 NUTS 샘플러 시도
+                # Note: PyMC 5.x does not support thin parameter in pm.sample()
                 trace = pm.sample(
                     draws=draws,
                     tune=tune,
@@ -90,6 +91,12 @@ def run_sampling(model, numpyro=False, draws=1000, tune=1000, chains=1):
                     init="adapt_diag",
                     step=pm.Metropolis()
                 )
+    
+    # Apply thinning manually (PyMC 5.x requires post-sampling thinning)
+    if thin > 1:
+        trace = trace.sel(draw=slice(None, None, thin))
+        print(f"Applied thinning: keeping every {thin}-th sample")
+    
     end = time.time()
     print("sampling time: ", end - start)
     print_summary(trace)
