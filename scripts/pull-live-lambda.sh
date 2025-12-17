@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONFIG_FILE="scripts/.lambda-env"
+CONFIG_FILE="scripts/.nppswrel-env"
 if [ -f "$CONFIG_FILE" ]; then
   set -a
   . "$CONFIG_FILE"

@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
+# BayesianStarterLambda 배포 스크립트
+# TypeScript로 작성된 Bayesian 시뮬레이션 시작 Lambda 함수를 배포합니다.
+# 사용법: ./scripts/deploy-bbn-lambda.sh
+# 환경변수: scripts/.nppswrel-env 파일에 BBN_LAMBDA_FUNCTION_NAME, AWS_REGION, AWS_PROFILE 설정 필요
+
 set -euo pipefail
 
-CONFIG_FILE="scripts/.lambda-env"
+CONFIG_FILE="scripts/.nppswrel-env"
 if [ -f "$CONFIG_FILE" ]; then
   set -a
   . "$CONFIG_FILE"
   set +a
 fi
 
-: "${FUNCTION_NAME:?Set FUNCTION_NAME env var}"
+: "${BBN_LAMBDA_FUNCTION_NAME:?Set BBN_LAMBDA_FUNCTION_NAME env var}"
+FUNCTION_NAME="$BBN_LAMBDA_FUNCTION_NAME"
 : "${AWS_REGION:?Set AWS_REGION env var}"
 : "${AWS_PROFILE:?Set AWS_PROFILE env var}"
 
@@ -26,9 +32,10 @@ echo "[3/4] Zip"
 
 echo "[4/4] Deploy"
 aws lambda update-function-code \
-  --function-name "$FUNCTION_NAME" \
+  --function-name "$BBN_LAMBDA_FUNCTION_NAME" \
   --zip-file fileb://lambda/bundle.zip \
   --region "$AWS_REGION" \
   --profile "$AWS_PROFILE"
 
-echo "Done."
+echo "✅ Deployment completed: $BBN_LAMBDA_FUNCTION_NAME"
+
