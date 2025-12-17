@@ -36,3 +36,6 @@ export BBN_CONTAINER_NAME=bayesian-simulation-app
 # API Gateway
 export API_GATEWAY_ID=your-api-gateway-id
 export API_GATEWAY_BASE_PATH=/api/v1
+
+# DynamoDB 설정
+export JOBS_TABLE_NAME=BayesianSimulationJobs

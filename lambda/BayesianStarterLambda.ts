@@ -2,7 +2,7 @@
  * AWS Lambda Function: BayesianStarterLambda
  *
  * Source of truth: This TypeScript file is the repo-managed Lambda source.
- * Build with tsc (see scripts/deploy-bbn-lambda.sh). The deployed handler
+ * Build with tsc (see scripts/deploy/bbn/deploy-bbn-lambda.sh). The deployed handler
  * remains "lambda/BayesianStarterLambda.handler" via preserved output paths.
  * Last synced with live JS in lambda/aws-live/extracted.
  *

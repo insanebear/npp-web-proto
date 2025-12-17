@@ -256,8 +256,8 @@ cython_debug/
 
 # Local deployment env files (do not commit)
 # Note: These don't match **/.env pattern, so explicitly listed
-scripts/.nppswrel-env
-scripts/.website-env
+scripts/config/.nppswrel-env
+scripts/config/.website-env
 
 # Lambda build and downloads (do not commit)
 lambda/bundle.zip

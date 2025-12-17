@@ -68,11 +68,11 @@ Dockers/HybridTool/
 
 ```bash
 # 환경 변수 설정
-cp scripts/.nppswrel-env.example scripts/.nppswrel-env
+cp scripts/config/.nppswrel-env.example scripts/config/.nppswrel-env
 # .nppswrel-env 파일을 편집하여 값 설정
 
 # Docker 이미지 빌드 및 ECR 푸시
-./tempDoc/scripts/deploy-hybridTool-docker.sh
+./scripts/deploy/hybridTool/deploy-hybridTool-docker.sh
 ```
 
 ## 로컬 테스트

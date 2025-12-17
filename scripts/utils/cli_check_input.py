@@ -7,7 +7,7 @@ Purpose
 - Prints a short summary (FP, complexity, attribute state counts)
 
 Usage (from repo root, Git Bash on Windows)
-  python scripts/cli_check_input.py \
+  python scripts/utils/cli_check_input.py \
     "/c/Users/<username>/Downloads/your-file.json"
 
 Notes
@@ -22,7 +22,7 @@ from server.bbn_inference.data import bayesian_data_from_json
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python scripts/cli_check_input.py <path-to-json>")
+        print("Usage: python scripts/utils/cli_check_input.py <path-to-json>")
         sys.exit(1)
 
     path = sys.argv[1]

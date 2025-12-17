@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # HybridTool Lambda 함수 일괄 배포 스크립트
-# 사용법: ./scripts/deploy-all-hybridTool-lambdas.sh
+# 사용법: ./scripts/deploy/hybridTool/deploy-hybridTool-lambdas-all.sh
 
 set -euo pipefail
 
-DEPLOY_SCRIPT="scripts/deploy-hybridTool-lambda.sh"
+# 프로젝트 루트로 이동 (스크립트 위치 기준)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+cd "$PROJECT_ROOT"
+
+DEPLOY_SCRIPT="scripts/deploy/hybridTool/deploy-hybridTool-lambda.sh"
 
 echo "=========================================="
 echo "Deploying all HybridTool Lambda functions"

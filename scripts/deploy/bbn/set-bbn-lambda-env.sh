@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 # BBN Lambda 함수 환경 변수 설정 스크립트
-# 사용법: ./scripts/set-bbn-lambda-env.sh
-# 디버그 모드: DEBUG=1 ./scripts/set-bbn-lambda-env.sh
+# 사용법: ./scripts/deploy/bbn/set-bbn-lambda-env.sh
+# 디버그 모드: DEBUG=1 ./scripts/deploy/bbn/set-bbn-lambda-env.sh
 
 set -euo pipefail
+
+# 프로젝트 루트로 이동 (스크립트 위치 기준)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+cd "$PROJECT_ROOT"
 
 # 디버그 모드
 DEBUG="${DEBUG:-0}"
 
 # 환경 변수 설정 파일이 있으면 로드
-CONFIG_FILE="scripts/.nppswrel-env"
+CONFIG_FILE="scripts/config/.nppswrel-env"
 if [ -f "$CONFIG_FILE" ]; then
   set -a
   . "$CONFIG_FILE"
@@ -100,7 +105,7 @@ if ! aws lambda get-function \
     --profile "$AWS_PROFILE" \
     --output json > /dev/null 2>&1; then
   echo "  ⚠️  Function does not exist: $BBN_LAMBDA_FUNCTION_NAME"
-  echo "     (Deploy the function first using scripts/deploy-bbn-lambda.sh)"
+    echo "     (Deploy the function first using scripts/deploy/bbn/deploy-bbn-lambda.sh)"
   echo ""
   rm -f "$TMP_FILE" "$ERR_FILE"
   exit 1
