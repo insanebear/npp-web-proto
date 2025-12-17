@@ -2,7 +2,7 @@
  * AWS Lambda Function: BayesianStarterLambda
  *
  * Source of truth: This TypeScript file is the repo-managed Lambda source.
- * Build with tsc (see scripts/deploy-lambda.sh). The deployed handler
+ * Build with tsc (see scripts/deploy/bbn/deploy-bbn-lambda.sh). The deployed handler
  * remains "lambda/BayesianStarterLambda.handler" via preserved output paths.
  * Last synced with live JS in lambda/aws-live/extracted.
  *
@@ -30,14 +30,17 @@ const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE_NAME = process.env.JOBS_TABLE_NAME;        // DynamoDB table name (for storing job status)
 const CLUSTER_NAME = process.env.CLUSTER_NAME;         // ECS cluster name
 const TASK_DEFINITION = process.env.TASK_DEFINITION;   // Fargate task definition name
-const SUBNET_ID = process.env.SUBNET_ID;               // VPC subnet ID
+const SUBNET_IDS = process.env.SUBNET_IDS;             // VPC subnet IDs (comma-separated)
 const CONTAINER_NAME = process.env.CONTAINER_NAME;     // Container name
+
+// Parse SUBNET_IDS (comma-separated string) and use first subnet
+const SUBNET_ID = SUBNET_IDS ? SUBNET_IDS.split(',')[0].trim() : undefined;
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log("Received request to start simulation job.");
 
   // 1. Environment variable validation
-  if (!TABLE_NAME || !CLUSTER_NAME || !TASK_DEFINITION || !SUBNET_ID || !CONTAINER_NAME) {
+  if (!TABLE_NAME || !CLUSTER_NAME || !TASK_DEFINITION || !SUBNET_IDS || !SUBNET_ID || !CONTAINER_NAME) {
     console.error("Missing required environment variables.");
     return {
       statusCode: 500,
