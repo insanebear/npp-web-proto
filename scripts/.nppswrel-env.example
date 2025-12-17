@@ -1,0 +1,38 @@
+# NPP SWREL 배포 설정 파일 (HybridTool + BBN 통합)
+# 이 파일을 .nppswrel-env로 복사하고 값을 설정하세요
+
+# AWS 설정
+export AWS_REGION=ap-northeast-2
+export AWS_PROFILE=your-profile-name
+export AWS_ACCOUNT_ID=your-aws-account-id
+
+# ECR 설정
+export ECR_REPOSITORY=hybrid-tool-pymc
+export DOCKER_IMAGE_TAG=latest
+
+# ECS 설정
+export CLUSTER_NAME=bayesian-cluster
+export TASK_DEFINITION=hybrid-tool-pymc-task
+export SUBNET_IDS=subnet-xxxxx,subnet-yyyyy
+
+# S3 설정
+export S3_BUCKET=hybrid-tool-results
+
+# Lambda 설정
+# HybridTool Lambda 함수명
+export LAMBDA_TRIGGER_SENSITIVITY_FUNCTION=hybrid-tool-trigger-sensitivity-task
+export LAMBDA_TRIGGER_UPDATE_PFD_FUNCTION=hybrid-tool-trigger-update-pfd-task
+export LAMBDA_TRIGGER_FULL_ANALYSIS_FUNCTION=hybrid-tool-trigger-full-analysis-task
+export LAMBDA_GET_RESULTS_FUNCTION=hybrid-tool-get-results
+export LAMBDA_LIST_BBN_RESULTS_FUNCTION=hybrid-tool-list-bbn-results
+
+# BBN Lambda 함수명
+export BBN_LAMBDA_FUNCTION_NAME=my-starter
+
+# BBN ECS 설정 (BayesianPage용)
+export BBN_TASK_DEFINITION=bayesian-simulation-task
+export BBN_CONTAINER_NAME=bayesian-simulation-app
+
+# API Gateway
+export API_GATEWAY_ID=your-api-gateway-id
+export API_GATEWAY_BASE_PATH=/api/v1
