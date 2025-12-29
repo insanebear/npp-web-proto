@@ -19,8 +19,8 @@ def get_confidence(data, goal):
     return np.count_nonzero(data <= goal) / data["draw"].size
 
 max_demand = 25000
-demand_interval = 1000
-demand_start = 1000
+demand_interval = 200
+demand_start = 100
 max_trial = 10 # used to prevent infinite loop
 
 def get_number_of_required_demand(trace, pfd_goal, confidence_goal, draws, tune, chains, thin):
