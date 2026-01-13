@@ -17,7 +17,7 @@ fi
 # 환경 변수 확인
 : "${AWS_REGION:=ap-northeast-2}"
 : "${AWS_PROFILE:=default}"
-: "${ECR_REPOSITORY:=bayesian-page-r}"
+: "${ECR_REPOSITORY:=bayesian-simulation-repo}"
 : "${DOCKER_IMAGE_TAG:=latest}"
 : "${AWS_ACCOUNT_ID:?Set AWS_ACCOUNT_ID env var}"
 

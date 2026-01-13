@@ -30,7 +30,7 @@
         },
         {
           "name": "S3_BUCKET_NAME",
-          "value": "bayesian-simulation-results-bucket"
+          "value": "${BBN_S3_BUCKET_NAME}"
         },
         {
           "name": "TEST_MODE",

@@ -16,7 +16,8 @@ export TASK_DEFINITION=hybrid-tool-pymc-task
 export SUBNET_IDS=subnet-xxxxx,subnet-yyyyy
 
 # S3 설정
-export S3_BUCKET=hybrid-tool-results
+export S3_BUCKET=hybrid-tool-results  # HybridTool용 S3 버킷
+export BBN_S3_BUCKET_NAME=bayesian-simulation-results-bucket  # BayesianPage용 S3 버킷
 
 # Lambda 설정
 # HybridTool Lambda 함수명

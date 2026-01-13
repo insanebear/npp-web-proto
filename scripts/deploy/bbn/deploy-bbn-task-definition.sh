@@ -17,8 +17,9 @@ fi
 # 환경 변수 확인
 : "${AWS_REGION:=ap-northeast-2}"
 : "${AWS_PROFILE:=default}"
-: "${ECR_REPOSITORY:=bayesian-page-r}"
+: "${ECR_REPOSITORY:=bayesian-simulation-repo}"
 : "${DOCKER_IMAGE_TAG:=latest}"
+: "${BBN_S3_BUCKET_NAME:=bayesian-simulation-results-bucket}"
 : "${AWS_ACCOUNT_ID:?Set AWS_ACCOUNT_ID env var}"
 
 TASK_DEF_FILE="aws-configs/bayesianPage-task-definition.json"
@@ -41,6 +42,7 @@ export AWS_ACCOUNT_ID
 export AWS_REGION
 export ECR_REPOSITORY
 export DOCKER_IMAGE_TAG
+export BBN_S3_BUCKET_NAME
 
 # 환경 변수 치환 (Python 사용 - Windows 호환)
 python3 <<PYTHON_SCRIPT
@@ -59,6 +61,7 @@ content = content.replace('\${AWS_ACCOUNT_ID}', os.environ.get('AWS_ACCOUNT_ID',
 content = content.replace('\${AWS_REGION}', os.environ.get('AWS_REGION', ''))
 content = content.replace('\${ECR_REPOSITORY}', os.environ.get('ECR_REPOSITORY', ''))
 content = content.replace('\${DOCKER_IMAGE_TAG}', os.environ.get('DOCKER_IMAGE_TAG', ''))
+content = content.replace('\${BBN_S3_BUCKET_NAME}', os.environ.get('BBN_S3_BUCKET_NAME', ''))
 
 # 파일 저장
 with open(tmp_file_path, 'w', encoding='utf-8') as f:
