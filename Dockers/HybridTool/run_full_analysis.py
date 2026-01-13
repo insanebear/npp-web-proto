@@ -15,6 +15,7 @@ Output:
 """
 
 import os
+import math
 from typing import Dict, Any
 
 from task_common import (
@@ -80,46 +81,40 @@ def run_full_analysis(config: Dict[str, Any], bbn_data: Any) -> Dict[str, Any]:
 
     # 2. Sensitivity Analysis: calculate required demand and Prior metrics
     print("\n[STEP 2] Running sensitivity analysis...")
-    demand_required = get_number_of_required_demand(
+    demand_required_raw = get_number_of_required_demand(
         trace, pfd_goal=pfd_goal, confidence_goal=confidence_goal,
         draws=draws, tune=tune, chains=chains, thin=thin
     )
+    demand_required = int(math.ceil(demand_required_raw))
     
     # Trace preprocessing for PFD update
     filtered_pfd_trace = filter_outsiders(trace.posterior["PFD"])
     prior_mean = trace.posterior["PFD"].mean().item()
     prior_conf = get_confidence(data=trace.posterior["PFD"], goal=pfd_goal)
     
-    print(f"[STEP 2] Required number of tests: {int(demand_required)}")
+    print(f"[STEP 2] Required number of tests: {demand_required} (raw={demand_required_raw})")
     print(f"[STEP 2] Prior mean: {prior_mean}")
     print(f"[STEP 2] Prior confidence @goal: {prior_conf}")
     
-    # 3. Full Analysis: iterate through demand_list and sample
-    print("\n[STEP 3] Running iterative full analysis with demand list...")
-    # Calculate demand list
-    demand_list = list(range(500, int(demand_required) + 500, 500))
-    pfd_output = []
-    last_conf = None
-    
-    for idx, demand in enumerate(demand_list, 1):
-        print(f"[STEP 3] Processing demand {idx}/{len(demand_list)}: {demand}")
-        
-        # Build demand model and run sampling
-        model = demand_model_func(
-            demand=demand, 
-            observed_failures=failures, 
-            pfd_trace=filtered_pfd_trace
-        )
-        updated_trace = run_sampling(model, draws=draws, tune=tune, chains=chains, thin=thin)
-        
-        updated_mean = updated_trace.posterior["pfd_prior"].mean().item()
-        last_conf = get_confidence(
-            data=updated_trace.posterior["pfd_prior"], goal=pfd_goal
-        )
-        
-        # Store results as [demand (str), mean PFD (float)]
-        pfd_output.append([str(demand), updated_mean])
-        print(f"[STEP 3] Demand={demand} -> PFD={updated_mean:.5g}, Confidence={last_conf:.4f}")
+    # 3. Full Analysis: update PFD at required demand only
+    print("\n[STEP 3] Running PFD update at required demand...")
+    demand = demand_required
+    print(f"[STEP 3] Processing demand: {demand}")
+
+    model = demand_model_func(
+        demand=demand,
+        observed_failures=failures,
+        pfd_trace=filtered_pfd_trace
+    )
+    updated_trace = run_sampling(model, draws=draws, tune=tune, chains=chains, thin=thin)
+
+    updated_mean = updated_trace.posterior["pfd_prior"].mean().item()
+    last_conf = get_confidence(
+        data=updated_trace.posterior["pfd_prior"], goal=pfd_goal
+    )
+
+    pfd_output = [[str(demand), updated_mean]]
+    print(f"[STEP 3] Demand={demand} -> PFD={updated_mean:.5g}, Confidence={last_conf:.4f}")
 
     return {
         "demand_required": int(demand_required),
