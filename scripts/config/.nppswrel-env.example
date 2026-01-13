@@ -7,7 +7,8 @@ export AWS_PROFILE=your-profile-name
 export AWS_ACCOUNT_ID=your-aws-account-id
 
 # ECR 설정
-export ECR_REPOSITORY=hybrid-tool-pymc
+export ECR_REPOSITORY=hybrid-tool-pymc  # HybridTool용 ECR 리포지토리
+export BBN_ECR_REPOSITORY=bayesian-simulation-repo  # BayesianPage용 ECR 리포지토리
 export DOCKER_IMAGE_TAG=latest
 
 # ECS 설정
@@ -16,7 +17,8 @@ export TASK_DEFINITION=hybrid-tool-pymc-task
 export SUBNET_IDS=subnet-xxxxx,subnet-yyyyy
 
 # S3 설정
-export S3_BUCKET=hybrid-tool-results
+export S3_BUCKET=hybrid-tool-results  # HybridTool용 S3 버킷
+export BBN_S3_BUCKET_NAME=bayesian-simulation-results-bucket  # BayesianPage용 S3 버킷
 
 # Lambda 설정
 # HybridTool Lambda 함수명
