@@ -141,6 +141,7 @@ export type FullAnalysisIn = {
   pfd_goal: number; 
   confidence_goal: number; 
   failures: number; 
+  demand_required?: number;
   trace_id?: string | null; 
   test_mode?: boolean;
   settings?: HybridToolSettings;

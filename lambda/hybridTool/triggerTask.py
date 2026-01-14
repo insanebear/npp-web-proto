@@ -94,7 +94,8 @@ def handler(event, context):
         
         pfd_goal = float(body.get('pfd_goal', 0))
         confidence_goal = float(body.get('confidence_goal', 0))
-        failures = int(body.get('failures', 0))
+        failures_raw = body.get('failures')
+        demand_required = body.get('demand_required')  # Optional: reuse from sensitivity analysis
         test_mode = body.get('test_mode', False)
         bbn_input_s3_bucket = body.get('bbn_input_s3_bucket')
         bbn_input_s3_key = body.get('bbn_input_s3_key')
@@ -125,6 +126,20 @@ def handler(event, context):
                 })
             }
         
+        # Failures 값 검증 (None이거나 제공되지 않으면 에러, 0은 유효한 값)
+        if failures_raw is None:
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json'
+                },
+                'body': json.dumps({
+                    'message': 'failures value is required'
+                })
+            }
+        
+        failures = int(failures_raw)
         if failures < 0:
             return {
                 'statusCode': 400,
@@ -208,6 +223,10 @@ def handler(event, context):
             {'name': 'CHAINS', 'value': str(settings.get('chains', 4))},
             {'name': 'THIN', 'value': str(settings.get('thin', 1))},
         ]
+
+        # Add DEMAND_REQUIRED if provided (from sensitivity analysis)
+        if demand_required is not None:
+            environment_overrides.append({'name': 'DEMAND_REQUIRED', 'value': str(int(demand_required))})
 
         if bbn_input_s3_key:
             environment_overrides.append({'name': 'BBN_INPUT_PATH', 'value': bbn_input_s3_key})
