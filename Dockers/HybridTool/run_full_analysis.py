@@ -146,7 +146,7 @@ def build_result_json(
             "bbn_input": bbn_input_info,
         },
         "output": {
-            "pfd": result_metrics["pfd_output"],
+            "mean_posterior_pfd": result_metrics["pfd_output"],
             "confidence": result_metrics["final_confidence"],
         },
     }
