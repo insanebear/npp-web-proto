@@ -39,4 +39,4 @@ WORKDIR /app
 COPY . /app/
 
 # 7. Default command
-CMD ["Rscript", "/app/run_simulation.R"]
+CMD ["Rscript", "/app/run_bbn_simulation.R"]

@@ -59,8 +59,8 @@ aws ecr get-login-password \
 echo "[3/5] Building Docker image..."
 docker build \
   -t "${BBN_ECR_REPOSITORY}:${DOCKER_IMAGE_TAG}" \
-  -f Dockers/BayesianPage/Dockerfile \
-  Dockers/BayesianPage
+  -f Dockers/OpenBUGS_BBN/Dockerfile \
+  Dockers/OpenBUGS_BBN
 
 # ECR 태그 추가
 echo "[4/5] Tagging image for ECR..."

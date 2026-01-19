@@ -119,7 +119,7 @@ export default function StatisticalPage() {
       }
 
       try {
-        // Check job status from DynamoDB (same approach as BayesianPage)
+        // Check job status from DynamoDB (same approach as OpenBUGS_BBN)
         const statusData = await api.getHybridToolJobStatus(jobId);
         
         if (statusData.jobStatus === 'COMPLETED') {

@@ -386,9 +386,9 @@ npp-web-proto/
 │   └── utils-bayesian/       # Bayesian Lambda 유틸리티
 │
 ├── Dockers/                   # Docker 컨테이너 정의
-│   ├── BayesianPage/         # R 기반 Bayesian 분석 컨테이너
+│   ├── OpenBUGS_BBN/         # R 기반 Bayesian 분석 컨테이너
 │   │   ├── Dockerfile
-│   │   └── run_simulation.R
+│   │   └── run_bbn_simulation.R
 │   └── HybridTool/           # Python 기반 HybridTool 컨테이너
 │       ├── Dockerfile
 │       └── run_*.py          # 작업 실행 스크립트들
@@ -429,7 +429,7 @@ npp-web-proto/
 - **용도**: ECS Fargate 작업용 Docker 컨테이너 정의
 - **수정 시 주의사항**:
   - Dockerfile 수정 후 이미지 재빌드 필요
-  - `run_*.py` 또는 `run_simulation.R` 스크립트가 작업 실행
+  - `run_*.py` 또는 `run_bbn_simulation.R` 스크립트가 작업 실행
 
 #### `aws-configs/`
 - **용도**: AWS 리소스 정의 파일 (Task Definition, IAM 정책 등)
