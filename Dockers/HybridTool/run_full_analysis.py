@@ -31,7 +31,7 @@ from bbn_inference.sensitivity_analysis import (
     get_confidence,
     demand_model_func,
 )
-from bbn_inference.examples.example_for_composite_model import run_example_for_composite_model
+from bbn_inference.runners.composite_model import run_composite_model
 from bbn_inference.bbn_utils import run_sampling
 
 
@@ -92,7 +92,7 @@ def run_full_analysis(config: Dict[str, Any], bbn_data: Any) -> Dict[str, Any]:
     
     # 1. Generate trace (Prior)
     print("\n[STEP 1] Generating composite model trace...")
-    trace = run_example_for_composite_model(bbn_data, draws=draws, tune=tune, chains=chains, thin=thin)
+    trace = run_composite_model(bbn_data, draws=draws, tune=tune, chains=chains, thin=thin)
     print("[STEP 1] Trace generation completed")
 
     # 2. Sensitivity Analysis: reuse required demand from sensitivity analysis
