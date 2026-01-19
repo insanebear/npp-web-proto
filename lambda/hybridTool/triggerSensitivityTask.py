@@ -17,15 +17,42 @@ from botocore.exceptions import ClientError
 ecs_client = boto3.client('ecs', region_name=os.environ.get('AWS_REGION', 'ap-northeast-2'))
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'ap-northeast-2'))
 
-# 환경 변수
+# 환경 변수 (기본값, handler에서 stage에 따라 오버라이드)
 CLUSTER_NAME = os.environ.get('CLUSTER_NAME')
-TASK_DEFINITION = os.environ.get('TASK_DEFINITION')
+TASK_DEFINITION = os.environ.get('HYBRID_TASK_DEFINITION')
 SUBNET_IDS = os.environ.get('SUBNET_IDS', '').split(',') if os.environ.get('SUBNET_IDS') else []
 SECURITY_GROUP_IDS = os.environ.get('SECURITY_GROUP_IDS', '').split(',') if os.environ.get('SECURITY_GROUP_IDS') else []
 CONTAINER_NAME = os.environ.get('CONTAINER_NAME', 'hybrid-tool-container')
 S3_BUCKET = os.environ.get('S3_BUCKET')
 AWS_REGION = os.environ.get('AWS_REGION', 'ap-northeast-2')
 JOBS_TABLE_NAME = os.environ.get('JOBS_TABLE_NAME')
+
+
+def get_stage_from_event(event):
+    """API Gateway event에서 stage 정보 추출"""
+    stage = event.get('requestContext', {}).get('stage')
+    if stage:
+        return stage
+    path = event.get('path', '')
+    if path.startswith('/develop/'):
+        return 'develop'
+    elif path.startswith('/prod/'):
+        return 'prod'
+    return 'prod'
+
+
+def get_resource_config(stage):
+    """Stage에 따라 사용할 리소스 설정 반환"""
+    if stage == 'develop':
+        return {
+            'cluster_name': os.environ.get('CLUSTER_NAME_DEV') or os.environ.get('CLUSTER_NAME'),
+            'task_definition': os.environ.get('HYBRID_TASK_DEFINITION_DEV') or os.environ.get('HYBRID_TASK_DEFINITION'),
+        }
+    else:
+        return {
+            'cluster_name': os.environ.get('CLUSTER_NAME'),
+            'task_definition': os.environ.get('HYBRID_TASK_DEFINITION'),
+        }
 
 
 def handler(event, context):
@@ -50,12 +77,20 @@ def handler(event, context):
         }
     
     try:
+        # Stage 감지 및 리소스 설정
+        stage = get_stage_from_event(event)
+        resource_config = get_resource_config(stage)
+        cluster_name = resource_config['cluster_name']
+        task_definition = resource_config['task_definition']
+        
+        print(f"Detected stage: {stage}, using cluster: {cluster_name}, task: {task_definition}")
+        
         # 환경 변수 검증
         missing_vars = []
-        if not CLUSTER_NAME:
-            missing_vars.append('CLUSTER_NAME')
-        if not TASK_DEFINITION:
-            missing_vars.append('TASK_DEFINITION')
+        if not cluster_name:
+            missing_vars.append('CLUSTER_NAME' + ('_DEV' if stage == 'develop' else ''))
+        if not task_definition:
+            missing_vars.append('HYBRID_TASK_DEFINITION' + ('_DEV' if stage == 'develop' else ''))
         if not S3_BUCKET:
             missing_vars.append('S3_BUCKET')
         if not SUBNET_IDS or SUBNET_IDS == ['']:
@@ -186,8 +221,8 @@ def handler(event, context):
             environment_overrides.append({'name': 'BBN_INPUT_BUCKET', 'value': bbn_input_s3_bucket})
 
         response = ecs_client.run_task(
-            cluster=CLUSTER_NAME,
-            taskDefinition=TASK_DEFINITION,
+            cluster=cluster_name,
+            taskDefinition=task_definition,
             launchType='FARGATE',
             networkConfiguration=network_config,
             overrides={

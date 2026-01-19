@@ -28,19 +28,64 @@ const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 // Get AWS resource information from environment variables
 const TABLE_NAME = process.env.JOBS_TABLE_NAME;        // DynamoDB table name (for storing job status)
-const CLUSTER_NAME = process.env.CLUSTER_NAME;         // ECS cluster name
-const TASK_DEFINITION = process.env.TASK_DEFINITION;   // Fargate task definition name
 const SUBNET_IDS = process.env.SUBNET_IDS;             // VPC subnet IDs (comma-separated)
 const CONTAINER_NAME = process.env.CONTAINER_NAME;     // Container name
 
 // Parse SUBNET_IDS (comma-separated string) and use first subnet
 const SUBNET_ID = SUBNET_IDS ? SUBNET_IDS.split(',')[0].trim() : undefined;
 
+/**
+ * Extract stage information from API Gateway event
+ */
+function getStageFromEvent(event: APIGatewayProxyEvent): string {
+  // Method 1: From requestContext.stage (REST API)
+  const stage = event.requestContext?.stage;
+  if (stage) {
+    return stage;
+  }
+  
+  // Method 2: From path (/develop/... or /prod/...)
+  const path = event.path || '';
+  if (path.startsWith('/develop/')) {
+    return 'develop';
+  } else if (path.startsWith('/prod/')) {
+    return 'prod';
+  }
+  
+  // Default: prod
+  return 'prod';
+}
+
+/**
+ * Get resource configuration based on stage
+ */
+function getResourceConfig(stage: string): { clusterName: string; taskDefinition: string } {
+  if (stage === 'develop') {
+    return {
+      clusterName: process.env.CLUSTER_NAME_DEV || process.env.CLUSTER_NAME || '',
+      taskDefinition: process.env.BBN_TASK_DEFINITION_DEV || process.env.BBN_TASK_DEFINITION || '',
+    };
+  } else {
+    return {
+      clusterName: process.env.CLUSTER_NAME || '',
+      taskDefinition: process.env.BBN_TASK_DEFINITION || '',
+    };
+  }
+}
+
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log("Received request to start simulation job.");
 
+  // Stage detection and resource configuration
+  const stage = getStageFromEvent(event);
+  const resourceConfig = getResourceConfig(stage);
+  const clusterName = resourceConfig.clusterName;
+  const taskDefinition = resourceConfig.taskDefinition;
+  
+  console.log(`Detected stage: ${stage}, using cluster: ${clusterName}, task: ${taskDefinition}`);
+
   // 1. Environment variable validation
-  if (!TABLE_NAME || !CLUSTER_NAME || !TASK_DEFINITION || !SUBNET_IDS || !SUBNET_ID || !CONTAINER_NAME) {
+  if (!TABLE_NAME || !clusterName || !taskDefinition || !SUBNET_IDS || !SUBNET_ID || !CONTAINER_NAME) {
     console.error("Missing required environment variables.");
     return {
       statusCode: 500,
@@ -104,8 +149,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     // 7. Configure Fargate task execution command
     const command = new RunTaskCommand({
-      cluster: CLUSTER_NAME,
-      taskDefinition: TASK_DEFINITION,
+      cluster: clusterName,
+      taskDefinition: taskDefinition,
       launchType: "FARGATE",
       networkConfiguration: {
         awsvpcConfiguration: {

@@ -35,6 +35,10 @@ fi
 : "${JOBS_TABLE_NAME:=}"
 : "${BBN_CONTAINER_NAME:=bayesian-simulation-app}"
 
+# 개발 환경 변수 (선택적, 없으면 프로덕션 변수 사용)
+: "${CLUSTER_NAME_DEV:=}"
+: "${BBN_TASK_DEFINITION_DEV:=}"
+
 echo "=========================================="
 echo "Setting environment variables for BBN Lambda function"
 echo "=========================================="
@@ -45,19 +49,26 @@ echo "  BBN_TASK_DEFINITION: $BBN_TASK_DEFINITION"
 echo "  SUBNET_IDS: $SUBNET_IDS"
 echo "  JOBS_TABLE_NAME: ${JOBS_TABLE_NAME:-'(not set - DynamoDB job tracking disabled)'}"
 echo "  BBN_CONTAINER_NAME: $BBN_CONTAINER_NAME"
+if [ -n "$CLUSTER_NAME_DEV" ]; then
+  echo "  CLUSTER_NAME_DEV: $CLUSTER_NAME_DEV (for /develop stage)"
+fi
+if [ -n "$BBN_TASK_DEFINITION_DEV" ]; then
+  echo "  BBN_TASK_DEFINITION_DEV: $BBN_TASK_DEFINITION_DEV (for /develop stage)"
+fi
 echo "  AWS_REGION: $AWS_REGION (Note: Lambda reserved variable, not set in env vars)"
 echo ""
 
 # 환경 변수 JSON 생성
 # 주의: AWS_REGION은 Lambda의 예약된 환경 변수이므로 설정하지 않음
+# DEV 변수는 선택적이므로 값이 있을 때만 포함
 ENV_VARS_JSON=$(cat <<EOF
 {
   "Variables": {
     "CLUSTER_NAME": "$CLUSTER_NAME",
-    "TASK_DEFINITION": "$BBN_TASK_DEFINITION",
+    "BBN_TASK_DEFINITION": "$BBN_TASK_DEFINITION",
     "SUBNET_IDS": "$SUBNET_IDS",
     "JOBS_TABLE_NAME": "${JOBS_TABLE_NAME:-}",
-    "CONTAINER_NAME": "$BBN_CONTAINER_NAME"
+    "CONTAINER_NAME": "$BBN_CONTAINER_NAME"$([ -n "$CLUSTER_NAME_DEV" ] && echo ",\n    \"CLUSTER_NAME_DEV\": \"$CLUSTER_NAME_DEV\"" || echo "")$([ -n "$BBN_TASK_DEFINITION_DEV" ] && echo ",\n    \"BBN_TASK_DEFINITION_DEV\": \"$BBN_TASK_DEFINITION_DEV\"" || echo "")
   }
 }
 EOF
