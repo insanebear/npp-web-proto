@@ -4,7 +4,7 @@ Lambda Function: hybrid-tool-get-job-status
 기능:
 - REST API 요청 수신 (GET /api/v1/jobs/{job_id})
 - job_id로 DynamoDB에서 작업 상태 조회
-- BayesianPage와 동일한 API 스키마 제공
+- OpenBUGS_BBN과 동일한 API 스키마 제공
 """
 
 import json
@@ -114,7 +114,7 @@ def handler(event, context):
             
             item = response['Item']
             
-            # BayesianPage 스키마에 맞춰 반환 (jobId, jobStatus 필드)
+            # OpenBUGS_BBN 스키마에 맞춰 반환 (jobId, jobStatus 필드)
             result = {
                 'jobId': item.get('jobId', job_id),
                 'jobType': item.get('jobType', 'unknown'),

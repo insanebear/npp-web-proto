@@ -230,7 +230,7 @@ export const fullAnalysis = (payload: FullAnalysisIn) =>
   postJSON<HybridToolJobResponse>('/api/v1/full-analysis', payload);
 
 /**
- * Gets the job status from DynamoDB (same approach as BayesianPage)
+ * Gets the job status from DynamoDB (same approach as OpenBUGS_BBN)
  * @param jobId - The job ID returned from the trigger function
  * @returns Job status object with jobStatus field
  */
