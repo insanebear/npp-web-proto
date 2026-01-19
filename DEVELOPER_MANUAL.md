@@ -128,19 +128,33 @@ cd ../..
 
 **로컬 개발용 `.env` 파일 생성** (`apps/frontend/.env`):
 
-```bash
-# Bayesian API Gateway URL
-# ⚠️ <YOUR_API_GATEWAY_ID>를 실제 API Gateway ID로 교체하세요
-VITE_API_BASE_URL=https://<YOUR_API_GATEWAY_ID>.execute-api.ap-northeast-2.amazonaws.com/prod
+프론트엔드는 개발 모드(`npm run dev`)와 프로덕션 빌드(`npm run build`)를 자동으로 구분합니다.
 
-# Statistical (SST) API Gateway URL
+```bash
+# ============================================
+# 개발 환경 변수 (npm run dev 시 사용)
+# ============================================
 # ⚠️ <YOUR_API_GATEWAY_ID>를 실제 API Gateway ID로 교체하세요
+VITE_API_DEV_BASE_URL=https://<YOUR_API_GATEWAY_ID>.execute-api.ap-northeast-2.amazonaws.com/develop
+VITE_API_DEV_BASE_URL_SST=https://<YOUR_API_GATEWAY_ID>.execute-api.ap-northeast-2.amazonaws.com/develop
+
+# ============================================
+# 배포 환경 변수 (npm run build 시 사용)
+# ============================================
+VITE_API_BASE_URL=https://<YOUR_API_GATEWAY_ID>.execute-api.ap-northeast-2.amazonaws.com/prod
 VITE_API_BASE_URL_SST=https://<YOUR_API_GATEWAY_ID>.execute-api.ap-northeast-2.amazonaws.com/prod
+
+# ============================================
+# 공통 API Key (개발/배포 공통)
+# ============================================
+VITE_API_KEY=<YOUR_API_KEY>
 ```
 
 **주의사항**:
 - `.env` 파일은 Git에 커밋되지 않습니다 (`.gitignore`에 포함됨)
 - `<YOUR_API_GATEWAY_ID>` 부분을 실제 API Gateway ID로 교체해야 합니다
+- `npm run dev` 실행 시: `VITE_API_DEV_BASE_URL` 사용 (`/develop` stage)
+- `npm run build` 실행 시: `VITE_API_BASE_URL` 사용 (`/prod` stage)
 
 ### 2. 배포용 환경 변수
 
@@ -167,11 +181,11 @@ export AWS_ACCOUNT_ID=<YOUR_AWS_ACCOUNT_ID>         # ⚠️ 실제 AWS 계정 I
 
 # ECR 설정
 export ECR_REPOSITORY=hybrid-tool-pymc
-export DOCKER_IMAGE_TAG=latest
+export DOCKER_IMAGE_TAG=latest                        # Docker 이미지 태그 (기본값: latest)
 
 # ECS 설정
-export CLUSTER_NAME=bayesian-cluster
-export TASK_DEFINITION=hybrid-tool-pymc-task
+export CLUSTER_NAME=bayesian-cluster                 # 공통 클러스터 (HybridTool과 BBN 모두 사용)
+export HYBRID_TASK_DEFINITION=hybrid-tool-pymc-task  # HybridTool Task Definition
 export SUBNET_IDS=<YOUR_SUBNET_ID_1>,<YOUR_SUBNET_ID_2>  # ⚠️ 실제 서브넷 ID로 교체 (예: subnet-abc123,subnet-def456)
 
 # S3 설정
@@ -198,6 +212,20 @@ export API_GATEWAY_BASE_PATH=/api/v1
 # DynamoDB 설정
 export JOBS_TABLE_NAME=BayesianSimulationJobs
 ```
+
+**개발 환경 변수 (선택적)**:
+```bash
+# 개발 환경용 Task Definition (선택적, 없으면 프로덕션 Task Definition 사용)
+export HYBRID_TASK_DEFINITION_DEV=hybrid-tool-pymc-task-dev
+export BBN_TASK_DEFINITION_DEV=bayesian-simulation-task-dev
+
+# 개발 환경용 클러스터 (선택적, 없으면 프로덕션 클러스터 사용)
+export CLUSTER_NAME_DEV=bayesian-cluster
+```
+
+**참고**:
+- 개발 환경 변수가 설정되지 않으면 프로덕션 환경 변수를 사용합니다 (fallback)
+- Lambda 함수는 API Gateway stage(`/develop` 또는 `/prod`)를 자동으로 감지하여 적절한 리소스를 사용합니다
 
 #### 웹사이트 배포 설정
 
@@ -471,10 +499,22 @@ bash scripts/deploy/bbn/deploy-bbn-all.sh
    ```bash
    bash scripts/deploy/bbn/deploy-bbn-docker.sh
    ```
+   - 스크립트 실행 시 Docker 이미지 태그를 선택할 수 있습니다:
+     - `1`: latest (프로덕션)
+     - `2`: dev (개발)
+     - `3`: 직접 입력
+   - 또는 명령줄에서 직접 지정:
+     ```bash
+     DOCKER_IMAGE_TAG=dev bash scripts/deploy/bbn/deploy-bbn-docker.sh
+     ```
 
 2. **ECS Task Definition 등록**
    ```bash
+   # 프로덕션용 Task Definition
    bash scripts/deploy/bbn/deploy-bbn-task-definition.sh
+   
+   # 개발용 Task Definition (dev 태그 사용)
+   bash scripts/deploy/bbn/deploy-bbn-task-definition-dev.sh
    ```
 
 3. **Lambda 함수 배포**
@@ -486,6 +526,65 @@ bash scripts/deploy/bbn/deploy-bbn-all.sh
    ```bash
    bash scripts/deploy/bbn/set-bbn-lambda-env.sh
    ```
+
+### 개발 환경 설정
+
+개발 환경에서 테스트하기 위한 설정 방법입니다.
+
+#### 개발 환경 준비 단계
+
+1. **개발용 Docker 이미지 푸시**
+   ```bash
+   # HybridTool 개발용 이미지
+   bash scripts/deploy/hybridTool/deploy-hybridTool-docker.sh
+   # 메뉴에서 2 선택 (dev 태그)
+   
+   # BBN 개발용 이미지
+   bash scripts/deploy/bbn/deploy-bbn-docker.sh
+   # 메뉴에서 2 선택 (dev 태그)
+   ```
+
+2. **개발용 Task Definition 등록**
+   ```bash
+   # HybridTool 개발용 Task Definition
+   bash scripts/deploy/hybridTool/deploy-hybridTool-task-definition-dev.sh
+   
+   # BBN 개발용 Task Definition
+   bash scripts/deploy/bbn/deploy-bbn-task-definition-dev.sh
+   ```
+
+3. **Lambda 환경 변수 설정 (개발용 변수 포함)**
+   ```bash
+   # .nppswrel-env 파일에 개발 환경 변수 추가
+   export HYBRID_TASK_DEFINITION_DEV=hybrid-tool-pymc-task-dev
+   export BBN_TASK_DEFINITION_DEV=bayesian-simulation-task-dev
+   
+   # Lambda 환경 변수 설정
+   bash scripts/deploy/hybridTool/set-hybridTool-lambda-env.sh
+   bash scripts/deploy/bbn/set-bbn-lambda-env.sh
+   ```
+
+4. **프론트엔드 환경 변수 설정**
+   ```bash
+   # apps/frontend/.env 파일에 개발 환경 변수 추가
+   VITE_API_DEV_BASE_URL=https://<YOUR_API_GATEWAY_ID>.execute-api.ap-northeast-2.amazonaws.com/develop
+   VITE_API_DEV_BASE_URL_SST=https://<YOUR_API_GATEWAY_ID>.execute-api.ap-northeast-2.amazonaws.com/develop
+   ```
+
+5. **개발 서버 실행**
+   ```bash
+   cd apps/frontend
+   npm run dev
+   ```
+
+#### 동작 확인
+
+- `npm run dev` 실행 시 프론트엔드는 자동으로 `/develop` stage로 요청을 보냅니다
+- Lambda 함수는 stage를 감지하여 개발용 Task Definition을 사용합니다
+- CloudWatch Logs에서 다음 로그를 확인할 수 있습니다:
+  ```
+  Detected stage: develop, using cluster: bayesian-cluster, task: hybrid-tool-pymc-task-dev
+  ```
 
 ### HybridTool 배포
 
@@ -508,10 +607,22 @@ bash scripts/deploy/hybridTool/deploy-hybridTool-all.sh
    ```bash
    bash scripts/deploy/hybridTool/deploy-hybridTool-docker.sh
    ```
+   - 스크립트 실행 시 Docker 이미지 태그를 선택할 수 있습니다:
+     - `1`: latest (프로덕션)
+     - `2`: dev (개발)
+     - `3`: 직접 입력
+   - 또는 명령줄에서 직접 지정:
+     ```bash
+     DOCKER_IMAGE_TAG=dev bash scripts/deploy/hybridTool/deploy-hybridTool-docker.sh
+     ```
 
 2. **ECS Task Definition 등록**
    ```bash
+   # 프로덕션용 Task Definition
    bash scripts/deploy/hybridTool/deploy-hybridTool-task-definition.sh
+   
+   # 개발용 Task Definition (dev 태그 사용)
+   bash scripts/deploy/hybridTool/deploy-hybridTool-task-definition-dev.sh
    ```
 
 3. **Lambda 함수 배포**
@@ -563,9 +674,17 @@ bash scripts/deploy/deploy-website.sh
 
 ### 4. Docker 이미지 태그
 - 기본 태그는 `latest`입니다
+- 배포 스크립트 실행 시 인터랙티브하게 태그를 선택할 수 있습니다:
+  - `1`: latest (프로덕션)
+  - `2`: dev (개발)
+  - `3`: 직접 입력
+- 명령줄에서 직접 지정도 가능합니다:
+  ```bash
+  DOCKER_IMAGE_TAG=dev bash scripts/deploy/hybridTool/deploy-hybridTool-docker.sh
+  ```
 - 프로덕션 배포 시 버전 태그 사용을 권장합니다:
   ```bash
-  export DOCKER_IMAGE_TAG=v1.0.0
+  DOCKER_IMAGE_TAG=v1.0.0 bash scripts/deploy/hybridTool/deploy-hybridTool-docker.sh
   ```
 
 ### 5. Lambda 함수 배포

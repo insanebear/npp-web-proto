@@ -67,19 +67,38 @@ This project uses environment variables to configure API endpoints. **Important:
 
 2. Edit the `.env` file and set your API Gateway endpoints:
    ```bash
-   # Bayesian API Gateway URL
-   VITE_API_BASE_URL=https://YOUR_API_GATEWAY_ID.execute-api.ap-northeast-2.amazonaws.com/prod
+   # ============================================
+   # 개발 환경 변수 (npm run dev 시 사용)
+   # ============================================
+   VITE_API_DEV_BASE_URL=https://YOUR_API_GATEWAY_ID.execute-api.ap-northeast-2.amazonaws.com/develop
+   VITE_API_DEV_BASE_URL_SST=https://YOUR_API_GATEWAY_ID.execute-api.ap-northeast-2.amazonaws.com/develop
 
-   # SST (Statistical) API Gateway URL (REST API - 스테이지 경로 포함)
+   # ============================================
+   # 배포 환경 변수 (npm run build 시 사용)
+   # ============================================
+   VITE_API_BASE_URL=https://YOUR_API_GATEWAY_ID.execute-api.ap-northeast-2.amazonaws.com/prod
    VITE_API_BASE_URL_SST=https://YOUR_API_GATEWAY_ID.execute-api.ap-northeast-2.amazonaws.com/prod
+
+   # ============================================
+   # 공통 API Key
+   # ============================================
+   VITE_API_KEY=YOUR_API_KEY
    ```
 
-3. Replace `YOUR_API_GATEWAY_ID` with your actual API Gateway IDs.
+3. Replace `YOUR_API_GATEWAY_ID` and `YOUR_API_KEY` with your actual values.
 
 ### Available Environment Variables
 
-- `VITE_API_BASE_URL`: Base URL for the Bayesian API Gateway endpoint
-- `VITE_API_BASE_URL_SST`: Base URL for the Statistical (SST) API Gateway endpoint
+**개발 환경 (npm run dev)**:
+- `VITE_API_DEV_BASE_URL`: Base URL for the Bayesian API Gateway endpoint (develop stage)
+- `VITE_API_DEV_BASE_URL_SST`: Base URL for the Statistical (SST) API Gateway endpoint (develop stage)
+
+**배포 환경 (npm run build)**:
+- `VITE_API_BASE_URL`: Base URL for the Bayesian API Gateway endpoint (prod stage)
+- `VITE_API_BASE_URL_SST`: Base URL for the Statistical (SST) API Gateway endpoint (prod stage)
+
+**공통**:
+- `VITE_API_KEY`: API Gateway API Key (개발/배포 공통 사용)
 
 ### Security Notes
 
@@ -90,12 +109,16 @@ This project uses environment variables to configure API endpoints. **Important:
 - Use `.env.example` as a template for team members (this file can be committed)
 - If you accidentally committed sensitive information, remove it from Git history immediately
 
-### Local Development
+### Development vs Production
 
-For local development, you can override the SST API URL to point to a local server:
+프론트엔드는 자동으로 개발/배포 환경을 구분합니다:
+- `npm run dev`: 개발 환경 변수 사용 (`VITE_API_DEV_*`) → `/develop` stage
+- `npm run build`: 배포 환경 변수 사용 (`VITE_API_*`) → `/prod` stage
 
+**Local Development** (선택적):
+로컬 서버를 사용하려면 개발 환경 변수를 로컬 서버로 설정:
 ```bash
-VITE_API_BASE_URL_SST=http://localhost:8000
+VITE_API_DEV_BASE_URL_SST=http://localhost:8000
 ```
 
 # How to see the UI
