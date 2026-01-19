@@ -6,6 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 cd "$PROJECT_ROOT"
 
+# 명령줄에서 설정된 DOCKER_IMAGE_TAG 백업 (우선순위 보장)
+DOCKER_IMAGE_TAG_OVERRIDE="${DOCKER_IMAGE_TAG:-}"
+
 # 환경 변수 설정 파일이 있으면 로드
 CONFIG_FILE="scripts/config/.nppswrel-env"
 if [ -f "$CONFIG_FILE" ]; then
@@ -18,7 +21,41 @@ fi
 : "${AWS_REGION:=ap-northeast-2}"
 : "${AWS_PROFILE:=default}"
 : "${BBN_ECR_REPOSITORY:=bayesian-simulation-repo}"
-: "${DOCKER_IMAGE_TAG:=latest}"
+
+# Docker 이미지 태그 선택
+if [ -n "${DOCKER_IMAGE_TAG_OVERRIDE:-}" ]; then
+  # 명령줄에서 설정된 경우 우선 사용
+  DOCKER_IMAGE_TAG="${DOCKER_IMAGE_TAG_OVERRIDE}"
+  echo "Docker 이미지 태그: $DOCKER_IMAGE_TAG (명령줄에서 설정됨)"
+else
+  # 명령줄 인자가 없는 경우 사용자에게 선택 요청
+  echo "Docker 이미지 태그를 선택하세요:"
+  echo "  1) latest (프로덕션)"
+  echo "  2) dev (개발)"
+  echo "  3) 직접 입력"
+  echo ""
+  read -p "선택 [1-3] (기본값: 1): " tag_choice
+  
+  case "${tag_choice:-1}" in
+    1)
+      DOCKER_IMAGE_TAG="latest"
+      ;;
+    2)
+      DOCKER_IMAGE_TAG="dev"
+      ;;
+    3)
+      read -p "태그를 입력하세요: " DOCKER_IMAGE_TAG
+      if [ -z "$DOCKER_IMAGE_TAG" ]; then
+        echo "⚠️  태그가 입력되지 않았습니다. latest를 사용합니다."
+        DOCKER_IMAGE_TAG="latest"
+      fi
+      ;;
+    *)
+      echo "⚠️  잘못된 선택입니다. latest를 사용합니다."
+      DOCKER_IMAGE_TAG="latest"
+      ;;
+  esac
+fi
 : "${AWS_ACCOUNT_ID:?Set AWS_ACCOUNT_ID env var}"
 
 ECR_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${BBN_ECR_REPOSITORY}"
