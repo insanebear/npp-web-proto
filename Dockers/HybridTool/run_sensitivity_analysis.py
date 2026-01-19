@@ -27,7 +27,7 @@ from bbn_inference.sensitivity_analysis import (
     get_number_of_required_demand,
     get_confidence,
 )
-from bbn_inference.examples.example_for_composite_model import run_example_for_composite_model
+from bbn_inference.runners.composite_model import run_composite_model
 
 
 def get_job_config() -> Dict[str, Any]:
@@ -68,7 +68,7 @@ def run_sensitivity_analysis(config: Dict[str, Any], bbn_data: Any) -> Dict[str,
     
     # 1. Generate trace (Prior)
     print("\n[STEP 1] Generating composite model trace...")
-    trace = run_example_for_composite_model(bbn_data, draws=draws, tune=tune, chains=chains, thin=thin)
+    trace = run_composite_model(bbn_data, draws=draws, tune=tune, chains=chains, thin=thin)
     print("[STEP 1] Trace generation completed")
 
     # 2. Sensitivity Analysis & Prior Metrics
