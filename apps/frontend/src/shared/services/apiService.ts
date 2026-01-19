@@ -5,7 +5,8 @@
 // Load API URL from environment variables (Vite uses import.meta.env)
 // ⚠️ Security: Environment variables are required. Please configure .env file.
 // See .env.example for reference.
-// Note: REST API Gateway URLs include stage path (/prod).
+// Note: REST API Gateway URLs include stage path (/prod or /develop).
+// Development mode (npm run dev) uses DEV variables, production build uses production variables.
 
 function getRequiredEnvVar(name: string): string {
   const value = import.meta.env[name];
@@ -19,8 +20,19 @@ function getRequiredEnvVar(name: string): string {
   return value;
 }
 
-const API_BASE_URL = getRequiredEnvVar('VITE_API_BASE_URL');
-const API_BASE_URL_SST = getRequiredEnvVar('VITE_API_BASE_URL_SST');
+// Development vs Production environment selection
+const isDevelopment = import.meta.env.MODE === 'development';
+
+// Select API URLs based on environment
+const API_BASE_URL = isDevelopment
+  ? getRequiredEnvVar('VITE_API_DEV_BASE_URL')
+  : getRequiredEnvVar('VITE_API_BASE_URL');
+
+const API_BASE_URL_SST = isDevelopment
+  ? getRequiredEnvVar('VITE_API_DEV_BASE_URL_SST')
+  : getRequiredEnvVar('VITE_API_BASE_URL_SST');
+
+// API Key: same key used for both development and production
 const API_KEY = getRequiredEnvVar('VITE_API_KEY');
 
 // Common headers for API requests
@@ -372,6 +384,7 @@ export async function getJSON<T = any>(path: string): Promise<T> {
 // Log only in development environment
 if (import.meta.env.DEV) {
   console.log('API Configuration loaded:', {
+    mode: isDevelopment ? 'development' : 'production',
     API_BASE_URL: API_BASE_URL.substring(0, 50) + '...',
     API_BASE_URL_SST: API_BASE_URL_SST.substring(0, 50) + '...'
   });
