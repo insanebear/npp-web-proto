@@ -27,7 +27,7 @@ fi
 
 # 필수 환경 변수 확인
 : "${CLUSTER_NAME:?Set CLUSTER_NAME env var}"
-: "${TASK_DEFINITION:?Set TASK_DEFINITION env var}"
+: "${HYBRID_TASK_DEFINITION:?Set HYBRID_TASK_DEFINITION env var}"
 : "${SUBNET_IDS:?Set SUBNET_IDS env var}"
 : "${S3_BUCKET:?Set S3_BUCKET env var}"
 
@@ -35,32 +35,43 @@ fi
 : "${JOBS_TABLE_NAME:=}"
 : "${CONTAINER_NAME:=hybrid-tool-container}"
 
+# 개발 환경 변수 (선택적, 없으면 프로덕션 변수 사용)
+: "${CLUSTER_NAME_DEV:=}"
+: "${HYBRID_TASK_DEFINITION_DEV:=}"
+
 echo "=========================================="
 echo "Setting environment variables for HybridTool Lambda functions"
 echo "=========================================="
 echo ""
 echo "Configuration:"
 echo "  CLUSTER_NAME: $CLUSTER_NAME"
-echo "  TASK_DEFINITION: $TASK_DEFINITION"
+echo "  HYBRID_TASK_DEFINITION: $HYBRID_TASK_DEFINITION"
 echo "  SUBNET_IDS: $SUBNET_IDS"
 echo "  S3_BUCKET: $S3_BUCKET"
 echo "  JOBS_TABLE_NAME: ${JOBS_TABLE_NAME:-'(not set - DynamoDB job tracking disabled)'}"
 echo "  CONTAINER_NAME: $CONTAINER_NAME"
+if [ -n "$CLUSTER_NAME_DEV" ]; then
+  echo "  CLUSTER_NAME_DEV: $CLUSTER_NAME_DEV (for /develop stage)"
+fi
+if [ -n "$HYBRID_TASK_DEFINITION_DEV" ]; then
+  echo "  HYBRID_TASK_DEFINITION_DEV: $HYBRID_TASK_DEFINITION_DEV (for /develop stage)"
+fi
 echo "  AWS_REGION: $AWS_REGION (Note: Lambda reserved variable, not set in env vars)"
 echo ""
 
 # 환경 변수 JSON 생성
 # 주의: AWS_REGION은 Lambda의 예약된 환경 변수이므로 설정하지 않음
 # Lambda 함수 코드에서 os.environ.get('AWS_REGION', 'ap-northeast-2')로 자동 처리됨
+# DEV 변수는 선택적이므로 값이 있을 때만 포함
 ENV_VARS_JSON=$(cat <<EOF
 {
   "Variables": {
     "CLUSTER_NAME": "$CLUSTER_NAME",
-    "TASK_DEFINITION": "$TASK_DEFINITION",
+    "HYBRID_TASK_DEFINITION": "$HYBRID_TASK_DEFINITION",
     "SUBNET_IDS": "$SUBNET_IDS",
     "S3_BUCKET": "$S3_BUCKET",
     "JOBS_TABLE_NAME": "${JOBS_TABLE_NAME:-}",
-    "CONTAINER_NAME": "$CONTAINER_NAME"
+    "CONTAINER_NAME": "$CONTAINER_NAME"$([ -n "$CLUSTER_NAME_DEV" ] && echo ",\n    \"CLUSTER_NAME_DEV\": \"$CLUSTER_NAME_DEV\"" || echo "")$([ -n "$HYBRID_TASK_DEFINITION_DEV" ] && echo ",\n    \"HYBRID_TASK_DEFINITION_DEV\": \"$HYBRID_TASK_DEFINITION_DEV\"" || echo "")
   }
 }
 EOF

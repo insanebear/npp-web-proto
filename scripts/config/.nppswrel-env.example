@@ -13,8 +13,12 @@ export DOCKER_IMAGE_TAG=latest
 
 # ECS 설정
 export CLUSTER_NAME=bayesian-cluster
-export TASK_DEFINITION=hybrid-tool-pymc-task
+export HYBRID_TASK_DEFINITION=hybrid-tool-pymc-task
 export SUBNET_IDS=subnet-xxxxx,subnet-yyyyy
+
+# 개발 환경 설정 (선택적, 없으면 프로덕션 환경 변수 사용)
+export CLUSTER_NAME_DEV=bayesian-cluster  # 개발 환경용 클러스터 (선택적)
+export HYBRID_TASK_DEFINITION_DEV=hybrid-tool-pymc-task-dev  # 개발 환경용 Task Definition (선택적)
 
 # S3 설정
 export S3_BUCKET=hybrid-tool-results  # HybridTool용 S3 버킷
@@ -34,6 +38,9 @@ export BBN_LAMBDA_FUNCTION_NAME=my-starter
 # BBN ECS 설정 (BayesianPage용)
 export BBN_TASK_DEFINITION=bayesian-simulation-task
 export BBN_CONTAINER_NAME=bayesian-simulation-app
+
+# BBN 개발 환경 설정 (선택적, 없으면 프로덕션 환경 변수 사용)
+export BBN_TASK_DEFINITION_DEV=bayesian-simulation-task-dev  # 개발 환경용 Task Definition (선택적)
 
 # API Gateway
 export API_GATEWAY_ID=your-api-gateway-id
