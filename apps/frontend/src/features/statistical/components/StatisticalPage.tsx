@@ -17,8 +17,8 @@ export default function StatisticalPage() {
   const [confidenceGoal, setConfidenceGoal] = useState("");
   // NOTE: trace_id is sent but ignored by HybridTool (stateless architecture, maintained for compatibility)
   const [traceId, _setTraceId] = useState<string | null>(null);
-  const [tests, setTests] = useState<number>(0);
-  const [failures, setFailures] = useState<number>(0);
+  const [tests, setTests] = useState<number | null>(null);
+  const [failures, setFailures] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
@@ -119,7 +119,7 @@ export default function StatisticalPage() {
       }
 
       try {
-        // Check job status from DynamoDB (same approach as BayesianPage)
+        // Check job status from DynamoDB (same approach as OpenBUGS_BBN)
         const statusData = await api.getHybridToolJobStatus(jobId);
         
         if (statusData.jobStatus === 'COMPLETED') {
@@ -405,13 +405,31 @@ export default function StatisticalPage() {
       return;
     }
 
+    // Tests 값 확인
+    if (tests === null || tests === 0) {
+      setLoading(false);
+      setErrorMsg("Number of Tests 값을 입력하거나 Sensitivity Analysis를 실행해주세요.");
+      return;
+    }
+
+    // Failures 값 확인
+    if (failures === null) {
+      setLoading(false);
+      setErrorMsg("Failures 값을 입력해주세요.");
+      return;
+    }
+
+    // Type guard: 위 검증을 통과했으므로 null이 아님
+    const testsValue: number = tests;
+    const failuresValue: number = failures;
+
     try {
       // NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
       // Test mode still makes actual API call but sends test_mode flag
       const jobResponse = await api.updatePfd({
         pfd_goal: p,
-        demand: tests,
-        failures,
+        demand: testsValue,
+        failures: failuresValue,
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
         ...buildBbnPayload(),
@@ -476,6 +494,20 @@ export default function StatisticalPage() {
       return;
     }
 
+    // Sensitivity Analysis 실행 여부 확인
+    if (tests === null || tests === 0) {
+      setLoading(false);
+      setErrorMsg("Full Analysis를 실행하기 전에 Sensitivity Analysis를 먼저 실행해주세요.");
+      return;
+    }
+
+    // Failures 값 확인
+    if (failures === null) {
+      setLoading(false);
+      setErrorMsg("Failures 값을 입력해주세요.");
+      return;
+    }
+
     try {
       // NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
       // Test mode still makes actual API call but sends test_mode flag
@@ -483,6 +515,7 @@ export default function StatisticalPage() {
         pfd_goal: p,
         confidence_goal: c,
         failures,
+        demand_required: tests > 0 ? tests : undefined,
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
         ...buildBbnPayload(),
@@ -751,7 +784,7 @@ export default function StatisticalPage() {
                 </div>
 
                 {/* 결과 미니 표시 */}
-                {tests > 0 && (
+                {tests !== null && tests > 0 && (
                   <div css={cssObj.output} style={{ marginTop: 12 }}>
                     계산된 <b>Number of Tests</b>: {tests}
                   </div>
@@ -783,8 +816,11 @@ export default function StatisticalPage() {
                   <label css={cssObj.inputLabel}>Number of Tests</label>
                   <input
                     type="number"
-                    value={tests}
-                    onChange={(e) => setTests(Number(e.target.value))}
+                    value={tests ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setTests(value === '' ? null : Number(value));
+                    }}
                     css={cssObj.inputBox}
                     min={1}
                     required
@@ -794,8 +830,11 @@ export default function StatisticalPage() {
                   <label css={cssObj.inputLabel}>Number of Failures</label>
                   <input
                     type="number"
-                    value={failures}
-                    onChange={(e) => setFailures(Number(e.target.value))}
+                    value={failures ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFailures(value === '' ? null : Number(value));
+                    }}
                     css={cssObj.inputBox}
                     min={0}
                     required

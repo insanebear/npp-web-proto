@@ -16,9 +16,9 @@ export type AppSettings = {
 const STORAGE_KEY = 'appSettings';
 
 const defaultSettings = {
-  nChains: 4,
-  nIter: 10000,
-  nBurnin: 2000,
+  nChains: 1,
+  nIter: 20000,
+  nBurnin: 500,
   nThin: 1,
   workingDir: '/app/results',
 };

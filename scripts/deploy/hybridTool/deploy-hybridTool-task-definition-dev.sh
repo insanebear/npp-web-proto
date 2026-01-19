@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 개발용 HybridTool Task Definition 등록 스크립트
+# dev 태그를 사용하는 개발용 Task Definition을 생성합니다.
+# 사용법: ./scripts/deploy/hybridTool/deploy-hybridTool-task-definition-dev.sh
+
 set -euo pipefail
 
 # 프로젝트 루트로 이동 (스크립트 위치 기준)
@@ -17,37 +21,38 @@ fi
 # 환경 변수 확인
 : "${AWS_REGION:=ap-northeast-2}"
 : "${AWS_PROFILE:=default}"
-: "${BBN_ECR_REPOSITORY:=bayesian-simulation-repo}"
-: "${DOCKER_IMAGE_TAG:=latest}"
-: "${BBN_S3_BUCKET_NAME:=bayesian-simulation-results-bucket}"
+: "${ECR_REPOSITORY:=hybrid-tool-pymc}"
+: "${DOCKER_IMAGE_TAG:=dev}"
 : "${AWS_ACCOUNT_ID:?Set AWS_ACCOUNT_ID env var}"
 
-TASK_DEF_FILE="aws-configs/bayesianPage-task-definition.json"
+TASK_DEF_FILE="aws-configs/hybridTool-task-definition.json"
 
 if [ ! -f "$TASK_DEF_FILE" ]; then
   echo "Error: Task definition file not found: $TASK_DEF_FILE"
   exit 1
 fi
 
-echo "Registering ECS Task Definition"
+echo "Registering ECS Task Definition (Development)"
 echo "File: $TASK_DEF_FILE"
+echo "Image Tag: $DOCKER_IMAGE_TAG"
 echo "Region: $AWS_REGION"
 echo "Profile: $AWS_PROFILE"
 echo ""
 
 # 환경 변수 치환을 위한 임시 파일 생성 (Windows 호환)
-TMP_FILE="task-def-tmp-$$.json"
+TMP_FILE="task-def-tmp-dev-$$.json"
 
 export AWS_ACCOUNT_ID
 export AWS_REGION
-export BBN_ECR_REPOSITORY
+export ECR_REPOSITORY
 export DOCKER_IMAGE_TAG
-export BBN_S3_BUCKET_NAME
 
 # 환경 변수 치환 (Python 사용 - Windows 호환)
+# family 이름도 dev로 변경
 python3 <<PYTHON_SCRIPT
 import sys
 import os
+import json
 
 # 환경 변수 읽기
 task_def_path = '$TASK_DEF_FILE'
@@ -59,16 +64,21 @@ with open(task_def_path, 'r', encoding='utf-8') as f:
 # 환경 변수 치환
 content = content.replace('\${AWS_ACCOUNT_ID}', os.environ.get('AWS_ACCOUNT_ID', ''))
 content = content.replace('\${AWS_REGION}', os.environ.get('AWS_REGION', ''))
-content = content.replace('\${BBN_ECR_REPOSITORY}', os.environ.get('BBN_ECR_REPOSITORY', ''))
+content = content.replace('\${ECR_REPOSITORY}', os.environ.get('ECR_REPOSITORY', ''))
 content = content.replace('\${DOCKER_IMAGE_TAG}', os.environ.get('DOCKER_IMAGE_TAG', ''))
-content = content.replace('\${BBN_S3_BUCKET_NAME}', os.environ.get('BBN_S3_BUCKET_NAME', ''))
+
+# JSON 파싱하여 family 이름 변경
+task_def = json.loads(content)
+task_def['family'] = task_def['family'] + '-dev'
 
 # 파일 저장
 with open(tmp_file_path, 'w', encoding='utf-8') as f:
-    f.write(content)
+    json.dump(task_def, f, indent=2, ensure_ascii=False)
 PYTHON_SCRIPT
 
 echo "[1/2] Task definition prepared with environment variables"
+echo "      Family: hybrid-tool-pymc-task-dev"
+echo "      Image Tag: $DOCKER_IMAGE_TAG"
 
 # Task Definition 등록
 echo "[2/2] Registering task definition..."
@@ -91,4 +101,6 @@ fi
 rm -f "$TMP_FILE"
 
 echo ""
-echo "✅ Task definition registered successfully!"
+echo "✅ Development task definition registered successfully!"
+echo "   Family: hybrid-tool-pymc-task-dev"
+echo "   Image Tag: $DOCKER_IMAGE_TAG"

@@ -17,14 +17,47 @@ from botocore.exceptions import ClientError
 ecs_client = boto3.client('ecs', region_name=os.environ.get('AWS_REGION', 'ap-northeast-2'))
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'ap-northeast-2'))
 
+# 환경 변수 (기본값, handler에서 stage에 따라 오버라이드)
 CLUSTER_NAME = os.environ.get('CLUSTER_NAME')
-TASK_DEFINITION = os.environ.get('TASK_DEFINITION')
+TASK_DEFINITION = os.environ.get('HYBRID_TASK_DEFINITION')
 SUBNET_IDS = os.environ.get('SUBNET_IDS', '').split(',') if os.environ.get('SUBNET_IDS') else []
 SECURITY_GROUP_IDS = os.environ.get('SECURITY_GROUP_IDS', '').split(',') if os.environ.get('SECURITY_GROUP_IDS') else []
 CONTAINER_NAME = os.environ.get('CONTAINER_NAME', 'hybrid-tool-container')
 S3_BUCKET = os.environ.get('S3_BUCKET')
 AWS_REGION = os.environ.get('AWS_REGION', 'ap-northeast-2')
 JOBS_TABLE_NAME = os.environ.get('JOBS_TABLE_NAME')
+
+
+def get_stage_from_event(event):
+    """API Gateway event에서 stage 정보 추출"""
+    # 방법 1: requestContext.stage에서 추출 (REST API)
+    stage = event.get('requestContext', {}).get('stage')
+    if stage:
+        return stage
+    
+    # 방법 2: path에서 추출 (/develop/... 또는 /prod/...)
+    path = event.get('path', '')
+    if path.startswith('/develop/'):
+        return 'develop'
+    elif path.startswith('/prod/'):
+        return 'prod'
+    
+    # 기본값: prod
+    return 'prod'
+
+
+def get_resource_config(stage):
+    """Stage에 따라 사용할 리소스 설정 반환"""
+    if stage == 'develop':
+        return {
+            'cluster_name': os.environ.get('CLUSTER_NAME_DEV') or os.environ.get('CLUSTER_NAME'),
+            'task_definition': os.environ.get('HYBRID_TASK_DEFINITION_DEV') or os.environ.get('HYBRID_TASK_DEFINITION'),
+        }
+    else:
+        return {
+            'cluster_name': os.environ.get('CLUSTER_NAME'),
+            'task_definition': os.environ.get('HYBRID_TASK_DEFINITION'),
+        }
 
 
 def handler(event, context):
@@ -49,6 +82,14 @@ def handler(event, context):
     """
     print(f"Received event: {json.dumps(event)}")
     
+    # Stage 감지 및 리소스 설정
+    stage = get_stage_from_event(event)
+    resource_config = get_resource_config(stage)
+    cluster_name = resource_config['cluster_name']
+    task_definition = resource_config['task_definition']
+    
+    print(f"Detected stage: {stage}, using cluster: {cluster_name}, task: {task_definition}")
+    
     # CORS Preflight 요청 처리 (OPTIONS 메서드)
     if event.get('httpMethod') == 'OPTIONS':
         return {
@@ -64,10 +105,10 @@ def handler(event, context):
     
     # 환경 변수 검증
     missing_vars = []
-    if not CLUSTER_NAME:
-        missing_vars.append('CLUSTER_NAME')
-    if not TASK_DEFINITION:
-        missing_vars.append('TASK_DEFINITION')
+    if not cluster_name:
+        missing_vars.append('CLUSTER_NAME' + ('_DEV' if stage == 'develop' else ''))
+    if not task_definition:
+        missing_vars.append('HYBRID_TASK_DEFINITION' + ('_DEV' if stage == 'develop' else ''))
     if not S3_BUCKET:
         missing_vars.append('S3_BUCKET')
     if not SUBNET_IDS or SUBNET_IDS == ['']:
@@ -94,7 +135,8 @@ def handler(event, context):
         
         pfd_goal = float(body.get('pfd_goal', 0))
         confidence_goal = float(body.get('confidence_goal', 0))
-        failures = int(body.get('failures', 0))
+        failures_raw = body.get('failures')
+        demand_required = body.get('demand_required')  # Optional: reuse from sensitivity analysis
         test_mode = body.get('test_mode', False)
         bbn_input_s3_bucket = body.get('bbn_input_s3_bucket')
         bbn_input_s3_key = body.get('bbn_input_s3_key')
@@ -125,6 +167,20 @@ def handler(event, context):
                 })
             }
         
+        # Failures 값 검증 (None이거나 제공되지 않으면 에러, 0은 유효한 값)
+        if failures_raw is None:
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json'
+                },
+                'body': json.dumps({
+                    'message': 'failures value is required'
+                })
+            }
+        
+        failures = int(failures_raw)
         if failures < 0:
             return {
                 'statusCode': 400,
@@ -209,14 +265,18 @@ def handler(event, context):
             {'name': 'THIN', 'value': str(settings.get('thin', 1))},
         ]
 
+        # Add DEMAND_REQUIRED if provided (from sensitivity analysis)
+        if demand_required is not None:
+            environment_overrides.append({'name': 'DEMAND_REQUIRED', 'value': str(int(demand_required))})
+
         if bbn_input_s3_key:
             environment_overrides.append({'name': 'BBN_INPUT_PATH', 'value': bbn_input_s3_key})
         if bbn_input_s3_bucket:
             environment_overrides.append({'name': 'BBN_INPUT_BUCKET', 'value': bbn_input_s3_bucket})
 
         response = ecs_client.run_task(
-            cluster=CLUSTER_NAME,
-            taskDefinition=TASK_DEFINITION,
+            cluster=cluster_name,
+            taskDefinition=task_definition,
             launchType='FARGATE',
             networkConfiguration=network_config,
             overrides={

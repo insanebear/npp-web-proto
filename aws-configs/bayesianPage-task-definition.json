@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "bayesian-simulation-app",
-      "image": "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${DOCKER_IMAGE_TAG}",
+      "image": "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${BBN_ECR_REPOSITORY}:${DOCKER_IMAGE_TAG}",
       "essential": true,
       "logConfiguration": {
         "logDriver": "awslogs",
@@ -30,7 +30,7 @@
         },
         {
           "name": "S3_BUCKET_NAME",
-          "value": "bayesian-simulation-results-bucket"
+          "value": "${BBN_S3_BUCKET_NAME}"
         },
         {
           "name": "TEST_MODE",

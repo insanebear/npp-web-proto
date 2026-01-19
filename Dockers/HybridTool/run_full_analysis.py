@@ -15,6 +15,7 @@ Output:
 """
 
 import os
+import math
 from typing import Dict, Any
 
 from task_common import (
@@ -30,7 +31,7 @@ from bbn_inference.sensitivity_analysis import (
     get_confidence,
     demand_model_func,
 )
-from bbn_inference.examples.example_for_composite_model import run_example_for_composite_model
+from bbn_inference.runners.composite_model import run_composite_model
 from bbn_inference.bbn_utils import run_sampling
 
 
@@ -40,7 +41,19 @@ def get_job_config() -> Dict[str, Any]:
     
     # Add Full Analysis specific environment variables
     config["CONFIDENCE_GOAL"] = float(os.environ.get("CONFIDENCE_GOAL", "0"))
-    config["FAILURES"] = int(os.environ.get("FAILURES", "0"))
+    
+    # FAILURES: required, must be provided (0 is a valid value, but None is not)
+    failures_str = os.environ.get("FAILURES")
+    if failures_str is None:
+        raise ValueError("FAILURES environment variable is required")
+    config["FAILURES"] = int(failures_str)
+    
+    # DEMAND_REQUIRED: required for full_analysis (must be provided from sensitivity analysis)
+    demand_required_str = os.environ.get("DEMAND_REQUIRED")
+    if demand_required_str is not None and demand_required_str.strip() != "":
+        config["DEMAND_REQUIRED"] = int(demand_required_str)
+    else:
+        config["DEMAND_REQUIRED"] = None
     
     # Base validation
     validate_base_config(config)
@@ -55,6 +68,10 @@ def get_job_config() -> Dict[str, Any]:
     print_base_config(config)
     print(f"[CONFIG] CONFIDENCE_GOAL: {config['CONFIDENCE_GOAL']}")
     print(f"[CONFIG] FAILURES: {config['FAILURES']}")
+    if config["DEMAND_REQUIRED"] is not None:
+        print(f"[CONFIG] DEMAND_REQUIRED: {config['DEMAND_REQUIRED']} (reusing from sensitivity analysis)")
+    else:
+        print(f"[CONFIG] DEMAND_REQUIRED: not provided (required - will raise error)")
     print(f"[CONFIG] DRAWS: {config['DRAWS']}")
     print(f"[CONFIG] TUNE: {config['TUNE']}")
     print(f"[CONFIG] CHAINS: {config['CHAINS']}")
@@ -75,51 +92,49 @@ def run_full_analysis(config: Dict[str, Any], bbn_data: Any) -> Dict[str, Any]:
     
     # 1. Generate trace (Prior)
     print("\n[STEP 1] Generating composite model trace...")
-    trace = run_example_for_composite_model(bbn_data, draws=draws, tune=tune, chains=chains, thin=thin)
+    trace = run_composite_model(bbn_data, draws=draws, tune=tune, chains=chains, thin=thin)
     print("[STEP 1] Trace generation completed")
 
-    # 2. Sensitivity Analysis: calculate required demand and Prior metrics
-    print("\n[STEP 2] Running sensitivity analysis...")
-    demand_required = get_number_of_required_demand(
-        trace, pfd_goal=pfd_goal, confidence_goal=confidence_goal,
-        draws=draws, tune=tune, chains=chains, thin=thin
-    )
+    # 2. Sensitivity Analysis: reuse required demand from sensitivity analysis
+    print("\n[STEP 2] Using demand_required from sensitivity analysis...")
+    
+    # DEMAND_REQUIRED must be provided (validated by frontend)
+    demand_required_provided = config.get("DEMAND_REQUIRED")
+    if demand_required_provided is None:
+        raise ValueError("DEMAND_REQUIRED must be provided. Please run Sensitivity Analysis first.")
+    
+    # Reuse value from sensitivity analysis (apply ceil for consistency)
+    demand_required = int(math.ceil(float(demand_required_provided)))
+    print(f"[STEP 2] Using provided demand_required: {demand_required} (from sensitivity analysis)")
     
     # Trace preprocessing for PFD update
     filtered_pfd_trace = filter_outsiders(trace.posterior["PFD"])
     prior_mean = trace.posterior["PFD"].mean().item()
     prior_conf = get_confidence(data=trace.posterior["PFD"], goal=pfd_goal)
     
-    print(f"[STEP 2] Required number of tests: {int(demand_required)}")
+    print(f"[STEP 2] Required number of tests: {demand_required}")
     print(f"[STEP 2] Prior mean: {prior_mean}")
     print(f"[STEP 2] Prior confidence @goal: {prior_conf}")
     
-    # 3. Full Analysis: iterate through demand_list and sample
-    print("\n[STEP 3] Running iterative full analysis with demand list...")
-    # Calculate demand list
-    demand_list = list(range(500, int(demand_required) + 500, 500))
-    pfd_output = []
-    last_conf = None
-    
-    for idx, demand in enumerate(demand_list, 1):
-        print(f"[STEP 3] Processing demand {idx}/{len(demand_list)}: {demand}")
-        
-        # Build demand model and run sampling
-        model = demand_model_func(
-            demand=demand, 
-            observed_failures=failures, 
-            pfd_trace=filtered_pfd_trace
-        )
-        updated_trace = run_sampling(model, draws=draws, tune=tune, chains=chains, thin=thin)
-        
-        updated_mean = updated_trace.posterior["pfd_prior"].mean().item()
-        last_conf = get_confidence(
-            data=updated_trace.posterior["pfd_prior"], goal=pfd_goal
-        )
-        
-        # Store results as [demand (str), mean PFD (float)]
-        pfd_output.append([str(demand), updated_mean])
-        print(f"[STEP 3] Demand={demand} -> PFD={updated_mean:.5g}, Confidence={last_conf:.4f}")
+    # 3. Full Analysis: update PFD at required demand only
+    print("\n[STEP 3] Running PFD update at required demand...")
+    demand = demand_required
+    print(f"[STEP 3] Processing demand: {demand}")
+
+    model = demand_model_func(
+        demand=demand,
+        observed_failures=failures,
+        pfd_trace=filtered_pfd_trace
+    )
+    updated_trace = run_sampling(model, draws=draws, tune=tune, chains=chains, thin=thin)
+
+    updated_mean = updated_trace.posterior["pfd_prior"].mean().item()
+    last_conf = get_confidence(
+        data=updated_trace.posterior["pfd_prior"], goal=pfd_goal
+    )
+
+    pfd_output = [[str(demand), updated_mean]]
+    print(f"[STEP 3] Demand={demand} -> PFD={updated_mean:.5g}, Confidence={last_conf:.4f}")
 
     return {
         "demand_required": int(demand_required),
@@ -151,7 +166,7 @@ def build_result_json(
             "bbn_input": bbn_input_info,
         },
         "output": {
-            "pfd": result_metrics["pfd_output"],
+            "mean_posterior_pfd": result_metrics["pfd_output"],
             "confidence": result_metrics["final_confidence"],
         },
     }

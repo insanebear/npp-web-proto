@@ -13,9 +13,7 @@ import pytensor
 
 pytensor.config.exception_verbosity = 'high'
 
-# this one is fast
-# ???: now this function name needs to be modified without "example"
-def run_example_for_composite_model(data_override: Optional[BayesianData] = None, draws: int = 1000, tune: int = 1000, chains: int = 1, thin: int = 1):
+def run_composite_model(data_override: Optional[BayesianData] = None, draws: int = 1000, tune: int = 1000, chains: int = 1, thin: int = 1):
 
     data = data_override or nrc_report_data()
     SR_Dev_model = create_SR_Dev_model(data.attr_states)
