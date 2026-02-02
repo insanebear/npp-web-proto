@@ -16,7 +16,7 @@ def demand_model_func(demand, observed_failures, pfd_trace):
     return demand_model
 
 def get_confidence(data, goal):
-    return np.count_nonzero(data <= goal) / data["draw"].size
+    return np.count_nonzero(data <= goal) / data.size
 
 max_demand = 25000
 demand_interval = 200
