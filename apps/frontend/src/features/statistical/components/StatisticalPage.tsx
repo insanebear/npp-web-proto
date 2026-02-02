@@ -74,12 +74,27 @@ export default function StatisticalPage() {
     setBbnFilesError(null);
     try {
       const response = await api.listBbnResultFiles(200);
-      setBbnFiles(response.items ?? []);
+      const items = response.items ?? [];
+      
+      // 최신 생성된 파일이 먼저 오도록 정렬 (last_modified 기준 내림차순)
+      const sortedItems = [...items].sort((a, b) => {
+        // last_modified가 없는 항목은 뒤로
+        if (!a.last_modified && !b.last_modified) return 0;
+        if (!a.last_modified) return 1;
+        if (!b.last_modified) return -1;
+        
+        // 최신 파일이 먼저 오도록 내림차순 정렬
+        const dateA = new Date(a.last_modified).getTime();
+        const dateB = new Date(b.last_modified).getTime();
+        return dateB - dateA;
+      });
+      
+      setBbnFiles(sortedItems);
       setBbnBucketInfo({ bucket: response.bucket, prefix: response.prefix });
       setBbnLastRefreshed(new Date());
 
       if (selectedBbnKey) {
-        const exists = (response.items ?? []).some((item) => item.key === selectedBbnKey);
+        const exists = sortedItems.some((item) => item.key === selectedBbnKey);
         if (!exists) {
           setSelectedBbnKey("");
           setSelectedBbnData(null);
