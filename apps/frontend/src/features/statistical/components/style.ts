@@ -205,34 +205,29 @@ export const cssObj = {
     }
   `,
   settingsGrid: css`
-  display: grid;
-  grid-template-columns: 1fr 1fr;  
-  column-gap: 24px;
-  row-gap: 24px;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-`,
-
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    column-gap: 20px;
+    row-gap: 24px;
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+  `,
   settingBox: css`
-  background-color: ${COLORS.white};
-  border: 1px solid ${COLORS.gray200};
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 400px; 
-  h2 {
-    font-size: ${FONT_SIZE.base};
-    font-weight: 600;
-    color: ${COLORS.gray800};
-    margin-bottom: 8px;
-  }
-`,
-  longSettingBox: css`
-    grid-column: 1 / -1;
+    background-color: ${COLORS.white};
+    border: 1px solid ${COLORS.gray200};
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    h2 {
+      font-size: ${FONT_SIZE.base};
+      font-weight: 600;
+      color: ${COLORS.gray800};
+      margin: 0;
+    }
   `,
   formWrapper: css`
     width: 100%;
@@ -243,7 +238,7 @@ export const cssObj = {
   inputGroup: css`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   `,
   inputLabel: css`
     font-size: ${FONT_SIZE.sm};
@@ -277,8 +272,12 @@ export const cssObj = {
     font-weight: 600;
     align-self: flex-start;
     transition: background-color 0.2s;
-    &:hover {
-      background-color: ${COLORS.blue600};
+    &:hover:not(:disabled) {
+      background-color: #1d4ed8;
+    }
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
     }
   `,
   output: css`
@@ -301,5 +300,190 @@ export const cssObj = {
         text-decoration: underline;
       }
     }
+  `,
+
+  // ── Sensitivity Analysis: Required # of tests output box ──
+  outputBox: css`
+    background-color: ${COLORS.gray50};
+    border: 1px solid ${COLORS.gray200};
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+  `,
+  outputLabel: css`
+    font-size: ${FONT_SIZE.xs};
+    color: ${COLORS.gray500};
+    font-weight: 500;
+  `,
+  outputValue: css`
+    font-size: ${FONT_SIZE.base};
+    font-weight: 600;
+    color: ${COLORS.gray800};
+  `,
+
+  // ── Bayesian Update: section heading with tag ──
+  sectionHeadingRow: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+  `,
+  tagBadge: css`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: ${COLORS.gray100};
+    border: 1px solid ${COLORS.gray300};
+    font-size: 11px;
+    font-weight: 500;
+    color: ${COLORS.gray600};
+    white-space: nowrap;
+  `,
+
+  // ── Bayesian Update: Number of tests lock/unlock ──
+  lockedInputRow: css`
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  `,
+  lockedInputWrapper: css`
+    position: relative;
+    flex: 1;
+  `,
+  lockIcon: css`
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    pointer-events: none;
+  `,
+  lockedInputBox: css`
+    background-color: ${COLORS.gray100};
+    color: ${COLORS.gray500};
+    cursor: not-allowed;
+    padding-right: 30px;
+    &:focus {
+      border-color: ${COLORS.gray300};
+      box-shadow: none;
+    }
+  `,
+  lockBtn: css`
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid ${COLORS.gray300};
+    background-color: ${COLORS.white};
+    color: ${COLORS.gray600};
+    font-size: ${FONT_SIZE.xs};
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s, border-color 0.2s;
+    &:hover {
+      background-color: ${COLORS.gray50};
+      border-color: ${COLORS.gray400};
+    }
+  `,
+  restoreBtn: css`
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #f59e0b;
+    background-color: #fffbeb;
+    color: #b45309;
+    font-size: ${FONT_SIZE.xs};
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+    &:hover {
+      background-color: #fef3c7;
+    }
+  `,
+  hintText: css`
+    font-size: 11px;
+    color: ${COLORS.gray400};
+    margin-top: 2px;
+  `,
+  warningHintText: css`
+    font-size: 11px;
+    color: #b45309;
+    margin-top: 2px;
+  `,
+  sectionDescription: css`
+    font-size: ${FONT_SIZE.xs};
+    color: ${COLORS.gray500};
+    margin: 0;
+    line-height: 1.5;
+  `,
+
+  // ── Result Summary panel ──
+  resultSummaryHeader: css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    span {
+      font-size: ${FONT_SIZE.base};
+      font-weight: 600;
+      color: ${COLORS.gray800};
+    }
+  `,
+  jsonDownloadBtn: css`
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid ${COLORS.gray300};
+    background-color: ${COLORS.white};
+    color: ${COLORS.gray600};
+    font-size: ${FONT_SIZE.xs};
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    &:hover:not(:disabled) {
+      background-color: ${COLORS.gray50};
+      border-color: ${COLORS.gray400};
+    }
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+  `,
+  resultCardGrid: css`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    flex: 1;
+  `,
+  resultCard: css`
+    background-color: ${COLORS.gray50};
+    border: 1px solid ${COLORS.gray200};
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  `,
+  resultCardLabel: css`
+    font-size: 11px;
+    color: ${COLORS.gray500};
+    font-weight: 500;
+  `,
+  resultCardValue: css`
+    font-size: ${FONT_SIZE.base};
+    font-weight: 600;
+    color: ${COLORS.gray800};
+  `,
+  // ── Footer note ──
+  footerNote: css`
+    width: 90%;
+    max-width: 1200px;
+    text-align: right;
+    font-size: ${FONT_SIZE.xs};
+    color: ${COLORS.gray500};
+    margin-top: 12px;
   `,
 };

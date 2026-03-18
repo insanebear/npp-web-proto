@@ -35,6 +35,11 @@ def get_base_config() -> Dict[str, Any]:
         "THIN": int(os.environ.get("THIN", "1")),
     }
     
+    # TODO(fix/test-mode): TEST_MODE와 TEST_OUTPUT_DIR이 잘못 묶여 있음.
+    # 이 줄로 인해 TEST_MODE=true이면 자동으로 TEST_OUTPUT_DIR이 설정되어 S3 업로드가 건너뛰어짐.
+    # 결과적으로 프론트엔드 폴링이 S3에서 결과를 찾지 못해 오류 발생.
+    # 수정 방향: 이 자동 설정 줄을 제거하고, 로컬 Docker 테스트 스크립트에서
+    # TEST_OUTPUT_DIR을 명시적으로 환경변수로 설정하도록 변경.
     if config["TEST_MODE"] and not config["TEST_OUTPUT_DIR"]:
         config["TEST_OUTPUT_DIR"] = os.path.join("tempDoc", "hybrid-tool-test")
     

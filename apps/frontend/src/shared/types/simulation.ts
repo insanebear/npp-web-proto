@@ -37,7 +37,7 @@ export interface SimulationResults {
     __rawText?: string;
 }
 
-export interface FullAnalysisResult {
+export interface PfdUpdateResult {
     input?: {
       bbn_input?: {
         source: string;
