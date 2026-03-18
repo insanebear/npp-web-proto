@@ -21,9 +21,9 @@ export default function StatisticalPage() {
   const [failures, setFailures] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [fullAnalysisResultData, setFullAnalysisResultData] = useState<any | null>(null);
+  const [pfdUpdateResultData, setPfdUpdateResultData] = useState<any | null>(null);
   const [sensitivityJobId, setSensitivityJobId] = useState<string | null>(null);
-  const [fullAnalysisJobId, setFullAnalysisJobId] = useState<string | null>(null);
+  const [pfdUpdateJobId, setPfdUpdateJobId] = useState<string | null>(null);
 
   const [bbnFiles, setBbnFiles] = useState<api.BbnResultItem[]>([]);
   const [bbnBucketInfo, setBbnBucketInfo] = useState<{ bucket: string; prefix: string } | null>(null);
@@ -37,12 +37,13 @@ export default function StatisticalPage() {
 
   const [isPolling, setIsPolling] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0); // Elapsed time in seconds
-  const [currentJobType, setCurrentJobType] = useState<'sensitivity-analysis' | 'update-pfd' | 'full-analysis' | null>(null);
+  // TODO: Replace 'full-analysis' with 'pfd-update' once backend renames the task type string.
+  const [currentJobType, setCurrentJobType] = useState<'sensitivity-analysis' | 'full-analysis' | null>(null);
   const isDevelopment = import.meta.env.DEV;
   const [testMode, setTestMode] = useState(isDevelopment); // Test mode (default true in development, only enabled in development)
   const [sensitivityCompletedTime, setSensitivityCompletedTime] = useState<number | null>(null);
-  const [fullAnalysisCompletedTime, setFullAnalysisCompletedTime] = useState<number | null>(null);
-  const [fullAnalysisUsedDefaultBbn, setFullAnalysisUsedDefaultBbn] = useState<boolean>(false);
+  const [pfdUpdateCompletedTime, setPfdUpdateCompletedTime] = useState<number | null>(null);
+  const [pfdUpdateUsedDefaultBbn, setPfdUpdateUsedDefaultBbn] = useState<boolean>(false);
   const elapsedTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pollingRef = useRef<{ jobId: string; type: string; attempts: number; startTime: number } | null>(null);
 
@@ -101,7 +102,7 @@ export default function StatisticalPage() {
 
   const pollResults = async (
     jobId: string,
-    type: 'sensitivity-analysis' | 'update-pfd' | 'full-analysis',
+    type: 'sensitivity-analysis' | 'full-analysis',
     jobStartTime: number, // Job start time passed from handler
     onComplete: (data: any, downloadUrl?: string, elapsedSeconds?: number) => void,
     onError: (error: string) => void
@@ -301,26 +302,26 @@ export default function StatisticalPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleViewFullAnalysisJson = () => {
-    if (!fullAnalysisResultData) return;
-    const jsonStr = JSON.stringify(fullAnalysisResultData, null, 2);
+  const handleViewPfdUpdateJson = () => {
+    if (!pfdUpdateResultData) return;
+    const jsonStr = JSON.stringify(pfdUpdateResultData, null, 2);
     const newWindow = window.open();
     if (newWindow) {
       newWindow.document.write(
         `<pre style="padding: 20px; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;">${jsonStr}</pre>`
       );
-      newWindow.document.title = 'Full Analysis 결과';
+      newWindow.document.title = 'PFD Update 결과';
     }
   };
 
-  const handleDownloadFullAnalysisJson = () => {
-    if (!fullAnalysisResultData) return;
-    const jsonStr = JSON.stringify(fullAnalysisResultData, null, 2);
+  const handleDownloadPfdUpdateJson = () => {
+    if (!pfdUpdateResultData) return;
+    const jsonStr = JSON.stringify(pfdUpdateResultData, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `full-analysis-result-${Date.now()}.json`;
+    link.download = `pfd-update-result-${Date.now()}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -413,14 +414,14 @@ export default function StatisticalPage() {
   };
 
 
-  // 3) Full Analysis
-  const handleFullAnalysisSubmit = async () => {
+  // 2) PFD Update
+  const handlePfdUpdateSubmit = async () => {
     setErrorMsg(null);
     setLoading(true);
-    setFullAnalysisResultData(null);
-    setFullAnalysisJobId(null);
-    setFullAnalysisCompletedTime(null);
-    setFullAnalysisUsedDefaultBbn(!selectedBbnKey);
+    setPfdUpdateResultData(null);
+    setPfdUpdateJobId(null);
+    setPfdUpdateCompletedTime(null);
+    setPfdUpdateUsedDefaultBbn(!selectedBbnKey);
 
     const p = parseFloat(pfdGoal);
     const c = parseFloat(confidenceGoal);
@@ -433,7 +434,7 @@ export default function StatisticalPage() {
     // Sensitivity Analysis 실행 여부 확인
     if (tests === null || tests === 0) {
       setLoading(false);
-      setErrorMsg("Full Analysis를 실행하기 전에 Sensitivity Analysis를 먼저 실행해주세요.");
+      setErrorMsg("PFD Update를 실행하기 전에 Sensitivity Analysis를 먼저 실행해주세요.");
       return;
     }
 
@@ -447,7 +448,7 @@ export default function StatisticalPage() {
     try {
       // NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
       // Test mode still makes actual API call but sends test_mode flag
-      const jobResponse = await api.fullAnalysis({
+      const jobResponse = await api.pfdUpdate({
         pfd_goal: p,
         confidence_goal: c,
         failures,
@@ -464,7 +465,7 @@ export default function StatisticalPage() {
       });
 
       const jobId = jobResponse.job_id;
-      setFullAnalysisJobId(jobId);
+      setPfdUpdateJobId(jobId);
       setLoading(false);
       const jobStartTime = Date.now(); // Record job start time
       setIsPolling(true);
@@ -476,20 +477,20 @@ export default function StatisticalPage() {
         jobStartTime,
         (resultData, _, elapsedSeconds) => {
           if (resultData) {
-            setFullAnalysisResultData(resultData);
+            setPfdUpdateResultData(resultData);
           }
           setErrorMsg(null);
           if (elapsedSeconds !== undefined) {
-            setFullAnalysisCompletedTime(elapsedSeconds);
+            setPfdUpdateCompletedTime(elapsedSeconds);
           }
         },
         (error) => {
-          setErrorMsg(`Full Analysis 오류: ${error}`);
+          setErrorMsg(`PFD Update 오류: ${error}`);
         }
       );
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(`Full Analysis 오류: ${err?.message ?? String(err)}`);
+      setErrorMsg(`PFD Update 오류: ${err?.message ?? String(err)}`);
       setLoading(false);
     }
   };
@@ -722,7 +723,7 @@ export default function StatisticalPage() {
 
             {/* 2. Bayesian Update */}
             <div css={cssObj.settingBox}>
-              <form onSubmit={(e) => { e.preventDefault(); handleFullAnalysisSubmit(); }} css={cssObj.formWrapper}>
+              <form onSubmit={(e) => { e.preventDefault(); handlePfdUpdateSubmit(); }} css={cssObj.formWrapper}>
                 <h2>2. Bayesian update</h2>
                 <div css={cssObj.inputGroup}>
                   <label css={cssObj.inputLabel}>Number of tests</label>
@@ -792,13 +793,13 @@ export default function StatisticalPage() {
                   <button
                     type="submit"
                     css={cssObj.saveButton}
-                    disabled={loading || isPolling || (fullAnalysisJobId !== null && currentJobType === 'full-analysis')}
+                    disabled={loading || isPolling || (pfdUpdateJobId !== null && currentJobType === 'full-analysis')}
                   >
                     {isPolling && currentJobType === 'full-analysis' ? '분석 중...' : 'Run update'}
                   </button>
-                  {fullAnalysisCompletedTime !== null && (
+                  {pfdUpdateCompletedTime !== null && (
                     <span style={{ color: '#666', fontSize: '13px' }}>
-                      ({formatElapsedTime(fullAnalysisCompletedTime!)} 소요)
+                      ({formatElapsedTime(pfdUpdateCompletedTime!)} 소요)
                     </span>
                   )}
                 </div>
@@ -815,8 +816,8 @@ export default function StatisticalPage() {
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button
                     css={cssObj.jsonDownloadBtn}
-                    onClick={handleViewFullAnalysisJson}
-                    disabled={!fullAnalysisResultData}
+                    onClick={handleViewPfdUpdateJson}
+                    disabled={!pfdUpdateResultData}
                     title="새 탭에서 결과 보기"
                   >
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
@@ -827,8 +828,8 @@ export default function StatisticalPage() {
                   </button>
                   <button
                     css={cssObj.jsonDownloadBtn}
-                    onClick={handleDownloadFullAnalysisJson}
-                    disabled={!fullAnalysisResultData}
+                    onClick={handleDownloadPfdUpdateJson}
+                    disabled={!pfdUpdateResultData}
                     title="JSON 다운로드"
                   >
                     ↓ JSON
@@ -839,29 +840,29 @@ export default function StatisticalPage() {
                 <div css={[cssObj.resultCard, { gridColumn: '1 / -1' }]}>
                   <span css={cssObj.resultCardLabel}>Prior PFD</span>
                   <span css={cssObj.resultCardValue}>
-                    {fullAnalysisResultData?.input?.parameter?.prior?.mean != null
-                      ? fullAnalysisResultData.input.parameter.prior.mean.toExponential(4)
+                    {pfdUpdateResultData?.input?.parameter?.prior?.mean != null
+                      ? pfdUpdateResultData.input.parameter.prior.mean.toExponential(4)
                       : '—'}
                   </span>
                 </div>
                 <div css={cssObj.resultCard}>
                   <span css={cssObj.resultCardLabel}>Updated PFD</span>
                   <span css={cssObj.resultCardValue}>
-                    {fullAnalysisResultData?.output?.mean_posterior_pfd?.[0]?.[1] != null
-                      ? fullAnalysisResultData.output.mean_posterior_pfd[0][1].toExponential(4)
+                    {pfdUpdateResultData?.output?.mean_posterior_pfd?.[0]?.[1] != null
+                      ? pfdUpdateResultData.output.mean_posterior_pfd[0][1].toExponential(4)
                       : '—'}
                   </span>
                 </div>
                 <div css={cssObj.resultCard}>
                   <span css={cssObj.resultCardLabel}>Confidence</span>
                   <span css={cssObj.resultCardValue}>
-                    {fullAnalysisResultData?.output?.confidence != null
-                      ? (fullAnalysisResultData.output.confidence * 100).toFixed(1) + '%'
+                    {pfdUpdateResultData?.output?.confidence != null
+                      ? (pfdUpdateResultData.output.confidence * 100).toFixed(1) + '%'
                       : '—'}
                   </span>
                 </div>
               </div>
-              {fullAnalysisUsedDefaultBbn && (
+              {pfdUpdateUsedDefaultBbn && (
                 <div css={cssObj.hintText} style={{ marginTop: 8 }}>
                   BBN 입력: NRC report data (기본값)
                 </div>

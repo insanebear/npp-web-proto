@@ -140,16 +140,7 @@ export type SensitivityIn = {
   settings?: HybridToolSettings;
 } & BbnInputOptions;
 
-export type UpdatePfdIn = { 
-  pfd_goal: number; 
-  demand: number; 
-  failures: number; 
-  trace_id?: string | null; 
-  test_mode?: boolean;
-  settings?: HybridToolSettings;
-} & BbnInputOptions;
-
-export type FullAnalysisIn = { 
+export type PfdUpdateIn = {
   pfd_goal: number; 
   confidence_goal: number; 
   failures: number; 
@@ -169,7 +160,7 @@ export type HybridToolJobResponse = {
 // HybridTool results response
 export type HybridToolResultsResponse = {
   job_id: string;
-  download_url?: string; // Only for update-pfd, full-analysis
+  download_url?: string; // Only for pfd-update (full-analysis)
   data?: SensitivityAnalysisResult; // Only for sensitivity-analysis (returned directly from Lambda)
   status: 'completed' | 'not_found' | 'failed';
   s3_location?: string;
@@ -209,11 +200,6 @@ export type SensitivityAnalysisResult = {
   };
 };
 
-// Legacy synchronous response types (maintained for compatibility - no longer used)
-export type SensitivityOut = { data: { num_tests: number }; trace_id?: string | null };
-export type UpdatePfdOut   = { message?: string; trace_id?: string | null };
-export type FullAnalysisOut= { download_url?: string; trace_id?: string | null };
-
 /**
  * Performs sensitivity analysis to determine the number of required tests.
  * NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
@@ -224,21 +210,16 @@ export const sensitivityAnalysis = (payload: SensitivityIn) =>
   postJSON<HybridToolJobResponse>('/api/v1/sensitivity-analysis', payload);
 
 /**
- * Updates the Probability of Failure on Demand (PFD) based on observed data.
+ * Runs PFD update (Bayesian update + full analysis).
  * NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
  * @param payload - Input parameters for PFD update
  * @returns Job response with job_id for async processing
  */
-export const updatePfd = (payload: UpdatePfdIn) =>
-  postJSON<HybridToolJobResponse>('/api/v1/update-pfd', payload);
-
-/**
- * Runs a complete analysis including sensitivity analysis and PFD updates.
- * NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
- * @param payload - Input parameters for full analysis
- * @returns Job response with job_id for async processing
- */
-export const fullAnalysis = (payload: FullAnalysisIn) =>
+// TODO: Rename endpoint '/api/v1/full-analysis' to '/api/v1/pfd-update' once backend is updated.
+//       Backend: Dockers/HybridTool/run_full_analysis.py (ECS Fargate task)
+//       Runs composite job: sensitivity analysis → BBN inference → PFD update
+//       S3 result key also uses 'full-analysis' prefix and must be updated together.
+export const pfdUpdate = (payload: PfdUpdateIn) =>
   postJSON<HybridToolJobResponse>('/api/v1/full-analysis', payload);
 
 /**
@@ -271,12 +252,13 @@ export const getHybridToolJobStatus = async (
 /**
  * Gets the results for a hybrid tool job.
  * @param jobId - The job ID returned from the trigger function
- * @param type - The type of analysis (sensitivity-analysis, update-pfd, full-analysis)
+ * @param type - The type of analysis (sensitivity-analysis, full-analysis)
  * @returns Results response with download URL or status
  */
 export const getHybridToolResults = async (
   jobId: string,
-  type: 'sensitivity-analysis' | 'update-pfd' | 'full-analysis'
+  // TODO: Replace 'full-analysis' with 'pfd-update' once backend renames the task type string.
+  type: 'sensitivity-analysis' | 'full-analysis'
 ): Promise<HybridToolResultsResponse> => {
   const response = await fetch(
     `${API_BASE_URL_SST}/api/v1/results/${jobId}?type=${type}`,
