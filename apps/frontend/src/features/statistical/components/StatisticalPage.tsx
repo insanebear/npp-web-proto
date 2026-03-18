@@ -21,12 +21,9 @@ export default function StatisticalPage() {
   const [failures, setFailures] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [downloadLink, setDownloadLink] = useState<string | null>(null);
   const [fullAnalysisResultData, setFullAnalysisResultData] = useState<any | null>(null);
   const [sensitivityJobId, setSensitivityJobId] = useState<string | null>(null);
   const [fullAnalysisJobId, setFullAnalysisJobId] = useState<string | null>(null);
-  const [usedBbnInput, setUsedBbnInput] = useState<{ source: string; bucket?: string; key?: string; description?: string; size?: number; path?: string } | null>(null);
-  const [usedBbnInputJobType, setUsedBbnInputJobType] = useState<'sensitivity-analysis' | 'update-pfd' | 'full-analysis' | null>(null);
 
   const [bbnFiles, setBbnFiles] = useState<api.BbnResultItem[]>([]);
   const [bbnBucketInfo, setBbnBucketInfo] = useState<{ bucket: string; prefix: string } | null>(null);
@@ -45,6 +42,7 @@ export default function StatisticalPage() {
   const [testMode, setTestMode] = useState(isDevelopment); // Test mode (default true in development, only enabled in development)
   const [sensitivityCompletedTime, setSensitivityCompletedTime] = useState<number | null>(null);
   const [fullAnalysisCompletedTime, setFullAnalysisCompletedTime] = useState<number | null>(null);
+  const [fullAnalysisUsedDefaultBbn, setFullAnalysisUsedDefaultBbn] = useState<boolean>(false);
   const elapsedTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pollingRef = useRef<{ jobId: string; type: string; attempts: number; startTime: number } | null>(null);
 
@@ -353,7 +351,6 @@ export default function StatisticalPage() {
     e.preventDefault();
     setErrorMsg(null);
     setLoading(true);
-    setDownloadLink(null);
     setSensitivityJobId(null);
     setSensitivityCompletedTime(null);
 
@@ -403,13 +400,6 @@ export default function StatisticalPage() {
           if (elapsedSeconds !== undefined) {
             setSensitivityCompletedTime(elapsedSeconds);
           }
-          // Extract BBN input info from result
-          if (resultData && (resultData as any).bbn_input) {
-            setUsedBbnInput((resultData as any).bbn_input);
-          } else {
-            setUsedBbnInput({ source: 'default', description: 'NRC report data (default)' });
-          }
-          setUsedBbnInputJobType('sensitivity-analysis');
         },
         (error) => {
           setErrorMsg(`Sensitivity Analysis 오류: ${error}`);
@@ -427,10 +417,10 @@ export default function StatisticalPage() {
   const handleFullAnalysisSubmit = async () => {
     setErrorMsg(null);
     setLoading(true);
-    setDownloadLink(null);
     setFullAnalysisResultData(null);
     setFullAnalysisJobId(null);
     setFullAnalysisCompletedTime(null);
+    setFullAnalysisUsedDefaultBbn(!selectedBbnKey);
 
     const p = parseFloat(pfdGoal);
     const c = parseFloat(confidenceGoal);
@@ -484,20 +474,9 @@ export default function StatisticalPage() {
         jobId,
         'full-analysis',
         jobStartTime,
-        (resultData, downloadUrl, elapsedSeconds) => {
+        (resultData, _, elapsedSeconds) => {
           if (resultData) {
             setFullAnalysisResultData(resultData);
-
-            // Extract BBN input info from result
-            if (resultData.input && resultData.input.bbn_input) {
-              setUsedBbnInput(resultData.input.bbn_input);
-            } else {
-              setUsedBbnInput({ source: 'default', description: 'NRC report data (default)' });
-            }
-            setUsedBbnInputJobType('full-analysis');
-          }
-          if (downloadUrl) {
-            setDownloadLink(downloadUrl);
           }
           setErrorMsg(null);
           if (elapsedSeconds !== undefined) {
@@ -882,6 +861,11 @@ export default function StatisticalPage() {
                   </span>
                 </div>
               </div>
+              {fullAnalysisUsedDefaultBbn && (
+                <div css={cssObj.hintText} style={{ marginTop: 8 }}>
+                  BBN 입력: NRC report data (기본값)
+                </div>
+              )}
             </div>
 
           </div>
