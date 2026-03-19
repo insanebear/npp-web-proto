@@ -736,10 +736,10 @@ export default function StatisticalPage() {
               </form>
             </div>
 
-            {/* 2. Bayesian Update */}
+            {/* 2. PFD Update */}
             <div css={cssObj.settingBox}>
               <form onSubmit={(e) => { e.preventDefault(); handlePfdUpdateSubmit(); }} css={cssObj.formWrapper}>
-                <h2>2. Bayesian update</h2>
+                <h2>2. PFD update</h2>
                 <div css={cssObj.inputGroup}>
                   <label css={cssObj.inputLabel}>Number of tests</label>
                   <div css={cssObj.lockedInputRow}>
