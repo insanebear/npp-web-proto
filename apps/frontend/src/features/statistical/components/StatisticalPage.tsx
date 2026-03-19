@@ -740,6 +740,10 @@ export default function StatisticalPage() {
             <div css={cssObj.settingBox}>
               <form onSubmit={(e) => { e.preventDefault(); handlePfdUpdateSubmit(); }} css={cssObj.formWrapper}>
                 <h2>2. PFD update</h2>
+                <div css={cssObj.hintText} style={{ display: 'flex', gap: '12px', fontSize: '13px' }}>
+                  <span>PFD goal: <strong>{pfdGoal !== '' ? pfdGoal : '—'}</strong></span>
+                  <span>Confidence goal: <strong>{confidenceGoal !== '' ? confidenceGoal : '—'}</strong></span>
+                </div>
                 <div css={cssObj.inputGroup}>
                   <label css={cssObj.inputLabel}>Number of tests</label>
                   <div css={cssObj.lockedInputRow}>
