@@ -131,7 +131,7 @@ export default function StatisticalPage() {
       if (attempts >= MAX_ATTEMPTS || Date.now() - startTime > MAX_WAIT_TIME) {
         setIsPolling(false);
         setCurrentJobType(null);
-        onError('결과 조회 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+        onError('Result retrieval timed out. Please try again later.');
         return;
       }
 
@@ -170,20 +170,20 @@ export default function StatisticalPage() {
               // Status is COMPLETED but no results found - error handling
               setIsPolling(false);
               setCurrentJobType(null);
-              onError('작업이 완료되었지만 결과를 찾을 수 없습니다.');
+              onError('Job completed but no results were found.');
             }
           } else {
             // Failed to fetch results
             setIsPolling(false);
             setCurrentJobType(null);
-            onError(response.message || '결과 조회 실패');
+            onError(response.message || 'Failed to retrieve results');
           }
           return;
         } else if (statusData.jobStatus === 'FAILED') {
           // Job failed → immediate error handling
           setIsPolling(false);
           setCurrentJobType(null);
-          onError(statusData.errorMessage || '작업이 실패했습니다.');
+          onError(statusData.errorMessage || 'Job failed.');
           return;
         } else {
           // PENDING, RUNNING status → continue polling
@@ -200,7 +200,7 @@ export default function StatisticalPage() {
             errorMessage.includes('Forbidden') || errorMessage.includes('Internal Server Error')) {
           setIsPolling(false);
           setCurrentJobType(null);
-          onError(`서버 오류: ${errorMessage}. 결과 조회를 중단했습니다.`);
+          onError(`Server error: ${errorMessage}. Result retrieval stopped.`);
           return;
         }
 
@@ -212,7 +212,7 @@ export default function StatisticalPage() {
         } else {
           setIsPolling(false);
           setCurrentJobType(null);
-          onError('결과 조회 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+          onError('Result retrieval timed out. Please try again later.');
         }
       }
     };
@@ -223,11 +223,11 @@ export default function StatisticalPage() {
   // Format elapsed time (seconds → "mm:ss" or "X minutes Y seconds")
   const formatElapsedTime = (seconds: number): string => {
     if (seconds < 60) {
-      return `${seconds}초`;
+      return `${seconds}s`;
     }
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}분 ${secs}초`;
+    return `${mins}m ${secs}s`;
   };
 
   const formatBytes = (size?: number): string => {
@@ -298,7 +298,7 @@ export default function StatisticalPage() {
       newWindow.document.write(
         `<pre style="padding: 20px; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;">${jsonStr}</pre>`
       );
-      newWindow.document.title = "BBN 결과";
+      newWindow.document.title = "BBN Result";
     }
   };
 
@@ -325,7 +325,7 @@ export default function StatisticalPage() {
       newWindow.document.write(
         `<pre style="padding: 20px; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;">${jsonStr}</pre>`
       );
-      newWindow.document.title = 'PFD Update 결과';
+      newWindow.document.title = 'PFD Update Result';
     }
   };
 
@@ -349,7 +349,7 @@ export default function StatisticalPage() {
     : undefined;
 
   const buildBbnPayload = useCallback(() => {
-    // 선택된 BBN 파일이 있으면 S3 경로 전달
+    // If a BBN file is selected, pass the S3 path
     if (selectedBbnKey && selectedBbnKey.trim() && bbnBucketInfo?.bucket) {
       const payload = {
         bbn_input_s3_bucket: bbnBucketInfo.bucket,
@@ -375,7 +375,7 @@ export default function StatisticalPage() {
     const c = parseFloat(confidenceGoal);
     if (!Number.isFinite(p) || !Number.isFinite(c)) {
       setLoading(false);
-      setErrorMsg("숫자를 정확히 입력하세요.");
+      setErrorMsg("Please enter valid numbers.");
       return;
     }
 
@@ -418,12 +418,12 @@ export default function StatisticalPage() {
           }
         },
         (error) => {
-          setErrorMsg(`Sensitivity Analysis 오류: ${error}`);
+          setErrorMsg(`Sensitivity Analysis error: ${error}`);
         }
       );
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(`Sensitivity Analysis 오류: ${err?.message ?? String(err)}`);
+      setErrorMsg(`Sensitivity Analysis error: ${err?.message ?? String(err)}`);
       setLoading(false);
     }
   };
@@ -442,21 +442,21 @@ export default function StatisticalPage() {
     const c = parseFloat(confidenceGoal);
     if (!Number.isFinite(p) || !Number.isFinite(c)) {
       setLoading(false);
-      setErrorMsg("숫자를 정확히 입력하세요.");
+      setErrorMsg("Please enter valid numbers.");
       return;
     }
 
-    // Sensitivity Analysis 실행 여부 확인
+    // Check if Sensitivity Analysis has been run
     if (tests === null || tests === 0) {
       setLoading(false);
-      setErrorMsg("PFD Update를 실행하기 전에 Sensitivity Analysis를 먼저 실행해주세요.");
+      setErrorMsg("Please run Sensitivity Analysis first, or enter the number of tests manually.");
       return;
     }
 
-    // Failures 값 확인
+    // Check Failures value
     if (failures === null) {
       setLoading(false);
-      setErrorMsg("Failures 값을 입력해주세요.");
+      setErrorMsg("Please enter a Failures value.");
       return;
     }
 
@@ -500,12 +500,12 @@ export default function StatisticalPage() {
           }
         },
         (error) => {
-          setErrorMsg(`PFD Update 오류: ${error}`);
+          setErrorMsg(`PFD Update error: ${error}`);
         }
       );
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(`PFD Update 오류: ${err?.message ?? String(err)}`);
+      setErrorMsg(`PFD Update error: ${err?.message ?? String(err)}`);
       setLoading(false);
     }
   };
@@ -568,11 +568,11 @@ export default function StatisticalPage() {
                 gap: '8px'
               }}>
                 <p style={{ margin: 0, fontSize: '14px', color: '#1F2937', fontWeight: loading ? 500 : 700 }}>
-                  {loading ? '요청 중입니다...' : '계산 중입니다...'}
+                  {loading ? 'Requesting...' : 'Calculating...'}
                 </p>
                 {!loading && isPolling && (
                   <div style={{ fontSize: '14px', color: '#1F2937' }}>
-                    경과 시간: {formatElapsedTime(elapsedTime)}
+                    Elapsed time: {formatElapsedTime(elapsedTime)}
                   </div>
                 )}
               </div>
@@ -595,16 +595,16 @@ export default function StatisticalPage() {
                 <p>
                   {bbnBucketInfo
                     ? `${bbnBucketInfo.bucket}/${bbnBucketInfo.prefix ?? ""}`
-                    : "버킷 정보를 불러오는 중입니다."}
+                    : "Loading bucket information..."}
                   {bbnBucketInfo && (
                     <>
                       {bbnLastRefreshed && (
                         <span style={{ marginLeft: 8 }}>
-                          · 갱신: {formatTimestamp(bbnLastRefreshed)}
+                          · Updated: {formatTimestamp(bbnLastRefreshed)}
                         </span>
                       )}
                       <span style={{ marginLeft: 8 }}>
-                        · 총 {bbnFiles.length.toLocaleString()}건
+                        · Total {bbnFiles.length.toLocaleString()} files
                       </span>
                     </>
                   )}
@@ -616,7 +616,7 @@ export default function StatisticalPage() {
                 onClick={refreshBbnFiles}
                 disabled={bbnFilesLoading}
               >
-                {bbnFilesLoading ? "불러오는 중..." : "목록 새로고침"}
+                {bbnFilesLoading ? "Loading..." : "Refresh List"}
               </button>
             </div>
 
@@ -626,7 +626,7 @@ export default function StatisticalPage() {
               onChange={(e) => handleSelectBbnFile(e.target.value)}
               disabled={bbnFilesLoading || bbnFiles.length === 0}
             >
-              <option value="">파일을 선택하세요</option>
+              <option value="">Select a file</option>
               {bbnFiles.map((item) => (
                 <option key={item.key} value={item.key}>
                   {formatFileLabel(item)}
@@ -636,28 +636,28 @@ export default function StatisticalPage() {
 
             {bbnFilesError && (
               <span css={cssObj.bbnErrorText}>
-                목록을 불러오는 데 실패했습니다: {bbnFilesError}
+                Failed to load list: {bbnFilesError}
               </span>
             )}
 
             {!bbnFilesLoading && bbnFiles.length === 0 && !bbnFilesError && (
-              <span css={cssObj.bbnMessage}>표시할 JSON 파일이 없습니다.</span>
+              <span css={cssObj.bbnMessage}>No JSON files available.</span>
             )}
 
             {selectedBbnMeta && (
               <div css={cssObj.bbnMetaInfo}>
-                <span>파일명: {selectedBbnMeta.name}</span>
+                <span>File: {selectedBbnMeta.name}</span>
                 {typeof selectedBbnMeta.size === "number" && (
-                  <span>크기: {formatBytes(selectedBbnMeta.size)}</span>
+                  <span>Size: {formatBytes(selectedBbnMeta.size)}</span>
                 )}
                 {selectedBbnMeta.last_modified && (
-                  <span>수정: {formatTimestamp(selectedBbnMeta.last_modified)}</span>
+                  <span>Modified: {formatTimestamp(selectedBbnMeta.last_modified)}</span>
                 )}
               </div>
             )}
 
             {bbnFileLoading && (
-              <span css={cssObj.bbnMessage}>선택한 파일을 불러오는 중입니다...</span>
+              <span css={cssObj.bbnMessage}>Loading selected file...</span>
             )}
 
             {bbnFileMessage && <span css={cssObj.bbnErrorText}>{bbnFileMessage}</span>}
@@ -669,14 +669,14 @@ export default function StatisticalPage() {
                   css={[cssObj.bbnButton, cssObj.bbnPrimaryButton]}
                   onClick={handleViewSelectedBbnData}
                 >
-                  결과보기
+                  View
                 </button>
                 <button
                   type="button"
                   css={[cssObj.bbnButton, cssObj.bbnSecondaryButton]}
                   onClick={handleDownloadSelectedBbnData}
                 >
-                  다운로드
+                  Download
                 </button>
               </div>
             )}
@@ -696,7 +696,7 @@ export default function StatisticalPage() {
                     step="any"
                     value={pfdGoal}
                     onChange={(e) => setPfdGoal(e.target.value)}
-                    placeholder="예: 0.0001"
+                    placeholder="e.g. 0.0001"
                     css={cssObj.inputBox}
                     required
                   />
@@ -708,7 +708,7 @@ export default function StatisticalPage() {
                     step="any"
                     value={confidenceGoal}
                     onChange={(e) => setConfidenceGoal(e.target.value)}
-                    placeholder="예: 0.95"
+                    placeholder="e.g. 0.95"
                     css={cssObj.inputBox}
                     required
                   />
@@ -719,16 +719,16 @@ export default function StatisticalPage() {
                     css={cssObj.saveButton}
                     disabled={loading || isPolling || (sensitivityJobId !== null && currentJobType === 'sensitivity-analysis')}
                   >
-                    {isPolling && currentJobType === 'sensitivity-analysis' ? '계산 중...' : 'Calculate'}
+                    {isPolling && currentJobType === 'sensitivity-analysis' ? 'Calculating...' : 'Calculate'}
                   </button>
                   {sensitivityCompletedTime !== null && (
                     <span style={{ color: '#666', fontSize: '13px' }}>
-                      ({formatElapsedTime(sensitivityCompletedTime)} 소요)
+                      ({formatElapsedTime(sensitivityCompletedTime)} elapsed)
                     </span>
                   )}
                 </div>
                 <div css={cssObj.outputBox}>
-                  <span css={cssObj.outputLabel}>Required # of tests</span>
+                  <span css={cssObj.outputLabel}>Required number of tests</span>
                   <span css={cssObj.outputValue}>
                     {tests !== null && tests > 0 ? tests : '—'}
                   </span>
@@ -754,7 +754,7 @@ export default function StatisticalPage() {
                           }
                         }}
                         readOnly={isNumOfTestsLocked}
-                        placeholder="정수 입력"
+                        placeholder="e.g. 10"
                         css={[cssObj.inputBox, isNumOfTestsLocked ? cssObj.lockedInputBox : null]}
                         min={1}
                       />
@@ -768,7 +768,7 @@ export default function StatisticalPage() {
                         css={cssObj.lockBtn}
                         onClick={() => setIsNumOfTestsLocked(false)}
                       >
-                        직접 입력
+                        Edit
                       </button>
                     ) : (
                       <button
@@ -779,14 +779,14 @@ export default function StatisticalPage() {
                           setTests(sensitivityTests);
                         }}
                       >
-                        자동 입력 복원
+                        Restore auto-fill
                       </button>
                     )}
                   </div>
                   <span css={isNumOfTestsLocked ? cssObj.hintText : cssObj.warningHintText}>
                     {isNumOfTestsLocked
-                      ? '1번 Sensitivity analysis 결과에서 자동 입력됩니다.'
-                      : '1번 Sensitivity analysis 결과와 무관하게 입력된 값으로 실행됩니다'}
+                      ? 'Auto-filled from Sensitivity analysis result.'
+                      : 'Will run with the entered value, independent of Sensitivity analysis result.'}
                   </span>
                 </div>
                 <div css={cssObj.inputGroup}>
@@ -798,7 +798,7 @@ export default function StatisticalPage() {
                       const value = e.target.value;
                       setFailures(value === '' ? null : Number(value));
                     }}
-                    placeholder="정수 입력"
+                    placeholder="e.g. 1"
                     css={cssObj.inputBox}
                     min={0}
                     required
@@ -810,16 +810,16 @@ export default function StatisticalPage() {
                     css={cssObj.saveButton}
                     disabled={loading || isPolling || (pfdUpdateJobId !== null && currentJobType === 'full-analysis')}
                   >
-                    {isPolling && currentJobType === 'full-analysis' ? '분석 중...' : 'Run update'}
+                    {isPolling && currentJobType === 'full-analysis' ? 'Analyzing...' : 'Run update'}
                   </button>
                   {pfdUpdateCompletedTime !== null && (
                     <span style={{ color: '#666', fontSize: '13px' }}>
-                      ({formatElapsedTime(pfdUpdateCompletedTime!)} 소요)
+                      ({formatElapsedTime(pfdUpdateCompletedTime!)} elapsed)
                     </span>
                   )}
                 </div>
                 <p css={cssObj.sectionDescription}>
-                  테스트 결과를 바탕으로 사전 PFD를 베이지안 방식으로 갱신하여 분석합니다.
+                  Updates the prior PFD based on observed tests and failures.
                 </p>
               </form>
             </div>
@@ -833,7 +833,7 @@ export default function StatisticalPage() {
                     css={cssObj.jsonDownloadBtn}
                     onClick={handleViewPfdUpdateJson}
                     disabled={!pfdUpdateResultData}
-                    title="새 탭에서 결과 보기"
+                    title="View result in new tab"
                   >
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
                       <path d="M7 2.5C4.5 2.5 2.5 4.5 2.5 7C2.5 9.5 4.5 11.5 7 11.5C9.5 11.5 11.5 9.5 11.5 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
@@ -879,7 +879,7 @@ export default function StatisticalPage() {
               </div>
               {pfdUpdateUsedDefaultBbn && (
                 <div css={cssObj.hintText} style={{ marginTop: 8 }}>
-                  BBN 입력: NRC report data (기본값)
+                  BBN input: NRC report data (default)
                 </div>
               )}
             </div>
@@ -888,7 +888,7 @@ export default function StatisticalPage() {
 
           {/* Footer note */}
           <div css={cssObj.footerNote}>
-            각 섹션을 순서대로 실행하거나 독립적으로 사용할 수 있습니다.
+            Each section can be run in order or used independently.
           </div>
 
         </main>
