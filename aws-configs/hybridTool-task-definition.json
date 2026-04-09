@@ -23,6 +23,14 @@
         {
           "name": "AWS_REGION",
           "value": "${AWS_REGION}"
+        },
+        {
+          "name": "S3_BUCKET",
+          "value": "hybrid-tool-results"
+        },
+        {
+          "name": "JOBS_TABLE_NAME",
+          "value": "BayesianSimulationJobs"
         }
       ]
     }
