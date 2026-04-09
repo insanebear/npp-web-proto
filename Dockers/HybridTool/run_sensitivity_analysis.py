@@ -8,6 +8,8 @@ Environment variables:
 - CONFIDENCE_GOAL: Target confidence level
 - S3_BUCKET: S3 bucket name for results
 - AWS_REGION: AWS region
+- PRIOR_TRACE_S3_KEY: (optional) S3 key of pre-computed prior trace (.nc)
+                      If provided, skips run_composite_model and loads trace from S3.
 
 Output:
 - Uploads JSON to S3: s3://{S3_BUCKET}/results/sensitivity-analysis-{JOB_ID}.json
@@ -47,6 +49,8 @@ def get_job_config() -> Dict[str, Any]:
     if config["CONFIDENCE_GOAL"] > 1.0:
         raise ValueError("CONFIDENCE_GOAL must be between 0 and 1 (e.g., 0.95)")
     
+    config["PRIOR_TRACE_S3_KEY"] = os.environ.get("PRIOR_TRACE_S3_KEY")
+
     # Print configuration
     print_base_config(config)
     print(f"[CONFIG] CONFIDENCE_GOAL: {config['CONFIDENCE_GOAL']}")
@@ -54,7 +58,9 @@ def get_job_config() -> Dict[str, Any]:
     print(f"[CONFIG] TUNE: {config['TUNE']}")
     print(f"[CONFIG] CHAINS: {config['CHAINS']}")
     print(f"[CONFIG] THIN: {config['THIN']}")
-    
+    if config["PRIOR_TRACE_S3_KEY"]:
+        print(f"[CONFIG] PRIOR_TRACE_S3_KEY: {config['PRIOR_TRACE_S3_KEY']}")
+
     return config
 
 
@@ -67,10 +73,16 @@ def run_sensitivity_analysis(config: Dict[str, Any], bbn_data: Any) -> Dict[str,
     chains = config["CHAINS"]
     thin = config["THIN"]
     
-    # 1. Generate trace (Prior)
-    print("\n[STEP 1] Generating composite model trace...")
-    trace = run_composite_model(bbn_data, draws=draws, tune=tune, chains=chains, thin=thin)
-    print("[STEP 1] Trace generation completed")
+    # 1. Get trace (Prior): load from S3 if available, otherwise compute
+    prior_trace_s3_key = config.get("PRIOR_TRACE_S3_KEY")
+    if prior_trace_s3_key:
+        print(f"\n[STEP 1] Loading pre-computed trace from S3: {prior_trace_s3_key}")
+        trace = load_trace_from_s3(config, prior_trace_s3_key)
+        print("[STEP 1] Trace loaded from S3")
+    else:
+        print("\n[STEP 1] Generating composite model trace...")
+        trace = run_composite_model(bbn_data, draws=draws, tune=tune, chains=chains, thin=thin)
+        print("[STEP 1] Trace generation completed")
 
     # 2. Sensitivity Analysis & Prior Metrics
     print("\n[STEP 2] Running sensitivity analysis...")
