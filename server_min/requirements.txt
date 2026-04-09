@@ -30,6 +30,7 @@ scipy==1.16.2
 pymc==5.25.0
 pytensor==2.31.7
 arviz==0.22.0
+h5py>=3.8.0
 numpyro==0.19.0
 jax==0.8.0
 jaxlib==0.8.0

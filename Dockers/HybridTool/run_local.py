@@ -72,8 +72,11 @@ if __name__ == "__main__":
     elif task_type == "update_pfd":
         from run_update_pfd import main
         main()
+    elif task_type == "bbn_inference":
+        from run_bbn_inference import main
+        main()
     else:
         print(f"[ERROR] Unknown TASK_TYPE: {task_type}")
-        print("[ERROR] Valid values: full_analysis, sensitivity_analysis, update_pfd")
+        print("[ERROR] Valid values: full_analysis, sensitivity_analysis, update_pfd, bbn_inference")
         sys.exit(1)
 
