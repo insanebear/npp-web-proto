@@ -21,6 +21,7 @@ from task_common import (
     validate_base_config,
     print_base_config,
     run_task,
+    load_trace_from_s3,
 )
 
 from bbn_inference.sensitivity_analysis import (

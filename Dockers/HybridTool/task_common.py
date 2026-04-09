@@ -8,6 +8,7 @@ Shared functions used across all task types (sensitivity_analysis, update_pfd, f
 import os
 import sys
 import json
+import tempfile
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional, Callable
 import boto3
@@ -172,8 +173,59 @@ def upload_results_to_s3(
         return s3_key
 
 
+def save_trace_to_s3(trace: Any, config: Dict[str, Any], job_id: str) -> str:
+    """Save InferenceData trace to S3 as NetCDF (.nc) file"""
+    import arviz as az
+
+    s3_key = f"results/prior-trace-{job_id}.nc"
+    s3_bucket = config["S3_BUCKET"]
+    aws_region = config["AWS_REGION"]
+    test_output_dir = config["TEST_OUTPUT_DIR"]
+
+    with tempfile.NamedTemporaryFile(suffix=".nc", delete=False) as f:
+        tmp_path = f.name
+
+    try:
+        az.to_netcdf(trace, tmp_path)
+
+        if test_output_dir:
+            output_path = Path(test_output_dir)
+            output_path.mkdir(parents=True, exist_ok=True)
+            local_file = output_path / s3_key.replace("/", "_")
+            import shutil
+            shutil.copy(tmp_path, local_file)
+            print(f"[TEST MODE] Trace saved locally to {local_file}")
+            return str(local_file)
+        else:
+            s3_client = boto3.client('s3', region_name=aws_region)
+            s3_client.upload_file(tmp_path, s3_bucket, s3_key)
+            print(f"[UPLOAD] Trace uploaded to s3://{s3_bucket}/{s3_key}")
+            return s3_key
+    finally:
+        os.unlink(tmp_path)
+
+
+def load_trace_from_s3(config: Dict[str, Any], trace_s3_key: str) -> Any:
+    """Load InferenceData trace from S3 NetCDF (.nc) file"""
+    import arviz as az
+
+    s3_bucket = config["S3_BUCKET"]
+    aws_region = config["AWS_REGION"]
+
+    with tempfile.NamedTemporaryFile(suffix=".nc", delete=False) as f:
+        tmp_path = f.name
+
+    try:
+        s3_client = boto3.client('s3', region_name=aws_region)
+        s3_client.download_file(s3_bucket, trace_s3_key, tmp_path)
+        print(f"[DOWNLOAD] Trace downloaded from s3://{s3_bucket}/{trace_s3_key}")
+        return az.from_netcdf(tmp_path)
+    finally:
+        os.unlink(tmp_path)
+
+
 def handle_error_and_exit(
-    e: Exception, 
+    e: Exception,
     config: Dict[str, Any], 
     dynamodb_client: Any,
     task_name: str
