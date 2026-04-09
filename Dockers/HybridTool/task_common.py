@@ -219,7 +219,14 @@ def load_trace_from_s3(config: Dict[str, Any], trace_s3_key: str) -> Any:
         s3_client = boto3.client('s3', region_name=aws_region)
         s3_client.download_file(s3_bucket, trace_s3_key, tmp_path)
         print(f"[DOWNLOAD] Trace downloaded from s3://{s3_bucket}/{trace_s3_key}")
-        return az.from_netcdf(tmp_path)
+        trace = az.from_netcdf(tmp_path)
+        # Force eager loading before deleting the temp file
+        # (az.from_netcdf uses xarray lazy loading by default)
+        for group_name in trace._groups:
+            group = getattr(trace, group_name, None)
+            if group is not None:
+                group.load()
+        return trace
     finally:
         os.unlink(tmp_path)
 
