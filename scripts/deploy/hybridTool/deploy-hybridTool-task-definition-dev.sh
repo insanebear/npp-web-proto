@@ -22,7 +22,8 @@ fi
 : "${AWS_REGION:=ap-northeast-2}"
 : "${AWS_PROFILE:=default}"
 : "${ECR_REPOSITORY:=hybrid-tool-pymc}"
-: "${DOCKER_IMAGE_TAG:=dev}"
+# Dev script always uses dev image tag (DOCKER_IMAGE_TAG_DEV takes priority)
+DOCKER_IMAGE_TAG="${DOCKER_IMAGE_TAG_DEV:-dev}"
 : "${AWS_ACCOUNT_ID:?Set AWS_ACCOUNT_ID env var}"
 
 TASK_DEF_FILE="aws-configs/hybridTool-task-definition.json"

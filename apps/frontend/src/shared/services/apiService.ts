@@ -86,34 +86,26 @@ export const getJobStatus = async (jobId: string) => {
 };
 
 /**
- * Gets the final results for a completed simulation job.
+ * Gets the final results for a completed BBN simulation job.
+ * Fetches from hybrid-tool-results S3 bucket via getResults Lambda.
  * @param jobId - The unique identifier for the job
- * @returns The final JSON results from the S3 file
+ * @returns The final JSON results: { input, output: { PFD: { mean, sd, median, q2_5, q97_5 } } }
  */
 export const getResults = async (jobId: string) => {
-  const urlResponse = await fetch(`${API_BASE_URL}/jobs/${jobId}/results-url`, {
-    method: 'POST',
-    headers: getApiHeaders(),
-  });
-  if (!urlResponse.ok) throw new Error('Could not get results URL.');
-  
-  const { downloadUrl } = await urlResponse.json();
-  
-  const resultsResponse = await fetch(downloadUrl);
-  if (!resultsResponse.ok) throw new Error('Could not download results file from S3.');
-  // Preserve the original JSON text as-is
-  const rawText = await resultsResponse.text();
-  try {
-    const parsed = rawText ? JSON.parse(rawText) : {};
-    // Attach the original raw text so the UI can display it unchanged
-    if (parsed && typeof parsed === 'object') {
-      (parsed as any).__rawText = rawText;
-    }
-    return parsed;
-  } catch {
-    // If parsing fails, return an object containing only the raw text
-    return { __rawText: rawText } as any;
+  const response = await fetch(
+    `${API_BASE_URL_SST}/api/v1/results/${jobId}?type=bbn-inference`,
+    { headers: getApiHeaders() }
+  );
+  if (!response.ok) throw new Error('Could not get results.');
+
+  const wrapper = await response.json();
+  // wrapper = { job_id, status, data: { input, output }, s3_location }
+  const data = wrapper?.data ?? wrapper;
+  const rawText = JSON.stringify(data, null, 2);
+  if (data && typeof data === 'object') {
+    (data as any).__rawText = rawText;
   }
+  return data;
 };
 
 // =======================================================

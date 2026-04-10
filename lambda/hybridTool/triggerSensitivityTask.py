@@ -120,6 +120,13 @@ def handler(event, context):
             test_mode = body.get('test_mode', False)
             bbn_input_s3_bucket = body.get('bbn_input_s3_bucket')
             bbn_input_s3_key = body.get('bbn_input_s3_key')
+            bbn_job_id = body.get('bbn_job_id')
+            # bbn_job_id가 없으면 bbn_input_s3_key에서 파싱 (예: results/results-{jobId}.json)
+            if not bbn_job_id and bbn_input_s3_key:
+                import re
+                match = re.search(r'results-([^/]+)\.json$', bbn_input_s3_key)
+                if match:
+                    bbn_job_id = match.group(1)
             settings = body.get('settings', {})
             
             # 입력 검증
@@ -219,6 +226,8 @@ def handler(event, context):
             environment_overrides.append({'name': 'BBN_INPUT_PATH', 'value': bbn_input_s3_key})
         if bbn_input_s3_bucket:
             environment_overrides.append({'name': 'BBN_INPUT_BUCKET', 'value': bbn_input_s3_bucket})
+        if bbn_job_id:
+            environment_overrides.append({'name': 'PRIOR_TRACE_S3_KEY', 'value': f'results/bbn/prior-trace-{bbn_job_id}.nc'})
 
         response = ecs_client.run_task(
             cluster=cluster_name,

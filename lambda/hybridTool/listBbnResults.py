@@ -17,8 +17,22 @@ from datetime import datetime
 
 s3_client = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ap-northeast-2"))
 
-DEFAULT_BUCKET = "bayesian-simulation-results-bucket"
-DEFAULT_PREFIX = "results/"
+# 현재 dev/prod 모두 hybrid-tool-results 사용
+DEFAULT_BUCKET = "hybrid-tool-results"
+DEFAULT_PREFIX = "results/bbn/"
+# 향후 prod 분기 확장용 변수 (현재 미사용)
+DEFAULT_BUCKET_PROD = os.environ.get("BBN_RESULTS_BUCKET", DEFAULT_BUCKET)
+DEFAULT_PREFIX_PROD = os.environ.get("BBN_RESULTS_PREFIX", DEFAULT_PREFIX)
+
+
+def _get_stage(event: Dict[str, Any]) -> str:
+    stage = (event.get("requestContext") or {}).get("stage", "")
+    if stage:
+        return stage
+    path = event.get("path", "")
+    if path.startswith("/develop/"):
+        return "develop"
+    return "prod"
 
 
 def _response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
@@ -40,10 +54,9 @@ def _json_serializer(obj):
     raise TypeError(f"Type {type(obj)} not serializable")
 
 
-def _get_bucket_and_prefix() -> (str, str):
+def _get_bucket_and_prefix():
     bucket = os.environ.get("BBN_RESULTS_BUCKET", DEFAULT_BUCKET)
     prefix = os.environ.get("BBN_RESULTS_PREFIX", DEFAULT_PREFIX)
-    # prefix는 비어있을 수 있으나, 있으면 '/'로 끝나도록 보정
     if prefix and not prefix.endswith("/"):
         prefix = prefix + "/"
     return bucket, prefix
@@ -61,11 +74,10 @@ def _list_files(limit: int) -> Dict[str, Any]:
             if not key or key.endswith("/"):
                 continue
             if prefix and key.startswith(prefix):
-                relative_key = key[len(prefix) :]
+                relative_key = key[len(prefix):]
             else:
                 relative_key = key
             if relative_key.startswith("/"):
-                # 빈 경로 조각(//)이 포함된 객체는 제외
                 continue
             if "//" in relative_key:
                 continue
@@ -73,15 +85,14 @@ def _list_files(limit: int) -> Dict[str, Any]:
             if not relative_key:
                 continue
             if "/" in relative_key:
-                # 하위 "폴더"에 있는 객체는 목록에서 제외
+                # 하위 폴더 객체 제외
                 continue
             if not relative_key.lower().endswith(".json"):
                 continue
-            display_name = relative_key
             items.append(
                 {
                     "key": key,
-                    "name": display_name,
+                    "name": relative_key,
                     "size": obj.get("Size"),
                     "last_modified": obj.get("LastModified"),
                 }
@@ -170,4 +181,3 @@ def handler(event, context):
     except Exception as exc:
         print(f"[ERROR] {exc}")
         return _response(500, {"message": f"Unexpected error: {exc}"})
-

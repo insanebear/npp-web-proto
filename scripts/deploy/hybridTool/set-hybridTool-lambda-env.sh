@@ -34,6 +34,8 @@ fi
 # 선택적 환경 변수
 : "${JOBS_TABLE_NAME:=}"
 : "${CONTAINER_NAME:=hybrid-tool-container}"
+# BBN 결과 버킷 (dev/prod 모두 hybrid-tool-results 사용)
+: "${BBN_RESULTS_BUCKET:=hybrid-tool-results}"
 
 # 개발 환경 변수 (선택적, 없으면 프로덕션 변수 사용)
 : "${CLUSTER_NAME_DEV:=}"
@@ -71,7 +73,8 @@ ENV_VARS_JSON=$(cat <<EOF
     "SUBNET_IDS": "$SUBNET_IDS",
     "S3_BUCKET": "$S3_BUCKET",
     "JOBS_TABLE_NAME": "${JOBS_TABLE_NAME:-}",
-    "CONTAINER_NAME": "$CONTAINER_NAME"$([ -n "$CLUSTER_NAME_DEV" ] && echo ",\n    \"CLUSTER_NAME_DEV\": \"$CLUSTER_NAME_DEV\"" || echo "")$([ -n "$HYBRID_TASK_DEFINITION_DEV" ] && echo ",\n    \"HYBRID_TASK_DEFINITION_DEV\": \"$HYBRID_TASK_DEFINITION_DEV\"" || echo "")
+    "CONTAINER_NAME": "$CONTAINER_NAME",
+    "BBN_RESULTS_BUCKET": "$BBN_RESULTS_BUCKET"$([ -n "$CLUSTER_NAME_DEV" ] && printf ',\n    "CLUSTER_NAME_DEV": "%s"' "$CLUSTER_NAME_DEV" || true)$([ -n "$HYBRID_TASK_DEFINITION_DEV" ] && printf ',\n    "HYBRID_TASK_DEFINITION_DEV": "%s"' "$HYBRID_TASK_DEFINITION_DEV" || true)
   }
 }
 EOF

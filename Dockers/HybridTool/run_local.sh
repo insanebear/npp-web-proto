@@ -120,12 +120,20 @@ export FAILURES="${FAILURES:-0}"
 export DEMAND_REQUIRED="${DEMAND_REQUIRED:-10000}"
 export S3_BUCKET="${S3_BUCKET:-dummy}"
 export AWS_REGION="${AWS_REGION:-ap-northeast-2}"
-export TEST_MODE="${TEST_MODE:-false}"
+export TEST_MODE="${TEST_MODE:-true}"
 export TEST_OUTPUT_DIR="${TEST_OUTPUT_DIR:-$PROJECT_ROOT/tempDoc/hybrid-tool-test}"
 export DRAWS="${DRAWS:-19500}"
 export TUNE="${TUNE:-500}"
 export CHAINS="${CHAINS:-1}"
 export THIN="${THIN:-1}"
+
+# bbn_inference용 환경 변수 (TASK_TYPE=bbn_inference 시 사용)
+# BayesianPage 폼 데이터 예시값 (실제 값으로 교체 가능)
+export FP_Input="${FP_Input:-50}"
+export nChains="${nChains:-1}"
+export nIter="${nIter:-500}"
+export nBurnin="${nBurnin:-100}"
+export nThin="${nThin:-1}"
 
 # 출력 디렉토리 생성
 mkdir -p "$TEST_OUTPUT_DIR"

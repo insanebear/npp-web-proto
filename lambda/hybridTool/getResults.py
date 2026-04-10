@@ -16,8 +16,19 @@ from datetime import timedelta
 s3_client = boto3.client('s3', region_name=os.environ.get('AWS_REGION', 'ap-northeast-2'))
 
 # 환경 변수
-S3_BUCKET = os.environ.get('S3_BUCKET')
-PRESIGNED_URL_EXPIRY = int(os.environ.get('PRESIGNED_URL_EXPIRY', '3600'))  # 기본 1시간
+S3_BUCKET = os.environ.get('S3_BUCKET')                        # dev 버킷 (hybrid-tool-results)
+S3_BUCKET_PROD = os.environ.get('S3_BUCKET_PROD', S3_BUCKET)  # prod 버킷 (bayesian-simulation-results-bucket)
+PRESIGNED_URL_EXPIRY = int(os.environ.get('PRESIGNED_URL_EXPIRY', '3600'))
+
+
+def _get_stage(event: dict) -> str:
+    stage = (event.get('requestContext') or {}).get('stage', '')
+    if stage:
+        return stage
+    path = event.get('path', '')
+    if path.startswith('/develop/'):
+        return 'develop'
+    return 'prod'
 
 
 def handler(event, context):
@@ -136,24 +147,29 @@ def handler(event, context):
         
         # 기본값은 full-analysis
         result_type = result_type or 'full-analysis'
-        print(f"Result type: {result_type}, S3_BUCKET: {S3_BUCKET}")
-        
-        # S3 경로 결정 (flattened: results/{endpoint}-{job_id}.json)
+
+        # 스테이지 감지 (향후 dev/prod 분기 확장용)
+        stage = _get_stage(event)
+        bucket = S3_BUCKET  # 현재 dev/prod 모두 hybrid-tool-results 사용
         if result_type == 'sensitivity-analysis':
-            s3_key = f"results/sensitivity-analysis-{job_id}.json"
+            s3_key = f"results/sensitivity/sensitivity-analysis-{job_id}.json"
         elif result_type == 'update-pfd':
-            s3_key = f"results/update-pfd-{job_id}.json"
+            s3_key = f"results/full/update-pfd-{job_id}.json"
+        elif result_type == 'bbn-inference':
+            s3_key = f"results/bbn/results-{job_id}.json"
         else:  # full-analysis
-            s3_key = f"results/full-analysis-{job_id}.json"
+            s3_key = f"results/full/full-analysis-{job_id}.json"
+
+        print(f"Result type: {result_type}, stage: {stage}, bucket: {bucket}")
         
         print(f"Checking S3 key: {s3_key}")
         
         # Lambda에서 S3 파일 직접 읽어서 반환 (CORS 문제 우회)
         try:
-            print(f"Fetching S3 object: s3://{S3_BUCKET}/{s3_key}")
-            
+            print(f"Fetching S3 object: s3://{bucket}/{s3_key}")
+
             # S3에서 파일 가져오기
-            response = s3_client.get_object(Bucket=S3_BUCKET, Key=s3_key)
+            response = s3_client.get_object(Bucket=bucket, Key=s3_key)
             file_content = response['Body'].read().decode('utf-8')
             
             # 모든 타입을 Lambda에서 직접 반환 (presigned URL 서명 문제 해결)
@@ -172,7 +188,7 @@ def handler(event, context):
                         'job_id': job_id,
                         'status': 'completed',
                         'data': result_data,
-                        's3_location': f's3://{S3_BUCKET}/{s3_key}'
+                        's3_location': f's3://{bucket}/{s3_key}'
                     })
                 }
             else:
@@ -190,7 +206,7 @@ def handler(event, context):
                         'job_id': job_id,
                         'status': 'completed',
                         'data': result_data,  # 데이터 직접 제공 (프론트엔드에서 blob URL 생성)
-                        's3_location': f's3://{S3_BUCKET}/{s3_key}'
+                        's3_location': f's3://{bucket}/{s3_key}'
                     })
                 }
             

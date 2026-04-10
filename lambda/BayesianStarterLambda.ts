@@ -29,7 +29,6 @@ const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 // Get AWS resource information from environment variables
 const TABLE_NAME = process.env.JOBS_TABLE_NAME;        // DynamoDB table name (for storing job status)
 const SUBNET_IDS = process.env.SUBNET_IDS;             // VPC subnet IDs (comma-separated)
-const CONTAINER_NAME = process.env.CONTAINER_NAME;     // Container name
 
 // Parse SUBNET_IDS (comma-separated string) and use first subnet
 const SUBNET_ID = SUBNET_IDS ? SUBNET_IDS.split(',')[0].trim() : undefined;
@@ -59,16 +58,18 @@ function getStageFromEvent(event: APIGatewayProxyEvent): string {
 /**
  * Get resource configuration based on stage
  */
-function getResourceConfig(stage: string): { clusterName: string; taskDefinition: string } {
+function getResourceConfig(stage: string): { clusterName: string; taskDefinition: string; containerName: string } {
   if (stage === 'develop') {
     return {
       clusterName: process.env.CLUSTER_NAME_DEV || process.env.CLUSTER_NAME || '',
       taskDefinition: process.env.BBN_TASK_DEFINITION_DEV || process.env.BBN_TASK_DEFINITION || '',
+      containerName: process.env.CONTAINER_NAME_DEV || process.env.CONTAINER_NAME || '',
     };
   } else {
     return {
       clusterName: process.env.CLUSTER_NAME || '',
       taskDefinition: process.env.BBN_TASK_DEFINITION || '',
+      containerName: process.env.CONTAINER_NAME || '',
     };
   }
 }
@@ -81,11 +82,12 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   const resourceConfig = getResourceConfig(stage);
   const clusterName = resourceConfig.clusterName;
   const taskDefinition = resourceConfig.taskDefinition;
-  
-  console.log(`Detected stage: ${stage}, using cluster: ${clusterName}, task: ${taskDefinition}`);
+  const containerName = resourceConfig.containerName;
+
+  console.log(`Detected stage: ${stage}, using cluster: ${clusterName}, task: ${taskDefinition}, container: ${containerName}`);
 
   // 1. Environment variable validation
-  if (!TABLE_NAME || !clusterName || !taskDefinition || !SUBNET_IDS || !SUBNET_ID || !CONTAINER_NAME) {
+  if (!TABLE_NAME || !clusterName || !taskDefinition || !SUBNET_IDS || !SUBNET_ID || !containerName) {
     console.error("Missing required environment variables.");
     return {
       statusCode: 500,
@@ -160,9 +162,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       },
       overrides: {
         containerOverrides: [{
-          name: CONTAINER_NAME,
+          name: containerName,
           environment: [
             { name: "JOB_ID", value: jobId },
+            { name: "TASK_TYPE", value: "bbn_inference" },
             ...formDataEnvironmentVariables
           ],
         }],

@@ -79,7 +79,7 @@ export const useSimulation = () => {
     if (jobStatus === 'COMPLETED' && jobId && jobId !== 'local') {
       apiService.getResults(jobId)
         .then(setResults)
-        .catch(() => setError('Failed to fetch final results.'));
+        .catch((err: any) => setError(`Failed to fetch final results: ${err?.message ?? err}`));
     }
   }, [jobStatus, jobId, setResults, setError]);
 
