@@ -143,6 +143,8 @@ def handler(event, context):
             s3_key = f"results/sensitivity-analysis-{job_id}.json"
         elif result_type == 'update-pfd':
             s3_key = f"results/update-pfd-{job_id}.json"
+        elif result_type == 'bbn-inference':
+            s3_key = f"results/results-{job_id}.json"
         else:  # full-analysis
             s3_key = f"results/full-analysis-{job_id}.json"
         
