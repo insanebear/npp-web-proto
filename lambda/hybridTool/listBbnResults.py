@@ -18,7 +18,7 @@ from datetime import datetime
 s3_client = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ap-northeast-2"))
 
 DEFAULT_BUCKET = "bayesian-simulation-results-bucket"
-DEFAULT_PREFIX = "results/"
+DEFAULT_PREFIX = "results/bbn/"
 
 
 def _response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:

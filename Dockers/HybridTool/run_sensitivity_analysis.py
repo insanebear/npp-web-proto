@@ -157,7 +157,7 @@ def main():
         run_analysis_func=run_sensitivity_analysis,
         build_result_json_func=build_result_json,
         build_completion_payload_func=build_completion_payload,
-        s3_key_prefix="sensitivity-analysis",
+        s3_key_prefix="sensitivity/sensitivity-analysis",
         test_mode_dummy_func=get_test_mode_dummy,
     )
 

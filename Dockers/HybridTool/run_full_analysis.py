@@ -224,7 +224,7 @@ def main():
         run_analysis_func=run_full_analysis,
         build_result_json_func=build_result_json,
         build_completion_payload_func=build_completion_payload,
-        s3_key_prefix="full-analysis",
+        s3_key_prefix="full/full-analysis",
         test_mode_dummy_func=get_test_mode_dummy,
     )
 

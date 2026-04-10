@@ -177,7 +177,7 @@ def save_trace_to_s3(trace: Any, config: Dict[str, Any], job_id: str) -> str:
     """Save InferenceData trace to S3 as NetCDF (.nc) file"""
     import arviz as az
 
-    s3_key = f"results/prior-trace-{job_id}.nc"
+    s3_key = f"results/bbn/prior-trace-{job_id}.nc"
     s3_bucket = config["S3_BUCKET"]
     aws_region = config["AWS_REGION"]
     test_output_dir = config["TEST_OUTPUT_DIR"]

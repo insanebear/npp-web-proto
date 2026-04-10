@@ -140,13 +140,13 @@ def handler(event, context):
         
         # S3 경로 결정 (flattened: results/{endpoint}-{job_id}.json)
         if result_type == 'sensitivity-analysis':
-            s3_key = f"results/sensitivity-analysis-{job_id}.json"
+            s3_key = f"results/sensitivity/sensitivity-analysis-{job_id}.json"
         elif result_type == 'update-pfd':
-            s3_key = f"results/update-pfd-{job_id}.json"
+            s3_key = f"results/full/update-pfd-{job_id}.json"
         elif result_type == 'bbn-inference':
-            s3_key = f"results/results-{job_id}.json"
+            s3_key = f"results/bbn/results-{job_id}.json"
         else:  # full-analysis
-            s3_key = f"results/full-analysis-{job_id}.json"
+            s3_key = f"results/full/full-analysis-{job_id}.json"
         
         print(f"Checking S3 key: {s3_key}")
         

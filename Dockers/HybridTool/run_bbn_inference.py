@@ -173,7 +173,7 @@ OUTPUT_VAR_NAMES = [
 def _save_results(config: Dict[str, Any], result_json: Dict[str, Any]) -> str:
     """Save JSON results to S3 or locally."""
     job_id = config["JOB_ID"]
-    s3_key = f"results/results-{job_id}.json"
+    s3_key = f"results/bbn/results-{job_id}.json"
     test_output_dir = config["TEST_OUTPUT_DIR"]
 
     if test_output_dir:

@@ -281,7 +281,7 @@ def handler(event, context):
         if bbn_input_s3_bucket:
             environment_overrides.append({'name': 'BBN_INPUT_BUCKET', 'value': bbn_input_s3_bucket})
         if bbn_job_id:
-            environment_overrides.append({'name': 'PRIOR_TRACE_S3_KEY', 'value': f'results/prior-trace-{bbn_job_id}.nc'})
+            environment_overrides.append({'name': 'PRIOR_TRACE_S3_KEY', 'value': f'results/bbn/prior-trace-{bbn_job_id}.nc'})
 
         response = ecs_client.run_task(
             cluster=cluster_name,
