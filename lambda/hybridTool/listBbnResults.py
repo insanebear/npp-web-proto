@@ -5,11 +5,15 @@ Lambda Function: hybrid-tool-list-bbn-results
 - REST API 요청 수신 (GET /api/v1/results)
 - S3 버킷의 BBN 결과 JSON 파일 목록을 반환
 - key 쿼리 파라미터가 있으면 해당 파일의 내용을 반환
+
+스테이지 분기:
+- develop: BBN_RESULTS_BUCKET_DEV / BBN_RESULTS_PREFIX_DEV (기본: hybrid-tool-results / results/bbn/)
+- prod:    BBN_RESULTS_BUCKET     / BBN_RESULTS_PREFIX     (기본: bayesian-simulation-results-bucket / results/)
 """
 
 import json
 import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
 import boto3
 from botocore.exceptions import ClientError
@@ -17,8 +21,13 @@ from datetime import datetime
 
 s3_client = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ap-northeast-2"))
 
-DEFAULT_BUCKET = "bayesian-simulation-results-bucket"
-DEFAULT_PREFIX = "results/bbn/"
+# 프로덕션 기본값 (아직 구버킷 사용)
+DEFAULT_BUCKET_PROD = "bayesian-simulation-results-bucket"
+DEFAULT_PREFIX_PROD = "results/"
+
+# 개발 기본값 (새 버킷 / 하위 폴더)
+DEFAULT_BUCKET_DEV = "hybrid-tool-results"
+DEFAULT_PREFIX_DEV = "results/bbn/"
 
 
 def _response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
@@ -40,17 +49,30 @@ def _json_serializer(obj):
     raise TypeError(f"Type {type(obj)} not serializable")
 
 
-def _get_bucket_and_prefix() -> (str, str):
-    bucket = os.environ.get("BBN_RESULTS_BUCKET", DEFAULT_BUCKET)
-    prefix = os.environ.get("BBN_RESULTS_PREFIX", DEFAULT_PREFIX)
-    # prefix는 비어있을 수 있으나, 있으면 '/'로 끝나도록 보정
+def _get_stage(event: Dict[str, Any]) -> str:
+    stage = event.get("requestContext", {}).get("stage", "")
+    if stage:
+        return stage
+    path = event.get("path", "")
+    if path.startswith("/develop/"):
+        return "develop"
+    return "prod"
+
+
+def _get_bucket_and_prefix(stage: str) -> Tuple[str, str]:
+    if stage == "develop":
+        bucket = os.environ.get("BBN_RESULTS_BUCKET_DEV", DEFAULT_BUCKET_DEV)
+        prefix = os.environ.get("BBN_RESULTS_PREFIX_DEV", DEFAULT_PREFIX_DEV)
+    else:
+        bucket = os.environ.get("BBN_RESULTS_BUCKET", DEFAULT_BUCKET_PROD)
+        prefix = os.environ.get("BBN_RESULTS_PREFIX", DEFAULT_PREFIX_PROD)
+
     if prefix and not prefix.endswith("/"):
         prefix = prefix + "/"
     return bucket, prefix
 
 
-def _list_files(limit: int) -> Dict[str, Any]:
-    bucket, prefix = _get_bucket_and_prefix()
+def _list_files(bucket: str, prefix: str, limit: int) -> Dict[str, Any]:
     paginator = s3_client.get_paginator("list_objects_v2")
     page_iterator = paginator.paginate(Bucket=bucket, Prefix=prefix)
 
@@ -61,11 +83,10 @@ def _list_files(limit: int) -> Dict[str, Any]:
             if not key or key.endswith("/"):
                 continue
             if prefix and key.startswith(prefix):
-                relative_key = key[len(prefix) :]
+                relative_key = key[len(prefix):]
             else:
                 relative_key = key
             if relative_key.startswith("/"):
-                # 빈 경로 조각(//)이 포함된 객체는 제외
                 continue
             if "//" in relative_key:
                 continue
@@ -73,15 +94,14 @@ def _list_files(limit: int) -> Dict[str, Any]:
             if not relative_key:
                 continue
             if "/" in relative_key:
-                # 하위 "폴더"에 있는 객체는 목록에서 제외
+                # 하위 폴더 객체 제외
                 continue
             if not relative_key.lower().endswith(".json"):
                 continue
-            display_name = relative_key
             items.append(
                 {
                     "key": key,
-                    "name": display_name,
+                    "name": relative_key,
                     "size": obj.get("Size"),
                     "last_modified": obj.get("LastModified"),
                 }
@@ -99,8 +119,7 @@ def _list_files(limit: int) -> Dict[str, Any]:
     }
 
 
-def _get_file(key: str) -> Dict[str, Any]:
-    bucket, prefix = _get_bucket_and_prefix()
+def _get_file(bucket: str, prefix: str, key: str) -> Dict[str, Any]:
     normalized_key = key
     if prefix and not key.startswith(prefix):
         normalized_key = prefix + key
@@ -138,13 +157,17 @@ def handler(event, context):
         if http_method != "GET":
             return _response(405, {"message": f"Method {http_method} not allowed"})
 
+        stage = _get_stage(event)
+        bucket, prefix = _get_bucket_and_prefix(stage)
+        print(f"[CONFIG] stage={stage}, bucket={bucket}, prefix={prefix}")
+
         params: Optional[Dict[str, Any]] = event.get("queryStringParameters") or {}
         key = params.get("key") if isinstance(params, dict) else None
         limit_param = params.get("limit") if isinstance(params, dict) else None
 
         if key:
             try:
-                file_result = _get_file(key)
+                file_result = _get_file(bucket, prefix, key)
                 if "error" in file_result:
                     return _response(404, file_result)
                 return _response(200, file_result)
@@ -164,10 +187,9 @@ def handler(event, context):
         if limit > 500:
             limit = 500
 
-        result = _list_files(limit)
+        result = _list_files(bucket, prefix, limit)
         return _response(200, result)
 
     except Exception as exc:
         print(f"[ERROR] {exc}")
         return _response(500, {"message": f"Unexpected error: {exc}"})
-
