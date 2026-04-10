@@ -34,11 +34,8 @@ fi
 # 선택적 환경 변수
 : "${JOBS_TABLE_NAME:=}"
 : "${CONTAINER_NAME:=hybrid-tool-container}"
-# BBN 결과 버킷: prod는 구버킷, dev는 신버킷
-: "${BBN_RESULTS_BUCKET:=bayesian-simulation-results-bucket}"
-: "${BBN_RESULTS_BUCKET_DEV:=hybrid-tool-results}"
-# getResults용 prod 버킷
-: "${S3_BUCKET_PROD:=bayesian-simulation-results-bucket}"
+# BBN 결과 버킷 (dev/prod 모두 hybrid-tool-results 사용)
+: "${BBN_RESULTS_BUCKET:=hybrid-tool-results}"
 
 # 개발 환경 변수 (선택적, 없으면 프로덕션 변수 사용)
 : "${CLUSTER_NAME_DEV:=}"
@@ -75,11 +72,9 @@ ENV_VARS_JSON=$(cat <<EOF
     "HYBRID_TASK_DEFINITION": "$HYBRID_TASK_DEFINITION",
     "SUBNET_IDS": "$SUBNET_IDS",
     "S3_BUCKET": "$S3_BUCKET",
-    "S3_BUCKET_PROD": "$S3_BUCKET_PROD",
     "JOBS_TABLE_NAME": "${JOBS_TABLE_NAME:-}",
     "CONTAINER_NAME": "$CONTAINER_NAME",
-    "BBN_RESULTS_BUCKET": "$BBN_RESULTS_BUCKET",
-    "BBN_RESULTS_BUCKET_DEV": "$BBN_RESULTS_BUCKET_DEV"$([ -n "$CLUSTER_NAME_DEV" ] && printf ',\n    "CLUSTER_NAME_DEV": "%s"' "$CLUSTER_NAME_DEV" || true)$([ -n "$HYBRID_TASK_DEFINITION_DEV" ] && printf ',\n    "HYBRID_TASK_DEFINITION_DEV": "%s"' "$HYBRID_TASK_DEFINITION_DEV" || true)
+    "BBN_RESULTS_BUCKET": "$BBN_RESULTS_BUCKET"$([ -n "$CLUSTER_NAME_DEV" ] && printf ',\n    "CLUSTER_NAME_DEV": "%s"' "$CLUSTER_NAME_DEV" || true)$([ -n "$HYBRID_TASK_DEFINITION_DEV" ] && printf ',\n    "HYBRID_TASK_DEFINITION_DEV": "%s"' "$HYBRID_TASK_DEFINITION_DEV" || true)
   }
 }
 EOF

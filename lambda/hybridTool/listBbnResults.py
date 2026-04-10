@@ -5,15 +5,11 @@ Lambda Function: hybrid-tool-list-bbn-results
 - REST API 요청 수신 (GET /api/v1/results)
 - S3 버킷의 BBN 결과 JSON 파일 목록을 반환
 - key 쿼리 파라미터가 있으면 해당 파일의 내용을 반환
-
-스테이지 분기:
-- develop: BBN_RESULTS_BUCKET_DEV / BBN_RESULTS_PREFIX_DEV (기본: hybrid-tool-results / results/bbn/)
-- prod:    BBN_RESULTS_BUCKET     / BBN_RESULTS_PREFIX     (기본: bayesian-simulation-results-bucket / results/)
 """
 
 import json
 import os
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 
 import boto3
 from botocore.exceptions import ClientError
@@ -21,13 +17,22 @@ from datetime import datetime
 
 s3_client = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ap-northeast-2"))
 
-# 프로덕션 기본값 (아직 구버킷 사용)
-DEFAULT_BUCKET_PROD = "bayesian-simulation-results-bucket"
-DEFAULT_PREFIX_PROD = "results/"
+# 현재 dev/prod 모두 hybrid-tool-results 사용
+DEFAULT_BUCKET = "hybrid-tool-results"
+DEFAULT_PREFIX = "results/bbn/"
+# 향후 prod 분기 확장용 변수 (현재 미사용)
+DEFAULT_BUCKET_PROD = os.environ.get("BBN_RESULTS_BUCKET", DEFAULT_BUCKET)
+DEFAULT_PREFIX_PROD = os.environ.get("BBN_RESULTS_PREFIX", DEFAULT_PREFIX)
 
-# 개발 기본값 (새 버킷 / 하위 폴더)
-DEFAULT_BUCKET_DEV = "hybrid-tool-results"
-DEFAULT_PREFIX_DEV = "results/bbn/"
+
+def _get_stage(event: Dict[str, Any]) -> str:
+    stage = (event.get("requestContext") or {}).get("stage", "")
+    if stage:
+        return stage
+    path = event.get("path", "")
+    if path.startswith("/develop/"):
+        return "develop"
+    return "prod"
 
 
 def _response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
@@ -49,30 +54,16 @@ def _json_serializer(obj):
     raise TypeError(f"Type {type(obj)} not serializable")
 
 
-def _get_stage(event: Dict[str, Any]) -> str:
-    stage = event.get("requestContext", {}).get("stage", "")
-    if stage:
-        return stage
-    path = event.get("path", "")
-    if path.startswith("/develop/"):
-        return "develop"
-    return "prod"
-
-
-def _get_bucket_and_prefix(stage: str) -> Tuple[str, str]:
-    if stage == "develop":
-        bucket = os.environ.get("BBN_RESULTS_BUCKET_DEV", DEFAULT_BUCKET_DEV)
-        prefix = os.environ.get("BBN_RESULTS_PREFIX_DEV", DEFAULT_PREFIX_DEV)
-    else:
-        bucket = os.environ.get("BBN_RESULTS_BUCKET", DEFAULT_BUCKET_PROD)
-        prefix = os.environ.get("BBN_RESULTS_PREFIX", DEFAULT_PREFIX_PROD)
-
+def _get_bucket_and_prefix():
+    bucket = os.environ.get("BBN_RESULTS_BUCKET", DEFAULT_BUCKET)
+    prefix = os.environ.get("BBN_RESULTS_PREFIX", DEFAULT_PREFIX)
     if prefix and not prefix.endswith("/"):
         prefix = prefix + "/"
     return bucket, prefix
 
 
-def _list_files(bucket: str, prefix: str, limit: int) -> Dict[str, Any]:
+def _list_files(limit: int) -> Dict[str, Any]:
+    bucket, prefix = _get_bucket_and_prefix()
     paginator = s3_client.get_paginator("list_objects_v2")
     page_iterator = paginator.paginate(Bucket=bucket, Prefix=prefix)
 
@@ -119,7 +110,8 @@ def _list_files(bucket: str, prefix: str, limit: int) -> Dict[str, Any]:
     }
 
 
-def _get_file(bucket: str, prefix: str, key: str) -> Dict[str, Any]:
+def _get_file(key: str) -> Dict[str, Any]:
+    bucket, prefix = _get_bucket_and_prefix()
     normalized_key = key
     if prefix and not key.startswith(prefix):
         normalized_key = prefix + key
@@ -157,17 +149,13 @@ def handler(event, context):
         if http_method != "GET":
             return _response(405, {"message": f"Method {http_method} not allowed"})
 
-        stage = _get_stage(event)
-        bucket, prefix = _get_bucket_and_prefix(stage)
-        print(f"[CONFIG] stage={stage}, bucket={bucket}, prefix={prefix}")
-
         params: Optional[Dict[str, Any]] = event.get("queryStringParameters") or {}
         key = params.get("key") if isinstance(params, dict) else None
         limit_param = params.get("limit") if isinstance(params, dict) else None
 
         if key:
             try:
-                file_result = _get_file(bucket, prefix, key)
+                file_result = _get_file(key)
                 if "error" in file_result:
                     return _response(404, file_result)
                 return _response(200, file_result)
@@ -187,7 +175,7 @@ def handler(event, context):
         if limit > 500:
             limit = 500
 
-        result = _list_files(bucket, prefix, limit)
+        result = _list_files(limit)
         return _response(200, result)
 
     except Exception as exc:

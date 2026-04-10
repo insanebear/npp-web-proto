@@ -148,28 +148,17 @@ def handler(event, context):
         # 기본값은 full-analysis
         result_type = result_type or 'full-analysis'
 
-        # 스테이지 감지: dev는 하위 폴더 분리된 새 버킷, prod는 구버킷
+        # 스테이지 감지 (향후 dev/prod 분기 확장용)
         stage = _get_stage(event)
-        if stage == 'develop':
-            bucket = S3_BUCKET
-            if result_type == 'sensitivity-analysis':
-                s3_key = f"results/sensitivity/sensitivity-analysis-{job_id}.json"
-            elif result_type == 'update-pfd':
-                s3_key = f"results/full/update-pfd-{job_id}.json"
-            elif result_type == 'bbn-inference':
-                s3_key = f"results/bbn/results-{job_id}.json"
-            else:  # full-analysis
-                s3_key = f"results/full/full-analysis-{job_id}.json"
-        else:  # prod — 구버킷, 구경로
-            bucket = S3_BUCKET_PROD
-            if result_type == 'sensitivity-analysis':
-                s3_key = f"results/sensitivity-analysis-{job_id}.json"
-            elif result_type == 'update-pfd':
-                s3_key = f"results/update-pfd-{job_id}.json"
-            elif result_type == 'bbn-inference':
-                s3_key = f"results/results-{job_id}.json"
-            else:  # full-analysis
-                s3_key = f"results/full-analysis-{job_id}.json"
+        bucket = S3_BUCKET  # 현재 dev/prod 모두 hybrid-tool-results 사용
+        if result_type == 'sensitivity-analysis':
+            s3_key = f"results/sensitivity/sensitivity-analysis-{job_id}.json"
+        elif result_type == 'update-pfd':
+            s3_key = f"results/full/update-pfd-{job_id}.json"
+        elif result_type == 'bbn-inference':
+            s3_key = f"results/bbn/results-{job_id}.json"
+        else:  # full-analysis
+            s3_key = f"results/full/full-analysis-{job_id}.json"
 
         print(f"Result type: {result_type}, stage: {stage}, bucket: {bucket}")
         
