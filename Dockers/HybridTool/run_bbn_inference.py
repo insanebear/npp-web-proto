@@ -147,9 +147,9 @@ def get_job_config() -> Dict[str, Any]:
     return config
 
 
-def _pfd_stats(pfd_samples: Any) -> Dict[str, float]:
-    """Compute summary statistics from PFD posterior samples."""
-    values = np.array(pfd_samples).flatten()
+def _var_stats(samples: Any) -> Dict[str, float]:
+    """Compute summary statistics from posterior samples."""
+    values = np.array(samples).flatten()
     return {
         "mean": float(values.mean()),
         "sd": float(values.std()),
@@ -157,6 +157,17 @@ def _pfd_stats(pfd_samples: Any) -> Dict[str, float]:
         "q2_5": float(np.percentile(values, 2.5)),
         "q97_5": float(np.percentile(values, 97.5)),
     }
+
+
+# Variables to include in output
+OUTPUT_VAR_NAMES = [
+    "PFD",
+    "SR_Total_Remained_Defect",
+    "SD_Total_Remained_Defect",
+    "IM_Total_Remained_Defect",
+    "ST_Total_Remained_Defect",
+    "IC_Total_Remained_Defect",
+]
 
 
 def _save_results(config: Dict[str, Any], result_json: Dict[str, Any]) -> str:
@@ -207,9 +218,13 @@ def main():
 
         if config["TEST_MODE"]:
             print("\n[TEST MODE] Skipping computation, using dummy values")
-            pfd_stats = {
-                "mean": 0.0001, "sd": 0.00005,
-                "median": 0.0001, "q2_5": 0.00005, "q97_5": 0.00015,
+            output_stats = {
+                "PFD": {"mean": 0.0001, "sd": 0.00005, "median": 0.0001, "q2_5": 0.00005, "q97_5": 0.00015},
+                "SR_Total_Remained_Defect": {"mean": 7.0, "sd": 4.0, "median": 6.0, "q2_5": 1.0, "q97_5": 16.0},
+                "SD_Total_Remained_Defect": {"mean": 23.0, "sd": 14.0, "median": 20.0, "q2_5": 3.0, "q97_5": 55.0},
+                "IM_Total_Remained_Defect": {"mean": 36.0, "sd": 20.0, "median": 32.0, "q2_5": 8.0, "q97_5": 80.0},
+                "ST_Total_Remained_Defect": {"mean": 24.0, "sd": 13.0, "median": 21.0, "q2_5": 5.0, "q97_5": 55.0},
+                "IC_Total_Remained_Defect": {"mean": 9.0, "sd": 7.0, "median": 7.0, "q2_5": 1.0, "q97_5": 25.0},
             }
             trace_s3_key = None
         else:
@@ -224,9 +239,15 @@ def main():
             )
             print("[STEP 1] Composite model completed")
 
-            # Compute PFD statistics
-            pfd_stats = _pfd_stats(trace.posterior["PFD"])
-            print(f"[STEP 1] PFD mean: {pfd_stats['mean']:.6g}, sd: {pfd_stats['sd']:.6g}")
+            # Compute statistics for all output variables
+            posterior = trace.posterior
+            output_stats = {}
+            for var_name in OUTPUT_VAR_NAMES:
+                if var_name in posterior:
+                    output_stats[var_name] = _var_stats(posterior[var_name])
+                    print(f"[STEP 1] {var_name} mean: {output_stats[var_name]['mean']:.6g}")
+                else:
+                    print(f"[WARN] {var_name} not found in posterior")
 
             # Save trace to S3
             print("\n[STEP 2] Saving trace to S3...")
@@ -236,7 +257,7 @@ def main():
         # Build result JSON
         result_json = {
             "input": input_json,
-            "output": {"PFD": pfd_stats},
+            "output": output_stats,
         }
         s3_location = _save_results(config, result_json)
 
