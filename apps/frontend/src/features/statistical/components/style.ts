@@ -8,6 +8,9 @@ export const cssObj = {
       margin: 0;
       background-color: #E5E7EB
     }
+    .info-icon-trigger:hover + .info-tooltip {
+      opacity: 1 !important;
+    }
   `,
 
   pageWrapper: css`
@@ -457,6 +460,7 @@ export const cssObj = {
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     flex: 1;
+    align-items: start;
   `,
   resultCard: css`
     background-color: ${COLORS.gray50};
@@ -467,15 +471,44 @@ export const cssObj = {
     flex-direction: column;
     gap: 6px;
   `,
+  resultCardPrimary: css`
+    background-color: ${COLORS.blue50};
+    border: 1.5px solid ${COLORS.blue600};
+    border-radius: 6px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  `,
   resultCardLabel: css`
     font-size: 11px;
     color: ${COLORS.gray500};
     font-weight: 500;
   `,
+  resultCardLabelPrimary: css`
+    font-size: 11px;
+    color: ${COLORS.blue600};
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  `,
   resultCardValue: css`
     font-size: ${FONT_SIZE.base};
     font-weight: 600;
     color: ${COLORS.gray800};
+  `,
+  resultCardValuePrimary: css`
+    font-size: 20px;
+    font-weight: 700;
+    color: ${COLORS.blue900};
+  `,
+  resultCardPriorRow: css`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: ${COLORS.gray500};
+    margin-bottom: 2px;
   `,
   // ── Footer note ──
   footerNote: css`

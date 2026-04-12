@@ -688,7 +688,55 @@ export default function StatisticalPage() {
             {/* 1. Sensitivity Analysis */}
             <div css={cssObj.settingBox}>
               <form onSubmit={handleSensitivitySubmit} css={cssObj.formWrapper}>
-                <h2>1. Sensitivity analysis</h2>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  1. Required number of tests
+                  <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        border: '1.5px solid #6B7280',
+                        color: '#6B7280',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        cursor: 'default',
+                        userSelect: 'none',
+                      }}
+                      className="info-icon-trigger"
+                    >
+                      i
+                    </span>
+                    <span
+                      className="info-tooltip"
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        bottom: 'calc(100% + 6px)',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: '#1F2937',
+                        color: '#F9FAFB',
+                        fontSize: '12px',
+                        fontWeight: 'normal',
+                        lineHeight: '1.5',
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'none',
+                        opacity: 0,
+                        transition: 'opacity 0.15s',
+                        zIndex: 10,
+                      }}
+                    >
+                      Calculates the required number of tests 
+                      <br />to achieve the input PFD and confidence goal,
+                      <br />assuming no failures occur.
+                    </span>
+                  </span>
+                </h2>
                 <div css={cssObj.inputGroup}>
                   <label css={cssObj.inputLabel}>PFD goal</label>
                   <input
@@ -739,7 +787,54 @@ export default function StatisticalPage() {
             {/* 2. PFD Update */}
             <div css={cssObj.settingBox}>
               <form onSubmit={(e) => { e.preventDefault(); handlePfdUpdateSubmit(); }} css={cssObj.formWrapper}>
-                <h2>2. PFD update</h2>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  2. PFD update
+                  <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        border: '1.5px solid #6B7280',
+                        color: '#6B7280',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        cursor: 'default',
+                        userSelect: 'none',
+                      }}
+                      className="info-icon-trigger"
+                    >
+                      i
+                    </span>
+                    <span
+                      className="info-tooltip"
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        bottom: 'calc(100% + 6px)',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: '#1F2937',
+                        color: '#F9FAFB',
+                        fontSize: '12px',
+                        fontWeight: 'normal',
+                        lineHeight: '1.5',
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'none',
+                        opacity: 0,
+                        transition: 'opacity 0.15s',
+                        zIndex: 10,
+                      }}
+                    >
+                      Updates the BBN-derived prior PFD with observed test results
+                      <br/> to reflect the current system reliability.
+                    </span>
+                  </span>
+                </h2>
                 <div css={cssObj.hintText} style={{ display: 'flex', gap: '12px', fontSize: '13px' }}>
                   <span>PFD goal: <strong>{pfdGoal !== '' ? pfdGoal : '—'}</strong></span>
                   <span>Confidence goal: <strong>{confidenceGoal !== '' ? confidenceGoal : '—'}</strong></span>
@@ -822,9 +917,6 @@ export default function StatisticalPage() {
                     </span>
                   )}
                 </div>
-                <p css={cssObj.sectionDescription}>
-                  Updates the prior PFD based on observed tests and failures.
-                </p>
               </form>
             </div>
 
@@ -855,26 +947,26 @@ export default function StatisticalPage() {
                   </button>
                 </div>
               </div>
+              <div css={cssObj.resultCardPriorRow}>
+                <span>Prior PFD:</span>
+                <span style={{ fontWeight: 600, color: '#374151' }}>
+                  {pfdUpdateResultData?.input?.parameter?.prior?.mean != null
+                    ? pfdUpdateResultData.input.parameter.prior.mean.toExponential(4)
+                    : '—'}
+                </span>
+              </div>
               <div css={cssObj.resultCardGrid}>
-                <div css={[cssObj.resultCard, { gridColumn: '1 / -1' }]}>
-                  <span css={cssObj.resultCardLabel}>Prior PFD</span>
-                  <span css={cssObj.resultCardValue}>
-                    {pfdUpdateResultData?.input?.parameter?.prior?.mean != null
-                      ? pfdUpdateResultData.input.parameter.prior.mean.toExponential(4)
-                      : '—'}
-                  </span>
-                </div>
-                <div css={cssObj.resultCard}>
-                  <span css={cssObj.resultCardLabel}>Updated PFD</span>
-                  <span css={cssObj.resultCardValue}>
+                <div css={cssObj.resultCardPrimary}>
+                  <span css={cssObj.resultCardLabelPrimary}>Updated PFD</span>
+                  <span css={cssObj.resultCardValuePrimary}>
                     {pfdUpdateResultData?.output?.mean_posterior_pfd?.[0]?.[1] != null
                       ? pfdUpdateResultData.output.mean_posterior_pfd[0][1].toExponential(4)
                       : '—'}
                   </span>
                 </div>
-                <div css={cssObj.resultCard}>
-                  <span css={cssObj.resultCardLabel}>Confidence</span>
-                  <span css={cssObj.resultCardValue}>
+                <div css={cssObj.resultCardPrimary}>
+                  <span css={cssObj.resultCardLabelPrimary}>Confidence</span>
+                  <span css={cssObj.resultCardValuePrimary}>
                     {pfdUpdateResultData?.output?.confidence != null
                       ? (pfdUpdateResultData.output.confidence * 100).toFixed(1) + '%'
                       : '—'}
