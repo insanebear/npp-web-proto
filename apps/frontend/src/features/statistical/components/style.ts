@@ -8,6 +8,9 @@ export const cssObj = {
       margin: 0;
       background-color: #E5E7EB
     }
+    .info-icon-trigger:hover + .info-tooltip {
+      opacity: 1 !important;
+    }
   `,
 
   pageWrapper: css`
