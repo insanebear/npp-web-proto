@@ -14,6 +14,13 @@ export const cssObj = {
   padding-top: 80px;
 `,
 
+  embeddedWrapper: css`
+  color: ${COLORS.gray900};
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+`,
+
 
   mainContent: css`
     max-width: 1280px;
@@ -75,9 +82,9 @@ export const cssObj = {
   `,
 
   saveButtonContainer: css`
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
+    display: flex;
+    justify-content: center;
+    margin-top: 32px;
   `,
 
   saveButton: css`

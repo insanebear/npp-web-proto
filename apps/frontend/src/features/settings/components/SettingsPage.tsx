@@ -3,7 +3,7 @@ import { cssObj } from "./style";
 import { useState, useEffect, type ChangeEvent } from "react";
 import { useAppSettings } from "../../../shared/hooks/useAppSettings";
 
-export default function SettingsPage() {
+export default function SettingsPage({ embedded = false }: { embedded?: boolean }) {
 
   const {
     nChains,
@@ -73,7 +73,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div css={cssObj.pageWrapper}>
+    <div css={embedded ? cssObj.embeddedWrapper : cssObj.pageWrapper}>
       <main css={cssObj.mainContent}>
         <section id="settings-title-section" css={[cssObj.container, cssObj.settingsTitleSection]}>
           <h1 css={cssObj.title}>BBN Hyperparameters</h1>
