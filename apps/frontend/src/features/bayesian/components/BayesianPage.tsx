@@ -35,13 +35,9 @@ function BayesianPage() {
 
   // The active tab state remains local. We'll default to the new "FP" tab.
   const [activeLabel, setActiveLabel] = useState('FP');
-  const [includeTraceData, setIncludeTraceData] = useState(false);
 
   const handleSubmit = () => {
-    // The `inputValues` from props now contains FP and all dropdowns.
     const payload = formatPayload(inputValues, settings);
-    // Include trace data setting in the payload
-    payload.settings.includeTraceData = includeTraceData;
     handleStartSimulation(payload);
   };
 
@@ -75,49 +71,15 @@ function BayesianPage() {
         onFileSelect={handleFileSelect}
       />
       {/* Fixed-width control box positioned below Settings */}
-      <div className="absolute" style={{ 
+      <div className="absolute" style={{
         right: '40px',
-        top: '80px', 
-        width: '340px', 
-        maxWidth: 'calc(100vw - 50% - 150px - 40px)',
+        top: '80px',
         height: '60px',
         padding: '12px 16px',
-        zIndex: 10
+        zIndex: 10,
+        display: 'flex',
+        alignItems: 'center',
       }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '24px', 
-          height: '100%' 
-        }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '12px' 
-          }}>
-            <label style={{ 
-              color: '#000000', 
-              fontSize: '14px', 
-              fontWeight: '500', 
-              whiteSpace: 'nowrap' 
-            }}>
-              Include trace raw data
-            </label>
-            <input
-              type="checkbox"
-              checked={includeTraceData}
-              onChange={(e) => setIncludeTraceData(e.target.checked)}
-              style={{
-                width: '16px',
-                height: '16px',
-                color: '#2563eb',
-                backgroundColor: '#f3f4f6',
-                borderColor: '#d1d5db',
-                borderRadius: '4px',
-                outline: 'none'
-              }}
-            />
-          </div>
           <button
             onClick={handleSubmit}
             disabled={jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED'}
@@ -154,7 +116,6 @@ function BayesianPage() {
               : `${jobStatus.charAt(0).toUpperCase() + jobStatus.slice(1).toLowerCase()}...`
             }
           </button>
-        </div>
       </div>
     </div>
   );
