@@ -6,6 +6,8 @@ import * as api from "../../../shared/services/apiService";
 import type { SensitivityAnalysisResult } from "../../../shared/services/apiService";
 import { useAppSettings } from '../../../shared/hooks/useAppSettings';
 
+type BbnTab = 'select' | 'upload';
+
 // Polling configuration
 const POLL_INTERVAL = 5000; // 5 seconds
 const MAX_WAIT_TIME = 7_200_000; // 120 minutes (milliseconds)
@@ -24,6 +26,20 @@ export default function StatisticalPage() {
   const [pfdUpdateResultData, setPfdUpdateResultData] = useState<any | null>(null);
   const [sensitivityJobId, setSensitivityJobId] = useState<string | null>(null);
   const [pfdUpdateJobId, setPfdUpdateJobId] = useState<string | null>(null);
+
+  // BBN selector tab
+  const [bbnTab, setBbnTab] = useState<BbnTab>('select');
+
+  // Upload tab state
+  const [uploadedJsonKey, setUploadedJsonKey] = useState<string | null>(null);
+  const [uploadedNcKey, setUploadedNcKey] = useState<string | null>(null);
+  const [uploadedBucket, setUploadedBucket] = useState<string | null>(null);
+  const [jsonUploading, setJsonUploading] = useState(false);
+  const [ncUploading, setNcUploading] = useState(false);
+  const [jsonUploadError, setJsonUploadError] = useState<string | null>(null);
+  const [ncUploadError, setNcUploadError] = useState<string | null>(null);
+  const [uploadedJsonName, setUploadedJsonName] = useState<string | null>(null);
+  const [uploadedNcName, setUploadedNcName] = useState<string | null>(null);
 
   const [bbnFiles, setBbnFiles] = useState<api.BbnResultItem[]>([]);
   const [bbnBucketInfo, setBbnBucketInfo] = useState<{ bucket: string; prefix: string } | null>(null);
@@ -46,6 +62,8 @@ export default function StatisticalPage() {
   const [pfdUpdateUsedDefaultBbn, setPfdUpdateUsedDefaultBbn] = useState<boolean>(false);
   const elapsedTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pollingRef = useRef<{ jobId: string; type: string; attempts: number; startTime: number } | null>(null);
+  const jsonFileInputRef = useRef<HTMLInputElement>(null);
+  const ncFileInputRef = useRef<HTMLInputElement>(null);
 
   // Number of Tests lock/unlock state
   const [isNumOfTestsLocked, setIsNumOfTestsLocked] = useState<boolean>(true);
@@ -302,8 +320,10 @@ export default function StatisticalPage() {
     }
   };
 
-  const handleDownloadSelectedBbnData = () => {
+  const handleDownloadSelectedBbnData = async () => {
     if (!selectedBbnData) return;
+
+    // Download JSON
     const jsonStr = JSON.stringify(selectedBbnData, null, 2);
     const blob = new Blob([jsonStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -315,6 +335,27 @@ export default function StatisticalPage() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+
+    // Download matching NC trace file
+    // JSON key pattern: results/bbn/results-{jobId}.json → NC key: results/bbn/prior-trace-{jobId}.nc
+    if (selectedBbnKey) {
+      const match = selectedBbnKey.match(/results-([^/]+)\.json$/);
+      if (match) {
+        const jobId = match[1];
+        const ncKey = `results/bbn/prior-trace-${jobId}.nc`;
+        try {
+          const { download_url } = await api.getDownloadPresignedUrl(ncKey);
+          const ncLink = document.createElement("a");
+          ncLink.href = download_url;
+          ncLink.download = `prior-trace-${jobId}.nc`;
+          document.body.appendChild(ncLink);
+          ncLink.click();
+          document.body.removeChild(ncLink);
+        } catch (err) {
+          console.warn("NC trace file not available:", err);
+        }
+      }
+    }
   };
 
   const handleViewPfdUpdateJson = () => {
@@ -349,7 +390,20 @@ export default function StatisticalPage() {
     : undefined;
 
   const buildBbnPayload = useCallback(() => {
-    // If a BBN file is selected, pass the S3 path
+    if (bbnTab === 'upload') {
+      // Upload tab: use uploaded file S3 keys
+      if (uploadedJsonKey && uploadedNcKey && uploadedBucket) {
+        const payload = {
+          bbn_input_s3_bucket: uploadedBucket,
+          bbn_input_s3_key: uploadedJsonKey,
+          prior_trace_s3_key: uploadedNcKey,
+        };
+        console.log('[BBN Payload] Uploaded files will be used:', payload);
+        return payload;
+      }
+      return {};
+    }
+    // Select tab: use S3 list selection
     if (selectedBbnKey && selectedBbnKey.trim() && bbnBucketInfo?.bucket) {
       const payload = {
         bbn_input_s3_bucket: bbnBucketInfo.bucket,
@@ -360,7 +414,50 @@ export default function StatisticalPage() {
     }
     console.log('[BBN Payload] No BBN file selected, using default');
     return {};
-  }, [selectedBbnKey, bbnBucketInfo]);
+  }, [bbnTab, selectedBbnKey, bbnBucketInfo, uploadedJsonKey, uploadedNcKey, uploadedBucket]);
+
+  // Upload tab: handle file selection and upload to S3
+  const handleUploadFile = async (
+    file: File,
+    fileType: 'json' | 'nc'
+  ) => {
+    if (fileType === 'json') {
+      setJsonUploading(true);
+      setJsonUploadError(null);
+      setUploadedJsonKey(null);
+      setUploadedJsonName(null);
+    } else {
+      setNcUploading(true);
+      setNcUploadError(null);
+      setUploadedNcKey(null);
+      setUploadedNcName(null);
+    }
+    try {
+      const { s3_key, bucket } = await api.uploadFileToS3(file);
+      if (fileType === 'json') {
+        setUploadedJsonKey(s3_key);
+        setUploadedJsonName(file.name);
+        setUploadedBucket(bucket);
+      } else {
+        setUploadedNcKey(s3_key);
+        setUploadedNcName(file.name);
+        setUploadedBucket(bucket);
+      }
+    } catch (err: any) {
+      const msg = err?.message ?? String(err);
+      if (fileType === 'json') {
+        setJsonUploadError(msg);
+      } else {
+        setNcUploadError(msg);
+      }
+    } finally {
+      if (fileType === 'json') {
+        setJsonUploading(false);
+      } else {
+        setNcUploading(false);
+      }
+    }
+  };
 
   // 1) Sensitivity Analysis
   const handleSensitivitySubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -376,6 +473,13 @@ export default function StatisticalPage() {
     if (!Number.isFinite(p) || !Number.isFinite(c)) {
       setLoading(false);
       setErrorMsg("Please enter valid numbers.");
+      return;
+    }
+
+    // Upload tab: both files required
+    if (bbnTab === 'upload' && (!uploadedJsonKey || !uploadedNcKey)) {
+      setLoading(false);
+      setErrorMsg("Upload tab is selected but both JSON and NC files are required. Please upload both files before calculating.");
       return;
     }
 
@@ -436,13 +540,20 @@ export default function StatisticalPage() {
     setPfdUpdateResultData(null);
     setPfdUpdateJobId(null);
     setPfdUpdateCompletedTime(null);
-    setPfdUpdateUsedDefaultBbn(!selectedBbnKey);
+    setPfdUpdateUsedDefaultBbn(bbnTab === 'select' ? !selectedBbnKey : false);
 
     const p = parseFloat(pfdGoal);
     const c = parseFloat(confidenceGoal);
     if (!Number.isFinite(p) || !Number.isFinite(c)) {
       setLoading(false);
       setErrorMsg("Please enter valid numbers.");
+      return;
+    }
+
+    // Upload tab: both files required
+    if (bbnTab === 'upload' && (!uploadedJsonKey || !uploadedNcKey)) {
+      setLoading(false);
+      setErrorMsg("Upload tab is selected but both JSON and NC files are required. Please upload both files before calculating.");
       return;
     }
 
@@ -592,92 +703,200 @@ export default function StatisticalPage() {
             <div css={cssObj.bbnSelectorHeader}>
               <div>
                 <h2>BBN JSON Result Selection</h2>
-                <p>
-                  {bbnBucketInfo
-                    ? `${bbnBucketInfo.bucket}/${bbnBucketInfo.prefix ?? ""}`
-                    : "Loading bucket information..."}
-                  {bbnBucketInfo && (
-                    <>
-                      {bbnLastRefreshed && (
+                {bbnTab === 'select' && (
+                  <p>
+                    {bbnBucketInfo
+                      ? `${bbnBucketInfo.bucket}/${bbnBucketInfo.prefix ?? ""}`
+                      : "Loading bucket information..."}
+                    {bbnBucketInfo && (
+                      <>
+                        {bbnLastRefreshed && (
+                          <span style={{ marginLeft: 8 }}>
+                            · Updated: {formatTimestamp(bbnLastRefreshed)}
+                          </span>
+                        )}
                         <span style={{ marginLeft: 8 }}>
-                          · Updated: {formatTimestamp(bbnLastRefreshed)}
+                          · Total {bbnFiles.length.toLocaleString()} files
                         </span>
-                      )}
-                      <span style={{ marginLeft: 8 }}>
-                        · Total {bbnFiles.length.toLocaleString()} files
-                      </span>
-                    </>
-                  )}
-                </p>
+                      </>
+                    )}
+                  </p>
+                )}
+                {bbnTab === 'upload' && (
+                  <p>Upload JSON and NC files downloaded from the BBN analysis result.</p>
+                )}
               </div>
+              {bbnTab === 'select' && (
+                <button
+                  type="button"
+                  css={cssObj.bbnRefreshButton}
+                  onClick={refreshBbnFiles}
+                  disabled={bbnFilesLoading}
+                >
+                  {bbnFilesLoading ? "Loading..." : "Refresh List"}
+                </button>
+              )}
+            </div>
+
+            {/* Tab bar */}
+            <div css={cssObj.bbnTabBar}>
               <button
                 type="button"
-                css={cssObj.bbnRefreshButton}
-                onClick={refreshBbnFiles}
-                disabled={bbnFilesLoading}
+                css={[cssObj.bbnTab, bbnTab === 'select' && cssObj.bbnTabActive]}
+                onClick={() => setBbnTab('select')}
               >
-                {bbnFilesLoading ? "Loading..." : "Refresh List"}
+                Select from list
+              </button>
+              <button
+                type="button"
+                css={[cssObj.bbnTab, bbnTab === 'upload' && cssObj.bbnTabActive]}
+                onClick={() => setBbnTab('upload')}
+              >
+                Upload files
               </button>
             </div>
 
-            <select
-              css={cssObj.bbnSelect}
-              value={selectedBbnKey}
-              onChange={(e) => handleSelectBbnFile(e.target.value)}
-              disabled={bbnFilesLoading || bbnFiles.length === 0}
-            >
-              <option value="">Select a file</option>
-              {bbnFiles.map((item) => (
-                <option key={item.key} value={item.key}>
-                  {formatFileLabel(item)}
-                </option>
-              ))}
-            </select>
-
-            {bbnFilesError && (
-              <span css={cssObj.bbnErrorText}>
-                Failed to load list: {bbnFilesError}
-              </span>
-            )}
-
-            {!bbnFilesLoading && bbnFiles.length === 0 && !bbnFilesError && (
-              <span css={cssObj.bbnMessage}>No JSON files available.</span>
-            )}
-
-            {selectedBbnMeta && (
-              <div css={cssObj.bbnMetaInfo}>
-                <span>File: {selectedBbnMeta.name}</span>
-                {typeof selectedBbnMeta.size === "number" && (
-                  <span>Size: {formatBytes(selectedBbnMeta.size)}</span>
-                )}
-                {selectedBbnMeta.last_modified && (
-                  <span>Modified: {formatTimestamp(selectedBbnMeta.last_modified)}</span>
-                )}
-              </div>
-            )}
-
-            {bbnFileLoading && (
-              <span css={cssObj.bbnMessage}>Loading selected file...</span>
-            )}
-
-            {bbnFileMessage && <span css={cssObj.bbnErrorText}>{bbnFileMessage}</span>}
-
-            {selectedBbnData && !bbnFileLoading && (
-              <div css={cssObj.bbnActionRow}>
-                <button
-                  type="button"
-                  css={[cssObj.bbnButton, cssObj.bbnPrimaryButton]}
-                  onClick={handleViewSelectedBbnData}
+            {/* Tab: Select from list */}
+            {bbnTab === 'select' && (
+              <>
+                <select
+                  css={cssObj.bbnSelect}
+                  value={selectedBbnKey}
+                  onChange={(e) => handleSelectBbnFile(e.target.value)}
+                  disabled={bbnFilesLoading || bbnFiles.length === 0}
                 >
-                  View
-                </button>
-                <button
-                  type="button"
-                  css={[cssObj.bbnButton, cssObj.bbnSecondaryButton]}
-                  onClick={handleDownloadSelectedBbnData}
-                >
-                  Download
-                </button>
+                  <option value="">Select a file</option>
+                  {bbnFiles.map((item) => (
+                    <option key={item.key} value={item.key}>
+                      {formatFileLabel(item)}
+                    </option>
+                  ))}
+                </select>
+
+                {bbnFilesError && (
+                  <span css={cssObj.bbnErrorText}>
+                    Failed to load list: {bbnFilesError}
+                  </span>
+                )}
+
+                {!bbnFilesLoading && bbnFiles.length === 0 && !bbnFilesError && (
+                  <span css={cssObj.bbnMessage}>No JSON files available.</span>
+                )}
+
+                {selectedBbnMeta && (
+                  <div css={cssObj.bbnMetaInfo}>
+                    <span>File: {selectedBbnMeta.name}</span>
+                    {typeof selectedBbnMeta.size === "number" && (
+                      <span>Size: {formatBytes(selectedBbnMeta.size)}</span>
+                    )}
+                    {selectedBbnMeta.last_modified && (
+                      <span>Modified: {formatTimestamp(selectedBbnMeta.last_modified)}</span>
+                    )}
+                  </div>
+                )}
+
+                {bbnFileLoading && (
+                  <span css={cssObj.bbnMessage}>Loading selected file...</span>
+                )}
+
+                {bbnFileMessage && <span css={cssObj.bbnErrorText}>{bbnFileMessage}</span>}
+
+                {selectedBbnData && !bbnFileLoading && (
+                  <div css={cssObj.bbnActionRow}>
+                    <button
+                      type="button"
+                      css={[cssObj.bbnButton, cssObj.bbnPrimaryButton]}
+                      onClick={handleViewSelectedBbnData}
+                    >
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      css={[cssObj.bbnButton, cssObj.bbnSecondaryButton]}
+                      onClick={handleDownloadSelectedBbnData}
+                    >
+                      Download
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Tab: Upload files */}
+            {bbnTab === 'upload' && (
+              <div css={cssObj.bbnUploadArea}>
+                {/* JSON file */}
+                <div css={cssObj.bbnUploadRow}>
+                  <span css={cssObj.bbnUploadLabel}>JSON file</span>
+                  <input
+                    ref={jsonFileInputRef}
+                    type="file"
+                    accept=".json,application/json"
+                    css={cssObj.bbnUploadInput}
+                    disabled={jsonUploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUploadFile(file, 'json');
+                    }}
+                  />
+                  <button
+                    type="button"
+                    css={cssObj.bbnUploadButton}
+                    disabled={jsonUploading}
+                    onClick={() => jsonFileInputRef.current?.click()}
+                  >
+                    {jsonUploading ? 'Uploading...' : 'Choose file'}
+                  </button>
+                  <span css={cssObj.bbnUploadFileName}>
+                    {jsonUploadError
+                      ? <span css={cssObj.bbnErrorText}>Error: {jsonUploadError}</span>
+                      : uploadedJsonName
+                        ? <span css={cssObj.bbnUploadStatusOk}>✓ {uploadedJsonName}</span>
+                        : 'No file chosen'}
+                  </span>
+                </div>
+
+                {/* NC file */}
+                <div css={cssObj.bbnUploadRow}>
+                  <span css={cssObj.bbnUploadLabel}>NC file</span>
+                  <input
+                    ref={ncFileInputRef}
+                    type="file"
+                    accept=".nc,application/x-netcdf,application/octet-stream"
+                    css={cssObj.bbnUploadInput}
+                    disabled={ncUploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUploadFile(file, 'nc');
+                    }}
+                  />
+                  <button
+                    type="button"
+                    css={cssObj.bbnUploadButton}
+                    disabled={ncUploading}
+                    onClick={() => ncFileInputRef.current?.click()}
+                  >
+                    {ncUploading ? 'Uploading...' : 'Choose file'}
+                  </button>
+                  <span css={cssObj.bbnUploadFileName}>
+                    {ncUploadError
+                      ? <span css={cssObj.bbnErrorText}>Error: {ncUploadError}</span>
+                      : uploadedNcName
+                        ? <span css={cssObj.bbnUploadStatusOk}>✓ {uploadedNcName}</span>
+                        : 'No file chosen'}
+                  </span>
+                </div>
+
+                {(!uploadedJsonKey || !uploadedNcKey) && (uploadedJsonKey || uploadedNcKey) && (
+                  <span css={cssObj.bbnErrorText}>
+                    Both JSON and NC files must be uploaded before calculating.
+                  </span>
+                )}
+                {uploadedJsonKey && uploadedNcKey && (
+                  <span css={cssObj.bbnUploadStatusOk}>
+                    Both files uploaded. Ready to calculate.
+                  </span>
+                )}
               </div>
             )}
           </div>

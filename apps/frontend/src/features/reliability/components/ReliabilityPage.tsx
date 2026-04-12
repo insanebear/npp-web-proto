@@ -56,6 +56,7 @@ const ReliabilityPage: React.FC = () => {
             results={results}
             onReset={handleReset}
             simulationInput={simulationInput}
+            jobId={jobId}
           />
         )}
 
