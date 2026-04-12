@@ -29,10 +29,10 @@ const ReliabilityPage: React.FC = () => {
   const isLoading = !!jobId && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED';
 
   return (
-    <>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
       <Background />
       <SelectionBar
-        width="300px" height="6.4%" shape="sharp-rectangle" x="150px" y="9.6%" color="bg-gray-800"
+        width="300px" shape="sharp-rectangle" y="94px" color="bg-gray-800"
         onFileUpload={handleReliabilityUpload}
         pendingFile={pendingFile}
         onFileSelect={handleFileSelect}
@@ -83,7 +83,7 @@ const ReliabilityPage: React.FC = () => {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
 
