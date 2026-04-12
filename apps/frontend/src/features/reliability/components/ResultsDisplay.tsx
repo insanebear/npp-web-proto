@@ -1,54 +1,66 @@
 import React from 'react';
 import type { SimulationResults, SimulationInput, SimulationOutput } from '../../../shared/types';
+import { getDownloadPresignedUrl } from '../../../shared/services/apiService';
 
 interface ResultsDisplayProps {
   results: SimulationResults;
   onReset: () => void;
   simulationInput: SimulationInput | null;
+  /** BBN inference job ID — used to derive the .nc trace file key for download */
+  jobId?: string | null;
 }
 
-const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simulationInput }) => {
+const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simulationInput, jobId }) => {
 
-  const handleSaveResults = () => {
+  const triggerDownload = (url: string, filename: string) => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const downloadJson = (filename: string, jsonString: string) => {
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, filename);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSaveResults = async () => {
     if (!results) {
       alert("No results to save.");
       return;
     }
 
-    // Check if results already contain complete JSON structure (input + output)
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const jsonFilename = `simulation-results-${timestamp}.json`;
+
+    // Build JSON string
+    let jsonString: string;
     if (results.input && results.output) {
       const { __rawText, ...cleanResults } = results;
-      const jsonString = JSON.stringify(cleanResults, null, 2);
-      const blob = new Blob([jsonString], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      a.download = `simulation-results-${timestamp}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      jsonString = JSON.stringify(cleanResults, null, 2);
     } else {
-      // Fallback: combine simulationInput and results (for backward compatibility)
       const { __rawText, ...cleanOutput } = results;
+      jsonString = JSON.stringify({ input: simulationInput, output: cleanOutput }, null, 2);
+    }
 
-      const combinedData = {
-        input: simulationInput,
-        output: cleanOutput,
-      };
+    // Download JSON
+    downloadJson(jsonFilename, jsonString);
 
-      const jsonString = JSON.stringify(combinedData, null, 2);
-      const blob = new Blob([jsonString], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      a.download = `simulation-results-${timestamp}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+    // Download NC trace if jobId is available
+    if (jobId) {
+      const ncKey = `results/bbn/prior-trace-${jobId}.nc`;
+      const ncFilename = `prior-trace-${jobId}.nc`;
+      try {
+        const { download_url } = await getDownloadPresignedUrl(ncKey);
+        triggerDownload(download_url, ncFilename);
+      } catch (err) {
+        console.warn('NC trace file not available for download:', err);
+        // NC download is best-effort — don't block JSON download
+      }
     }
   };
 
@@ -239,9 +251,9 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
           }}
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#047857'}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#059669'}
-          title="Save input and output to a JSON file"
+          title={jobId ? "Download JSON result + NC trace file" : "Save input and output to a JSON file"}
         >
-          Download Results
+          Download Results{jobId ? ' (JSON + NC)' : ''}
         </button>
         <button
           onClick={onReset}
