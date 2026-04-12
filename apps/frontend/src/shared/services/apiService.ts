@@ -115,6 +115,8 @@ export const getResults = async (jobId: string) => {
 type BbnInputOptions = {
   bbn_input_s3_bucket?: string;
   bbn_input_s3_key?: string;
+  /** S3 key of a pre-computed prior trace (.nc file). Skips BBN model run when provided. */
+  prior_trace_s3_key?: string;
 };
 
 type HybridToolSettings = {
@@ -295,6 +297,58 @@ export const listBbnResultFiles = (limit?: number) => {
 export const fetchBbnResultFile = (key: string) => {
   const params = new URLSearchParams({ key });
   return getJSON<BbnResultFileResponse>(`/api/v1/results?${params.toString()}`);
+};
+
+// =======================================================
+// ================ PRESIGNED URL ENDPOINTS ==============
+// =======================================================
+
+export type UploadUrlResponse = {
+  upload_url: string;
+  s3_key: string;
+  bucket: string;
+};
+
+export type DownloadUrlResponse = {
+  download_url: string;
+  key: string;
+  bucket: string;
+};
+
+/**
+ * Requests a presigned PUT URL for uploading a file to S3 (uploads/temp/ prefix).
+ * The object is automatically deleted by S3 lifecycle policy after 24 hours.
+ */
+export const getUploadPresignedUrl = (filename: string, contentType: string) =>
+  postJSON<UploadUrlResponse>('/api/v1/presigned-url', { filename, content_type: contentType });
+
+/**
+ * Requests a presigned GET URL for downloading a file from S3 by key.
+ */
+export const getDownloadPresignedUrl = (key: string) => {
+  const params = new URLSearchParams({ key });
+  return getJSON<DownloadUrlResponse>(`/api/v1/presigned-url?${params.toString()}`);
+};
+
+/**
+ * Uploads a File to S3 using a presigned PUT URL.
+ * Returns the S3 key of the uploaded file.
+ */
+export const uploadFileToS3 = async (file: File): Promise<{ s3_key: string; bucket: string }> => {
+  const contentType = file.type || 'application/octet-stream';
+  const { upload_url, s3_key, bucket } = await getUploadPresignedUrl(file.name, contentType);
+
+  const res = await fetch(upload_url, {
+    method: 'PUT',
+    headers: { 'Content-Type': contentType },
+    body: file,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to upload file to S3: HTTP ${res.status}`);
+  }
+
+  return { s3_key, bucket };
 };
 
 // =======================================================
