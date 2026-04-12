@@ -1,6 +1,6 @@
 import Button from "../../../shared/utilities/button";
-import DropDown from "../../../shared/utilities/dropdown";
 import SelectionBar from "../../../shared/utilities/searchbar";
+import { RadioButtonGrid } from "./RadioButtonGrid";
 import { TABS } from "../../../shared/constants/tabs";
 import SettingsPage from "../../settings/components/SettingsPage";
 
@@ -108,35 +108,12 @@ const Menu = ({
             </div>
           </div>
         ) : (
-          // The dropdown grid remains unchanged
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '3rem 1.5rem',
-              overflow: 'visible',
-            }}
-          >
-            {activeLabelAndDropdowns?.children.map((child: any) => {
-              const uniqueKey = `${activeLabelAndDropdowns.label}/${child.label}`;
-              return (
-                <div key={uniqueKey} style={{ position: 'relative', minHeight: '100px', overflow: 'visible', paddingBottom: '120px' }}>
-                  <DropDown
-                    label={child.label}
-                    label_color="text-gray-800"
-                    options={child.values}
-                    selectedOption={inputValues[uniqueKey] || child.values[0]}
-                    onSelect={(value) => onInputChange(uniqueKey, value)}
-                    x="50%"
-                    y="50%"
-                    width="90%"
-                    height="100%"
-                    textColor="text-gray-800"
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <RadioButtonGrid
+            children={activeLabelAndDropdowns?.children ?? []}
+            tabLabel={activeLabelAndDropdowns?.label ?? ''}
+            inputValues={inputValues}
+            onInputChange={onInputChange}
+          />
         )}
       </div>
     </>
