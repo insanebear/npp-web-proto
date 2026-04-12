@@ -16,7 +16,7 @@ const Menu = ({
 }: any) => {
   const labels = ['Settings', ...TABS.map(tab => tab.label)];
   const labelSeparationPx = 48; // fixed spacing in pixels
-  const firstButtonTopPx = 150; // fixed top offset for the first button
+  const firstButtonTopPx = 70; // fixed top offset for the first button
 
   return (
     <>
