@@ -185,6 +185,90 @@ export const cssObj = {
     font-size: ${FONT_SIZE.xs};
     color: #dc2626;
   `,
+  bbnTabBar: css`
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid ${COLORS.gray200};
+    margin-bottom: 12px;
+  `,
+  bbnTab: css`
+    padding: 8px 16px;
+    font-size: ${FONT_SIZE.sm};
+    font-weight: 500;
+    color: ${COLORS.gray500};
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    &:hover {
+      color: ${COLORS.gray800};
+    }
+  `,
+  bbnTabActive: css`
+    color: ${COLORS.blue600};
+    border-bottom-color: ${COLORS.blue600};
+  `,
+  bbnUploadArea: css`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  `,
+  bbnUploadRow: css`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  `,
+  bbnUploadLabel: css`
+    font-size: ${FONT_SIZE.sm};
+    font-weight: 500;
+    color: ${COLORS.gray700};
+    min-width: 80px;
+    flex-shrink: 0;
+  `,
+  bbnUploadInput: css`
+    display: none;
+  `,
+  bbnUploadButton: css`
+    padding: 5px 12px;
+    font-size: ${FONT_SIZE.sm};
+    font-weight: 500;
+    border: 1px solid ${COLORS.gray300};
+    border-radius: 6px;
+    background-color: ${COLORS.white};
+    color: ${COLORS.gray700};
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background-color 0.15s, border-color 0.15s;
+    &:hover:not(:disabled) {
+      background-color: ${COLORS.gray100};
+      border-color: ${COLORS.gray400};
+    }
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  `,
+  bbnUploadFileName: css`
+    flex: 1;
+    font-size: ${FONT_SIZE.sm};
+    color: ${COLORS.gray500};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  `,
+  bbnUploadStatus: css`
+    font-size: ${FONT_SIZE.xs};
+    color: ${COLORS.gray500};
+    font-style: italic;
+  `,
+  bbnUploadStatusOk: css`
+    font-size: ${FONT_SIZE.xs};
+    color: #059669;
+    font-weight: 500;
+  `,
   title: css`
     font-size: ${FONT_SIZE["3xl"]};
     color: ${COLORS.gray800};
