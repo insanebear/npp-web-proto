@@ -121,6 +121,8 @@ def handler(event, context):
             bbn_input_s3_bucket = body.get('bbn_input_s3_bucket')
             bbn_input_s3_key = body.get('bbn_input_s3_key')
             bbn_job_id = body.get('bbn_job_id')
+            # 업로드 탭에서 직접 전달된 prior trace S3 키 (없으면 bbn_job_id로 추론)
+            prior_trace_s3_key = body.get('prior_trace_s3_key')
             # bbn_job_id가 없으면 bbn_input_s3_key에서 파싱 (예: results/results-{jobId}.json)
             if not bbn_job_id and bbn_input_s3_key:
                 import re
@@ -226,8 +228,10 @@ def handler(event, context):
             environment_overrides.append({'name': 'BBN_INPUT_PATH', 'value': bbn_input_s3_key})
         if bbn_input_s3_bucket:
             environment_overrides.append({'name': 'BBN_INPUT_BUCKET', 'value': bbn_input_s3_bucket})
-        if bbn_job_id:
-            environment_overrides.append({'name': 'PRIOR_TRACE_S3_KEY', 'value': f'results/bbn/prior-trace-{bbn_job_id}.nc'})
+        # prior_trace_s3_key: 직접 전달된 키 우선, 없으면 bbn_job_id로 추론
+        resolved_trace_key = prior_trace_s3_key or (f'results/bbn/prior-trace-{bbn_job_id}.nc' if bbn_job_id else None)
+        if resolved_trace_key:
+            environment_overrides.append({'name': 'PRIOR_TRACE_S3_KEY', 'value': resolved_trace_key})
 
         response = ecs_client.run_task(
             cluster=cluster_name,
