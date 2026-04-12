@@ -2,6 +2,7 @@ import Button from "../../../shared/utilities/button";
 import DropDown from "../../../shared/utilities/dropdown";
 import SelectionBar from "../../../shared/utilities/searchbar";
 import { TABS } from "../../../shared/constants/tabs";
+import SettingsPage from "../../settings/components/SettingsPage";
 
 const Menu = ({
   activeLabel,
@@ -13,7 +14,7 @@ const Menu = ({
   pendingFile,
   onFileSelect
 }: any) => {
-  const labels = TABS.map(tab => tab.label);
+  const labels = ['Settings', ...TABS.map(tab => tab.label)];
   const labelSeparationPx = 48; // fixed spacing in pixels
   const firstButtonTopPx = 150; // fixed top offset for the first button
 
@@ -63,8 +64,14 @@ const Menu = ({
           overflow: 'visible',
         }}
       >
-        {/* --- CONDITIONAL RENDERING: FP Input vs. Dropdowns --- */}
-        {activeLabel === 'FP' ? (
+        {/* --- CONDITIONAL RENDERING: Settings, FP Input, or Dropdowns --- */}
+        {activeLabel === 'Settings' ? (
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '10vh' }}>
+            <div style={{ width: '100%', maxWidth: '480px' }}>
+              <SettingsPage embedded />
+            </div>
+          </div>
+        ) : activeLabel === 'FP' ? (
           // NEW: A dedicated positioning wrapper for the FP input
           <div style={{ 
               display: 'flex', 

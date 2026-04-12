@@ -100,9 +100,6 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
               onClick: handleItemClick,
             });
 
-            if (index === items.length - 1) {
-              return <div key={`nav-${index}`} style={{ marginLeft: 'auto' }}>{cloned}</div>;
-            }
             return <div key={`nav-${index}`}>{cloned}</div>;
           }
           return child as any;
