@@ -947,26 +947,26 @@ export default function StatisticalPage() {
                   </button>
                 </div>
               </div>
+              <div css={cssObj.resultCardPriorRow}>
+                <span>Prior PFD:</span>
+                <span style={{ fontWeight: 600, color: '#374151' }}>
+                  {pfdUpdateResultData?.input?.parameter?.prior?.mean != null
+                    ? pfdUpdateResultData.input.parameter.prior.mean.toExponential(4)
+                    : '—'}
+                </span>
+              </div>
               <div css={cssObj.resultCardGrid}>
-                <div css={[cssObj.resultCard, { gridColumn: '1 / -1' }]}>
-                  <span css={cssObj.resultCardLabel}>Prior PFD</span>
-                  <span css={cssObj.resultCardValue}>
-                    {pfdUpdateResultData?.input?.parameter?.prior?.mean != null
-                      ? pfdUpdateResultData.input.parameter.prior.mean.toExponential(4)
-                      : '—'}
-                  </span>
-                </div>
-                <div css={cssObj.resultCard}>
-                  <span css={cssObj.resultCardLabel}>Updated PFD</span>
-                  <span css={cssObj.resultCardValue}>
+                <div css={cssObj.resultCardPrimary}>
+                  <span css={cssObj.resultCardLabelPrimary}>Updated PFD</span>
+                  <span css={cssObj.resultCardValuePrimary}>
                     {pfdUpdateResultData?.output?.mean_posterior_pfd?.[0]?.[1] != null
                       ? pfdUpdateResultData.output.mean_posterior_pfd[0][1].toExponential(4)
                       : '—'}
                   </span>
                 </div>
-                <div css={cssObj.resultCard}>
-                  <span css={cssObj.resultCardLabel}>Confidence</span>
-                  <span css={cssObj.resultCardValue}>
+                <div css={cssObj.resultCardPrimary}>
+                  <span css={cssObj.resultCardLabelPrimary}>Confidence</span>
+                  <span css={cssObj.resultCardValuePrimary}>
                     {pfdUpdateResultData?.output?.confidence != null
                       ? (pfdUpdateResultData.output.confidence * 100).toFixed(1) + '%'
                       : '—'}
