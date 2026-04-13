@@ -40,6 +40,12 @@ export default function StatisticalPage() {
   const [ncUploadError, setNcUploadError] = useState<string | null>(null);
   const [uploadedJsonName, setUploadedJsonName] = useState<string | null>(null);
   const [uploadedNcName, setUploadedNcName] = useState<string | null>(null);
+  const [uploadedJsonSettings, setUploadedJsonSettings] = useState<{ nChains: string; nIter: string; nBurnin: string; nThin: string } | null>(null);
+  const [editedUploadSettings, setEditedUploadSettings] = useState<{ nChains: string; nIter: string; nBurnin: string; nThin: string } | null>(null);
+  const [editedSelectSettings, setEditedSelectSettings] = useState<{ nChains: string; nIter: string; nBurnin: string; nThin: string } | null>(null);
+  const [isHyperparamModalOpen, setIsHyperparamModalOpen] = useState(false);
+  const [hyperparamModalTarget, setHyperparamModalTarget] = useState<'upload' | 'select'>('upload');
+  const [modalDraft, setModalDraft] = useState<{ nChains: string; nIter: string; nBurnin: string; nThin: string }>({ nChains: '', nIter: '', nBurnin: '', nThin: '' });
 
   const [bbnFiles, setBbnFiles] = useState<api.BbnResultItem[]>([]);
   const [bbnBucketInfo, setBbnBucketInfo] = useState<{ bucket: string; prefix: string } | null>(null);
@@ -300,6 +306,7 @@ export default function StatisticalPage() {
     try {
       const response = await api.fetchBbnResultFile(key);
       setSelectedBbnData(response.data);
+      setEditedSelectSettings(null);
     } catch (err: any) {
       console.error("Failed to load selected BBN file:", err);
       setBbnFileMessage(err?.message ?? String(err));
@@ -389,6 +396,20 @@ export default function StatisticalPage() {
     ? bbnFiles.find((item) => item.key === selectedBbnKey)
     : undefined;
 
+  const renderHyperparamInfo = (s: { nChains: string; nIter: string; nBurnin: string; nThin: string }) => (
+    <div style={{ marginTop: '8px' }}>
+      <div style={{ fontSize: '13px', color: '#374151', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+        <span>Chains: <strong>{s.nChains}</strong></span>
+        <span>Iterations: <strong>{s.nIter}</strong></span>
+        <span>Burn-in: <strong>{s.nBurnin}</strong></span>
+        <span>Thin: <strong>{s.nThin}</strong></span>
+      </div>
+      <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#6B7280' }}>
+        These hyperparameters from the BBN analysis will be applied through to the final target reliability assessment.
+      </p>
+    </div>
+  );
+
   const buildBbnPayload = useCallback(() => {
     if (bbnTab === 'upload') {
       // Upload tab: use uploaded file S3 keys
@@ -416,6 +437,32 @@ export default function StatisticalPage() {
     return {};
   }, [bbnTab, selectedBbnKey, bbnBucketInfo, uploadedJsonKey, uploadedNcKey, uploadedBucket]);
 
+  const getBbnSettings = useCallback(() => {
+    let s: { nChains: string; nIter: string; nBurnin: string; nThin: string } | null = null;
+    if (bbnTab === 'select') {
+      s = editedSelectSettings ?? selectedBbnData?.input?.settings ?? null;
+    } else if (bbnTab === 'upload') {
+      s = editedUploadSettings ?? uploadedJsonSettings;
+    }
+    if (s) {
+      const nIter = parseInt(s.nIter);
+      const nBurnin = parseInt(s.nBurnin);
+      return {
+        draws: nIter - nBurnin,
+        tune: nBurnin,
+        chains: parseInt(s.nChains),
+        thin: parseInt(s.nThin),
+      };
+    }
+    // Fallback to app settings
+    return {
+      draws: settings.nIter - settings.nBurnin,
+      tune: settings.nBurnin,
+      chains: settings.nChains,
+      thin: settings.nThin,
+    };
+  }, [bbnTab, selectedBbnData, editedSelectSettings, uploadedJsonSettings, editedUploadSettings, settings]);
+
   // Upload tab: handle file selection and upload to S3
   const handleUploadFile = async (
     file: File,
@@ -426,6 +473,8 @@ export default function StatisticalPage() {
       setJsonUploadError(null);
       setUploadedJsonKey(null);
       setUploadedJsonName(null);
+      setUploadedJsonSettings(null);
+      setEditedUploadSettings(null);
     } else {
       setNcUploading(true);
       setNcUploadError(null);
@@ -438,6 +487,18 @@ export default function StatisticalPage() {
         setUploadedJsonKey(s3_key);
         setUploadedJsonName(file.name);
         setUploadedBucket(bucket);
+
+        // Parse JSON locally to extract hyperparameter settings
+        try {
+          const text = await file.text();
+          const parsed = JSON.parse(text);
+          const s = parsed?.input?.settings;
+          if (s && s.nChains !== undefined && s.nIter !== undefined && s.nBurnin !== undefined && s.nThin !== undefined) {
+            setUploadedJsonSettings({ nChains: String(s.nChains), nIter: String(s.nIter), nBurnin: String(s.nBurnin), nThin: String(s.nThin) });
+          }
+        } catch {
+          // settings not available — silently ignore
+        }
       } else {
         setUploadedNcKey(s3_key);
         setUploadedNcName(file.name);
@@ -493,10 +554,7 @@ export default function StatisticalPage() {
         test_mode: testMode || undefined,
         ...buildBbnPayload(),
         settings: {
-          draws: settings.nIter - settings.nBurnin,
-          tune: settings.nBurnin,
-          chains: settings.nChains,
-          thin: settings.nThin,
+          ...getBbnSettings(),
         },
       });
 
@@ -583,10 +641,7 @@ export default function StatisticalPage() {
         test_mode: testMode || undefined,
         ...buildBbnPayload(),
         settings: {
-          draws: settings.nIter - settings.nBurnin,
-          tune: settings.nBurnin,
-          chains: settings.nChains,
-          thin: settings.nThin,
+          ...getBbnSettings(),
         },
       });
 
@@ -702,7 +757,7 @@ export default function StatisticalPage() {
           <div css={cssObj.bbnSelectorBox}>
             <div css={cssObj.bbnSelectorHeader}>
               <div>
-                <h2>BBN JSON Result Selection</h2>
+                <h2>Initial Reliability Assessment Result based on Bayesian Methods</h2>
                 {bbnTab === 'select' && (
                   <p>
                     {bbnBucketInfo
@@ -783,18 +838,6 @@ export default function StatisticalPage() {
                   <span css={cssObj.bbnMessage}>No JSON files available.</span>
                 )}
 
-                {selectedBbnMeta && (
-                  <div css={cssObj.bbnMetaInfo}>
-                    <span>File: {selectedBbnMeta.name}</span>
-                    {typeof selectedBbnMeta.size === "number" && (
-                      <span>Size: {formatBytes(selectedBbnMeta.size)}</span>
-                    )}
-                    {selectedBbnMeta.last_modified && (
-                      <span>Modified: {formatTimestamp(selectedBbnMeta.last_modified)}</span>
-                    )}
-                  </div>
-                )}
-
                 {bbnFileLoading && (
                   <span css={cssObj.bbnMessage}>Loading selected file...</span>
                 )}
@@ -802,22 +845,67 @@ export default function StatisticalPage() {
                 {bbnFileMessage && <span css={cssObj.bbnErrorText}>{bbnFileMessage}</span>}
 
                 {selectedBbnData && !bbnFileLoading && (
-                  <div css={cssObj.bbnActionRow}>
-                    <button
-                      type="button"
-                      css={[cssObj.bbnButton, cssObj.bbnPrimaryButton]}
-                      onClick={handleViewSelectedBbnData}
-                    >
-                      View
-                    </button>
-                    <button
-                      type="button"
-                      css={[cssObj.bbnButton, cssObj.bbnSecondaryButton]}
-                      onClick={handleDownloadSelectedBbnData}
-                    >
-                      Download
-                    </button>
-                  </div>
+                  <>
+                    {selectedBbnData.input?.settings
+                      ? (
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginTop: '8px' }}>
+                          <div style={{ flex: 1 }}>
+                            {renderHyperparamInfo(editedSelectSettings ?? {
+                              nChains: String(selectedBbnData.input.settings.nChains),
+                              nIter: String(selectedBbnData.input.settings.nIter),
+                              nBurnin: String(selectedBbnData.input.settings.nBurnin),
+                              nThin: String(selectedBbnData.input.settings.nThin),
+                            })}
+                          </div>
+                          <button
+                            type="button"
+                            css={cssObj.bbnUploadButton}
+                            style={{ marginTop: '0', whiteSpace: 'nowrap', flexShrink: 0 }}
+                            onClick={() => {
+                              const base = editedSelectSettings ?? {
+                                nChains: String(selectedBbnData.input.settings.nChains),
+                                nIter: String(selectedBbnData.input.settings.nIter),
+                                nBurnin: String(selectedBbnData.input.settings.nBurnin),
+                                nThin: String(selectedBbnData.input.settings.nThin),
+                              };
+                              setModalDraft({ ...base });
+                              setHyperparamModalTarget('select');
+                              setIsHyperparamModalOpen(true);
+                            }}
+                          >
+                            Edit settings
+                          </button>
+                        </div>
+                        )
+                      : selectedBbnMeta && (
+                          <div css={cssObj.bbnMetaInfo}>
+                            <span>File: {selectedBbnMeta.name}</span>
+                            {typeof selectedBbnMeta.size === "number" && (
+                              <span>Size: {formatBytes(selectedBbnMeta.size)}</span>
+                            )}
+                            {selectedBbnMeta.last_modified && (
+                              <span>Modified: {formatTimestamp(selectedBbnMeta.last_modified)}</span>
+                            )}
+                          </div>
+                        )
+                    }
+                    <div css={cssObj.bbnActionRow}>
+                      <button
+                        type="button"
+                        css={[cssObj.bbnButton, cssObj.bbnPrimaryButton]}
+                        onClick={handleViewSelectedBbnData}
+                      >
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        css={[cssObj.bbnButton, cssObj.bbnSecondaryButton]}
+                        onClick={handleDownloadSelectedBbnData}
+                      >
+                        Download
+                      </button>
+                    </div>
+                  </>
                 )}
               </>
             )}
@@ -886,6 +974,27 @@ export default function StatisticalPage() {
                         : 'No file chosen'}
                   </span>
                 </div>
+
+                {uploadedJsonSettings && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginTop: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      {renderHyperparamInfo(editedUploadSettings ?? uploadedJsonSettings)}
+                    </div>
+                    <button
+                      type="button"
+                      css={cssObj.bbnUploadButton}
+                      style={{ marginTop: '0', whiteSpace: 'nowrap', flexShrink: 0 }}
+                      onClick={() => {
+                        const current = editedUploadSettings ?? uploadedJsonSettings;
+                        setModalDraft({ ...current });
+                        setHyperparamModalTarget('upload');
+                        setIsHyperparamModalOpen(true);
+                      }}
+                    >
+                      Edit settings
+                    </button>
+                  </div>
+                )}
 
                 {(!uploadedJsonKey || !uploadedNcKey) && (uploadedJsonKey || uploadedNcKey) && (
                   <span css={cssObj.bbnErrorText}>
@@ -1208,6 +1317,80 @@ export default function StatisticalPage() {
 
         </main>
       </div>
+
+      {/* Hyperparameter edit modal */}
+      {isHyperparamModalOpen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onClick={() => setIsHyperparamModalOpen(false)}
+        >
+          <div
+            style={{
+              background: '#fff', borderRadius: '10px', padding: '28px 32px',
+              width: '340px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+              display: 'flex', flexDirection: 'column', gap: '16px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#111827' }}>
+              Edit Bayesian Settings
+            </h3>
+
+            {(['nChains', 'nIter', 'nBurnin', 'nThin'] as const).map((key) => {
+              const labels: Record<string, string> = { nChains: 'Chains', nIter: 'Iterations', nBurnin: 'Burn-in', nThin: 'Thin' };
+              return (
+                <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '13px', color: '#374151', fontWeight: 500 }}>{labels[key]}</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={modalDraft[key]}
+                    onChange={(e) => setModalDraft((prev) => ({ ...prev, [key]: e.target.value }))}
+                    css={cssObj.inputBox}
+                  />
+                </div>
+              );
+            })}
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <button
+                type="button"
+                css={[cssObj.bbnButton, cssObj.bbnSecondaryButton]}
+                onClick={() => {
+                  if (hyperparamModalTarget === 'select') setEditedSelectSettings(null);
+                  else setEditedUploadSettings(null);
+                  setIsHyperparamModalOpen(false);
+                }}
+              >
+                Reset to original
+              </button>
+              <button
+                type="button"
+                css={[cssObj.bbnButton]}
+                style={{ background: '#E5E7EB', color: '#374151' }}
+                onClick={() => setIsHyperparamModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                css={[cssObj.bbnButton, cssObj.bbnPrimaryButton]}
+                onClick={() => {
+                  if (hyperparamModalTarget === 'select') setEditedSelectSettings({ ...modalDraft });
+                  else setEditedUploadSettings({ ...modalDraft });
+                  setIsHyperparamModalOpen(false);
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
