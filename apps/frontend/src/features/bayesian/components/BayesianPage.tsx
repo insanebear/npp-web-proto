@@ -8,6 +8,7 @@ import { useSimulation } from '../../../shared/hooks/useSimulation';
 import { useFileSelect } from '../../../shared/hooks/useFileUpload';
 import { useBayesianFileUpload } from '../../../shared/hooks/useBayesianFileUpload';
 import { useAppSettings } from '../../../shared/hooks/useAppSettings';
+import type { SettingsFormValues } from '../../settings/components/SettingsForm';
 
 function BayesianPage() {
 
@@ -20,8 +21,19 @@ function BayesianPage() {
     setInputValues,
   } = useAppState();
 
-  // Get settings
-  const settings = useAppSettings();
+  // workingDir from context; hyperparameter fields managed locally
+  const { workingDir } = useAppSettings();
+
+  const [settingsValues, setSettingsValues] = useState<SettingsFormValues>({
+    nChains: 1,
+    nIter: 20000,
+    nBurnin: 500,
+    nThin: 1,
+  });
+
+  const handleSettingsChange = (key: keyof SettingsFormValues, value: number) => {
+    setSettingsValues(prev => ({ ...prev, [key]: value }));
+  };
 
   // Get handlers from hooks
   const { handleStartSimulation } = useSimulation();
@@ -37,7 +49,7 @@ function BayesianPage() {
   const [activeLabel, setActiveLabel] = useState('FP');
 
   const handleSubmit = () => {
-    const payload = formatPayload(inputValues, settings);
+    const payload = formatPayload(inputValues, settingsValues, workingDir);
     handleStartSimulation(payload);
   };
 
@@ -63,12 +75,14 @@ function BayesianPage() {
       <Menu
         activeLabel={activeLabel}
         setActiveLabel={setActiveLabel}
-        inputValues={inputValues} // Pass unified state down
-        onInputChange={handleInputChange} // Pass unified handler down
+        inputValues={inputValues}
+        onInputChange={handleInputChange}
         activeLabelAndDropdowns={activeLabelAndDropdowns}
         onFileUpload={handleBayesianUpload}
         pendingFile={pendingFile}
         onFileSelect={handleFileSelect}
+        settingsValues={settingsValues}
+        onSettingsChange={handleSettingsChange}
       />
       {/* Fixed-width control box positioned below Settings */}
       <div className="absolute" style={{
@@ -121,7 +135,7 @@ function BayesianPage() {
   );
 }
 
-const formatPayload = (values: { [key: string]: string }, settings: any) => {
+const formatPayload = (values: { [key: string]: string }, settings: SettingsFormValues, workingDir: string) => {
   const payload: { [key: string]: any } = {};
   for (const key in values) {
     const [tabLabel, childLabel] = key.split('/');
@@ -129,16 +143,16 @@ const formatPayload = (values: { [key: string]: string }, settings: any) => {
       payload[tabLabel] = {};
     }
     const codeKey = getCodeKey(tabLabel, childLabel);
-    const outKey = codeKey || childLabel; // fallback to label if mapping missing
+    const outKey = codeKey || childLabel;
     payload[tabLabel][outKey] = values[key];
   }
-  
+
   payload['settings'] = {
     nChains: String(settings.nChains),
     nIter: String(settings.nIter),
     nBurnin: String(settings.nBurnin),
     nThin: String(settings.nThin),
-    workingDir: settings.workingDir,
+    workingDir,
   };
   return payload;
 };

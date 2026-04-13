@@ -29,8 +29,6 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     activeItemText = "Reliability Views";
   } else if (location.pathname.startsWith('/statistical')) {
     activeItemText = "Statistical Methods";
-  } else if (location.pathname.startsWith('/settings')) {
-    activeItemText = "Settings";
   } else if (location.pathname === '/' || location.pathname.startsWith('/bayesian')) {
     activeItemText = "Bayesian Methods";
   }

@@ -2,7 +2,7 @@ import Button from "../../../shared/utilities/button";
 import SelectionBar from "../../../shared/utilities/searchbar";
 import { RadioButtonGrid } from "./RadioButtonGrid";
 import { TABS } from "../../../shared/constants/tabs";
-import SettingsPage from "../../settings/components/SettingsPage";
+import SettingsForm, { type SettingsFormValues } from "../../settings/components/SettingsForm";
 
 const Menu = ({
   activeLabel,
@@ -12,8 +12,21 @@ const Menu = ({
   activeLabelAndDropdowns,
   onFileUpload,
   pendingFile,
-  onFileSelect
-}: any) => {
+  onFileSelect,
+  settingsValues,
+  onSettingsChange,
+}: {
+  activeLabel: string;
+  setActiveLabel: (label: string) => void;
+  inputValues: any;
+  onInputChange: (key: string, value: string) => void;
+  activeLabelAndDropdowns: any;
+  onFileUpload: any;
+  pendingFile: any;
+  onFileSelect: any;
+  settingsValues: SettingsFormValues;
+  onSettingsChange: (key: keyof SettingsFormValues, value: number) => void;
+}) => {
   const labels = ['Settings', ...TABS.map(tab => tab.label)];
   const labelSeparationPx = 48; // fixed spacing in pixels
   const firstButtonTopPx = 70; // fixed top offset for the first button
@@ -68,7 +81,7 @@ const Menu = ({
         {activeLabel === 'Settings' ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '10vh' }}>
             <div style={{ width: '100%', maxWidth: '480px' }}>
-              <SettingsPage embedded />
+              <SettingsForm values={settingsValues} onChange={onSettingsChange} />
             </div>
           </div>
         ) : activeLabel === 'FP' ? (
