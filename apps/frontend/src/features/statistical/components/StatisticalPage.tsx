@@ -391,24 +391,16 @@ export default function StatisticalPage() {
     : undefined;
 
   const renderHyperparamInfo = (s: { nChains: string; nIter: string; nBurnin: string; nThin: string }) => (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '6px 24px',
-      marginTop: '10px',
-      padding: '10px 14px',
-      background: '#F3F4F6',
-      borderRadius: '6px',
-      fontSize: '13px',
-    }}>
-      <span style={{ color: '#6B7280' }}>Chains</span>
-      <span style={{ fontWeight: 600 }}>{s.nChains}</span>
-      <span style={{ color: '#6B7280' }}>Iterations</span>
-      <span style={{ fontWeight: 600 }}>{s.nIter}</span>
-      <span style={{ color: '#6B7280' }}>Burn-in</span>
-      <span style={{ fontWeight: 600 }}>{s.nBurnin}</span>
-      <span style={{ color: '#6B7280' }}>Thin</span>
-      <span style={{ fontWeight: 600 }}>{s.nThin}</span>
+    <div style={{ marginTop: '8px' }}>
+      <div style={{ fontSize: '13px', color: '#374151', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+        <span>Chains: <strong>{s.nChains}</strong></span>
+        <span>Iterations: <strong>{s.nIter}</strong></span>
+        <span>Burn-in: <strong>{s.nBurnin}</strong></span>
+        <span>Thin: <strong>{s.nThin}</strong></span>
+      </div>
+      <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#6B7280' }}>
+        These hyperparameters from the BBN analysis will be applied through to the final target reliability assessment.
+      </p>
     </div>
   );
 
@@ -467,7 +459,7 @@ export default function StatisticalPage() {
         try {
           const text = await file.text();
           const parsed = JSON.parse(text);
-          const s = parsed?.settings;
+          const s = parsed?.input?.settings;
           if (s && s.nChains !== undefined && s.nIter !== undefined && s.nBurnin !== undefined && s.nThin !== undefined) {
             setUploadedJsonSettings({ nChains: String(s.nChains), nIter: String(s.nIter), nBurnin: String(s.nBurnin), nThin: String(s.nThin) });
           }
@@ -819,18 +811,6 @@ export default function StatisticalPage() {
                   <span css={cssObj.bbnMessage}>No JSON files available.</span>
                 )}
 
-                {selectedBbnMeta && (
-                  <div css={cssObj.bbnMetaInfo}>
-                    <span>File: {selectedBbnMeta.name}</span>
-                    {typeof selectedBbnMeta.size === "number" && (
-                      <span>Size: {formatBytes(selectedBbnMeta.size)}</span>
-                    )}
-                    {selectedBbnMeta.last_modified && (
-                      <span>Modified: {formatTimestamp(selectedBbnMeta.last_modified)}</span>
-                    )}
-                  </div>
-                )}
-
                 {bbnFileLoading && (
                   <span css={cssObj.bbnMessage}>Loading selected file...</span>
                 )}
@@ -838,22 +818,43 @@ export default function StatisticalPage() {
                 {bbnFileMessage && <span css={cssObj.bbnErrorText}>{bbnFileMessage}</span>}
 
                 {selectedBbnData && !bbnFileLoading && (
-                  <div css={cssObj.bbnActionRow}>
-                    <button
-                      type="button"
-                      css={[cssObj.bbnButton, cssObj.bbnPrimaryButton]}
-                      onClick={handleViewSelectedBbnData}
-                    >
-                      View
-                    </button>
-                    <button
-                      type="button"
-                      css={[cssObj.bbnButton, cssObj.bbnSecondaryButton]}
-                      onClick={handleDownloadSelectedBbnData}
-                    >
-                      Download
-                    </button>
-                  </div>
+                  <>
+                    {selectedBbnData.input?.settings
+                      ? renderHyperparamInfo({
+                          nChains: String(selectedBbnData.input.settings.nChains),
+                          nIter: String(selectedBbnData.input.settings.nIter),
+                          nBurnin: String(selectedBbnData.input.settings.nBurnin),
+                          nThin: String(selectedBbnData.input.settings.nThin),
+                        })
+                      : selectedBbnMeta && (
+                          <div css={cssObj.bbnMetaInfo}>
+                            <span>File: {selectedBbnMeta.name}</span>
+                            {typeof selectedBbnMeta.size === "number" && (
+                              <span>Size: {formatBytes(selectedBbnMeta.size)}</span>
+                            )}
+                            {selectedBbnMeta.last_modified && (
+                              <span>Modified: {formatTimestamp(selectedBbnMeta.last_modified)}</span>
+                            )}
+                          </div>
+                        )
+                    }
+                    <div css={cssObj.bbnActionRow}>
+                      <button
+                        type="button"
+                        css={[cssObj.bbnButton, cssObj.bbnPrimaryButton]}
+                        onClick={handleViewSelectedBbnData}
+                      >
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        css={[cssObj.bbnButton, cssObj.bbnSecondaryButton]}
+                        onClick={handleDownloadSelectedBbnData}
+                      >
+                        Download
+                      </button>
+                    </div>
+                  </>
                 )}
               </>
             )}
