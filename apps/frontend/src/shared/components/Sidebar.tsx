@@ -16,7 +16,7 @@ const Sidebar = ({ children }: SidebarProps) => {
       borderRight: '1px solid #E5E7EB',
       zIndex: 20,
     }}>
-      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
         {children}
       </div>
     </div>

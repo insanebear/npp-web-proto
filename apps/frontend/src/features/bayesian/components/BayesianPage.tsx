@@ -79,7 +79,7 @@ function BayesianPage() {
   const isResultTab = activeLabel === RESULT_LABEL;
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
+    <div style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
       <Background />
       <Menu
         activeLabel={activeLabel}
