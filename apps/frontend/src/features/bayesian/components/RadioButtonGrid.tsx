@@ -104,9 +104,16 @@ interface RadioButtonGridProps {
   onInputChange: (key: string, value: string) => void;
 }
 
+const LEVEL_DESCRIPTIONS = [
+  { level: 'High', color: '#15803d', description: 'Exceeds safety standards (IEEE/IEC) with additional reliability-enhancing activities.' },
+  { level: 'Medium', color: '#b45309', description: 'Satisfactorily meets all required safety standards with documented evidence.' },
+  { level: 'Low', color: '#b91c1c', description: 'Insufficient evidence or unsatisfactory compliance with standards. (Used as the default for conservative assessment)' },
+];
+
 export function RadioButtonGrid({ children, tabLabel, inputValues, onInputChange }: RadioButtonGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isNarrow, setIsNarrow] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -135,15 +142,64 @@ export function RadioButtonGrid({ children, tabLabel, inputValues, onInputChange
   const col2 = items.slice(half);
 
   return (
-    <div ref={containerRef} style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
-      {isNarrow ? (
-        <RadioGroupPanel items={items} />
-      ) : (
-        <>
-          <RadioGroupPanel items={col1} />
-          {col2.length > 0 && <RadioGroupPanel items={col2} />}
-        </>
-      )}
+    <div>
+      {/* Collapsible legend */}
+      <div style={{ marginBottom: '16px' }}>
+        <button
+          onClick={() => setLegendOpen(o => !o)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px 0',
+            color: '#6b7280',
+            fontSize: '13px',
+          }}
+        >
+          <span style={{
+            display: 'inline-block',
+            transform: legendOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+            transition: 'transform 0.15s',
+            fontSize: '10px',
+          }}>▶</span>
+          What do these levels mean?
+        </button>
+
+        {legendOpen && (
+          <div style={{
+            marginTop: '8px',
+            padding: '12px 16px',
+            backgroundColor: '#f9fafb',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}>
+            {LEVEL_DESCRIPTIONS.map(({ level, color, description }) => (
+              <div key={level} style={{ display: 'flex', gap: '8px', fontSize: '13px', lineHeight: '1.5' }}>
+                <span style={{ fontWeight: 700, color, minWidth: '52px' }}>{level}</span>
+                <span style={{ color: '#374151' }}>{description}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Grid */}
+      <div ref={containerRef} style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
+        {isNarrow ? (
+          <RadioGroupPanel items={items} />
+        ) : (
+          <>
+            <RadioGroupPanel items={col1} />
+            {col2.length > 0 && <RadioGroupPanel items={col2} />}
+          </>
+        )}
+      </div>
     </div>
   );
 }
