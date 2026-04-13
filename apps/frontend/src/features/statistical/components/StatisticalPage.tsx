@@ -924,6 +924,8 @@ export default function StatisticalPage() {
                   </span>
                 </div>
 
+                {uploadedJsonSettings && renderHyperparamInfo(uploadedJsonSettings)}
+
                 {(!uploadedJsonKey || !uploadedNcKey) && (uploadedJsonKey || uploadedNcKey) && (
                   <span css={cssObj.bbnErrorText}>
                     Both JSON and NC files must be uploaded before calculating.
