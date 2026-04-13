@@ -211,7 +211,7 @@ function BayesianPage() {
             </div>
           ) : (
             <div style={{ color: '#9CA3AF', textAlign: 'center', paddingTop: '20vh' }}>
-              <p style={{ fontSize: '16px' }}>No results yet. Submit a job or load a result file.</p>
+              <p style={{ fontSize: '16px' }}>No results yet. <br/> <br/>Submit a new software development quality assessment <br/> or load a previous assessment file.</p>
             </div>
           )}
         </div>
