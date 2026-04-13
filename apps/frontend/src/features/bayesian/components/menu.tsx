@@ -131,11 +131,11 @@ const Menu = ({
               <SettingsForm values={settingsValues} onChange={onSettingsChange} />
             </div>
           </div>
-        ) : activeLabel === 'FP' ? (
+        ) : activeLabel === 'Function Point' ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '20vh' }}>
             <div>
               {activeLabelAndDropdowns?.children.map((child: any) => {
-                const key = `FP/${child.label}`;
+                const key = `Function Point/${child.label}`;
                 return (
                   <div key={key}>
                     <label htmlFor={key} style={{ color: '#4B5563', display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '14px' }}>

@@ -37,7 +37,7 @@ function BayesianPage() {
     nThin: defaultSettings.nThin,
   });
 
-  const [activeLabel, setActiveLabel] = useState('FP');
+  const [activeLabel, setActiveLabel] = useState('Function Point');
   const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,7 +71,7 @@ function BayesianPage() {
   const handleResetAndReturn = () => {
     handleReset();
     setLoadedFileName(null);
-    setActiveLabel('FP');
+    setActiveLabel('Function Point');
   };
 
   const activeLabelAndDropdowns = TABS.find(tab => tab.label === activeLabel);

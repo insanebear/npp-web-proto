@@ -2,10 +2,10 @@
 
 export const TABS = [
     {
-    label: "FP",
+    label: "Function Point",
     children: [
       {
-        label: "FP Input",
+        label: "Function Point Input",
         // This is not a dropdown, so values can be an empty array.
         // The UI will render a number input instead based on the tab label.
         values: [],
