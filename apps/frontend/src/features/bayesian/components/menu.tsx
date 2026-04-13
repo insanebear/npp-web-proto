@@ -2,7 +2,7 @@ import Button from "../../../shared/utilities/button";
 import SelectionBar from "../../../shared/utilities/searchbar";
 import { RadioButtonGrid } from "./RadioButtonGrid";
 import { TABS } from "../../../shared/constants/tabs";
-import SettingsForm, { type SettingsFormValues } from "../../settings/components/SettingsForm";
+import SettingsForm, { type SettingsFormValues } from "./SettingsForm";
 
 const Menu = ({
   activeLabel,

@@ -2,10 +2,15 @@
 // TODO: Rename to useLoadBayesianInput - current name doesn't clearly indicate purpose
 
 import { useAppState } from '../contexts/AppStateContext';
-import { useAppSettings } from './useAppSettings';
 
-export const useBayesianFileUpload = () => {
-  const settingsProps = useAppSettings();
+type SettingsSnapshot = {
+  nChains: number;
+  nIter: number;
+  nBurnin: number;
+  nThin: number;
+};
+
+export const useBayesianFileUpload = (onSettingsLoad?: (values: SettingsSnapshot) => void) => {
   const {
     setResults,
     setSimulationInput,
@@ -22,11 +27,13 @@ export const useBayesianFileUpload = () => {
         setResults(data.output);
         setSimulationInput(data.input);
         const { settings } = data.input;
-        if (settings) {
-          settingsProps.setnChains(Number(settings.nChains));
-          settingsProps.setnIter(Number(settings.nIter));
-          settingsProps.setnBurnin(Number(settings.nBurnin));
-          settingsProps.setnThin(Number(settings.nThin));
+        if (settings && onSettingsLoad) {
+          onSettingsLoad({
+            nChains: Number(settings.nChains),
+            nIter: Number(settings.nIter),
+            nBurnin: Number(settings.nBurnin),
+            nThin: Number(settings.nThin),
+          });
         }
         setInputValues(initializeInputState(data.input));
         setError(null);

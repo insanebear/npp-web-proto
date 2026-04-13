@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { cssObj } from "./style";
+import { cssObj } from "./settingsStyle";
 import type { ChangeEvent } from "react";
 
 export type SettingsFormValues = {

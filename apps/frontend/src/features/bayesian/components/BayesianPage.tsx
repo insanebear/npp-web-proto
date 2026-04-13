@@ -9,7 +9,7 @@ import { useFileSelect } from '../../../shared/hooks/useFileUpload';
 import { useBayesianFileUpload } from '../../../shared/hooks/useBayesianFileUpload';
 import { useAppSettings } from '../../../shared/hooks/useAppSettings';
 import { defaultSettings } from '../../../shared/contexts/AppSettingsContext';
-import type { SettingsFormValues } from '../../settings/components/SettingsForm';
+import type { SettingsFormValues } from './SettingsForm';
 
 function BayesianPage() {
 
@@ -39,7 +39,7 @@ function BayesianPage() {
   // Get handlers from hooks
   const { handleStartSimulation } = useSimulation();
   const { handleFileSelect } = useFileSelect();
-  const { handleBayesianUpload } = useBayesianFileUpload();
+  const { handleBayesianUpload } = useBayesianFileUpload(setSettingsValues);
 
   // Input change handler
   const handleInputChange = (key: string, value: string) => {
