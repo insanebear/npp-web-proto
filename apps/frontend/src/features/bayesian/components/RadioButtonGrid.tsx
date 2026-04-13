@@ -72,8 +72,8 @@ function RadioGroupPanel({ items }: { items: RadioItem[] }) {
                     width: '18px',
                     height: '18px',
                     borderRadius: '50%',
-                    border: `2px solid ${checked ? '#0ea5e9' : '#9ca3af'}`,
-                    backgroundColor: checked ? '#0ea5e9' : '#ffffff',
+                    border: `2px solid ${checked ? '#2563eb' : '#9ca3af'}`,
+                    backgroundColor: checked ? '#2563eb' : '#ffffff',
                     boxSizing: 'border-box',
                     flexShrink: 0,
                   }}>

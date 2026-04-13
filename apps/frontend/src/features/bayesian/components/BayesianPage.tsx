@@ -108,21 +108,21 @@ function BayesianPage() {
               border: '2px solid transparent',
               width: '120px',
               height: '36px',
-              backgroundColor: jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED' 
-                ? '#6b7280' 
-                : '#b91c1c',
+              backgroundColor: jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED'
+                ? '#6b7280'
+                : '#2563eb',
               cursor: jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED' 
                 ? 'not-allowed' 
                 : 'pointer'
             }}
             onMouseEnter={(e) => {
               if (jobStatus === null || jobStatus === 'COMPLETED' || jobStatus === 'FAILED') {
-                e.currentTarget.style.backgroundColor = '#dc2626';
+                e.currentTarget.style.backgroundColor = '#1d4ed8';
               }
             }}
             onMouseLeave={(e) => {
               if (jobStatus === null || jobStatus === 'COMPLETED' || jobStatus === 'FAILED') {
-                e.currentTarget.style.backgroundColor = '#b91c1c';
+                e.currentTarget.style.backgroundColor = '#2563eb';
               }
             }}
           >

@@ -59,6 +59,7 @@ const Menu = ({
               width={'300px'}
               height={'44px'}
               shape={'smooth'}
+              activeColor={'bg-blue-600'}
             />
           ))}
         </div>
