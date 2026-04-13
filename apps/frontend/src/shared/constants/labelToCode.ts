@@ -1,8 +1,8 @@
 // Mapping from visible labels to Python code keys, grouped by section label
 // Only used to transform outgoing JSON keys; UI remains unchanged.
 export const labelToCode: Record<string, Record<string, string>> = {
-  FP: {
-    "FP Input": "FP_Input",
+  "Function Point": {
+    "Function Point Input": "FP_Input",
   },
   "Requirement Dev": {
     "Software Development Planning": "SR_SDP_state",
