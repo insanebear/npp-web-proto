@@ -1,28 +1,32 @@
 import { useState } from 'react';
 import Background from '../../../shared/components/Background';
-import Menu from './menu';
+import Menu, { RESULT_LABEL } from './menu';
+import ResultsDisplay from './ResultsDisplay';
+import StatusIndicator from './StatusIndicator';
 import { TABS } from '../../../shared/constants/tabs';
 import { getCodeKey } from '../../../shared/constants/labelToCode';
 import { useAppState } from '../../../shared/contexts/AppStateContext';
 import { useSimulation } from '../../../shared/hooks/useSimulation';
 import { useFileSelect } from '../../../shared/hooks/useFileUpload';
 import { useBayesianFileUpload } from '../../../shared/hooks/useBayesianFileUpload';
+import { useReliabilityFileUpload } from '../../../shared/hooks/useReliabilityFileUpload';
 import { useAppSettings } from '../../../shared/hooks/useAppSettings';
 import { defaultSettings } from '../../../shared/contexts/AppSettingsContext';
 import type { SettingsFormValues } from './SettingsForm';
 
 function BayesianPage() {
 
-  // Get state from Context
   const {
+    jobId,
     jobStatus,
+    results,
     error: jobError,
     pendingFile,
     inputValues,
     setInputValues,
+    simulationInput,
   } = useAppState();
 
-  // workingDir from context; hyperparameter fields managed locally
   const { workingDir } = useAppSettings();
 
   const [settingsValues, setSettingsValues] = useState<SettingsFormValues>({
@@ -36,43 +40,34 @@ function BayesianPage() {
     setSettingsValues(prev => ({ ...prev, [key]: value }));
   };
 
-  // Get handlers from hooks
-  const { handleStartSimulation } = useSimulation();
+  const [activeLabel, setActiveLabel] = useState('FP');
+
+  const { handleStartSimulation, handleReset } = useSimulation();
   const { handleFileSelect } = useFileSelect();
   const { handleBayesianUpload } = useBayesianFileUpload(setSettingsValues);
+  const { handleReliabilityUpload } = useReliabilityFileUpload(() => setActiveLabel(RESULT_LABEL));
 
-  // Input change handler
   const handleInputChange = (key: string, value: string) => {
     setInputValues(prev => ({ ...prev, [key]: value }));
   };
 
-  // The active tab state remains local. We'll default to the new "FP" tab.
-  const [activeLabel, setActiveLabel] = useState('FP');
-
   const handleSubmit = () => {
     const payload = formatPayload(inputValues, settingsValues, workingDir);
     handleStartSimulation(payload);
+    setActiveLabel(RESULT_LABEL);
+  };
+
+  const handleResetAndReturn = () => {
+    handleReset();
+    setActiveLabel('FP');
   };
 
   const activeLabelAndDropdowns = TABS.find(tab => tab.label === activeLabel);
+  const isBusy = jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED';
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
       <Background />
-      {jobError && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          padding: '16px',
-          backgroundColor: '#fee2e2',
-          color: '#991b1b',
-          borderRadius: '6px'
-        }}>
-          Error: {jobError}
-        </div>
-      )}
       <Menu
         activeLabel={activeLabel}
         setActiveLabel={setActiveLabel}
@@ -84,9 +79,79 @@ function BayesianPage() {
         onFileSelect={handleFileSelect}
         settingsValues={settingsValues}
         onSettingsChange={handleSettingsChange}
+        jobStatus={jobStatus}
+        results={results}
       />
-      {/* Fixed-width control box positioned below Settings */}
-      <div className="absolute" style={{
+
+      {/* Analysis Result content — rendered outside Menu to use full main area */}
+      {activeLabel === RESULT_LABEL && (
+        <div style={{
+          position: 'absolute',
+          top: '64px',
+          left: '300px',
+          right: 0,
+          bottom: 0,
+          overflowY: 'auto',
+          padding: '2rem',
+        }}>
+          {results ? (
+            <ResultsDisplay
+              results={results}
+              onReset={handleResetAndReturn}
+              simulationInput={simulationInput}
+              jobId={jobId}
+            />
+          ) : isBusy && jobId ? (
+            <StatusIndicator jobId={jobId} jobStatus={jobStatus!} />
+          ) : jobError ? (
+            <div style={{
+              padding: '32px',
+              backgroundColor: '#fee2e2',
+              border: '1px solid #f87171',
+              borderRadius: '8px',
+              color: '#991b1b',
+              textAlign: 'center',
+            }}>
+              <h3 style={{ fontWeight: 'bold', marginBottom: '8px' }}>An Error Occurred</h3>
+              <p>{jobError}</p>
+            </div>
+          ) : (
+            <div style={{ color: '#9CA3AF', textAlign: 'center', paddingTop: '20vh' }}>
+              <p style={{ fontSize: '16px' }}>No results yet. Submit a job or load a result file.</p>
+              <label style={{
+                display: 'inline-block',
+                marginTop: '16px',
+                padding: '8px 16px',
+                border: '1px solid #D1D5DB',
+                borderRadius: '6px',
+                backgroundColor: '#fff',
+                color: '#374151',
+                fontSize: '14px',
+                cursor: 'pointer',
+              }}>
+                Load result file
+                <input
+                  type="file"
+                  accept=".json"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => handleReliabilityUpload(ev.target?.result as string);
+                    reader.readAsText(file);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Submit button */}
+      <div style={{
+        position: 'absolute',
         right: '40px',
         top: '80px',
         height: '60px',
@@ -95,42 +160,30 @@ function BayesianPage() {
         display: 'flex',
         alignItems: 'center',
       }}>
-          <button
-            onClick={handleSubmit}
-            disabled={jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED'}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              fontWeight: '600',
-              color: '#ffffff',
-              fontSize: '14px',
-              transition: 'all 0.3s ease-in-out',
-              border: '2px solid transparent',
-              width: '120px',
-              height: '36px',
-              backgroundColor: jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED'
-                ? '#6b7280'
-                : '#2563eb',
-              cursor: jobStatus !== null && jobStatus !== 'COMPLETED' && jobStatus !== 'FAILED' 
-                ? 'not-allowed' 
-                : 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              if (jobStatus === null || jobStatus === 'COMPLETED' || jobStatus === 'FAILED') {
-                e.currentTarget.style.backgroundColor = '#1d4ed8';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (jobStatus === null || jobStatus === 'COMPLETED' || jobStatus === 'FAILED') {
-                e.currentTarget.style.backgroundColor = '#2563eb';
-              }
-            }}
-          >
-            {!jobStatus || jobStatus === 'COMPLETED' || jobStatus === 'FAILED' 
-              ? 'Submit' 
-              : `${jobStatus.charAt(0).toUpperCase() + jobStatus.slice(1).toLowerCase()}...`
-            }
-          </button>
+        <button
+          onClick={handleSubmit}
+          disabled={isBusy}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '8px',
+            fontWeight: '600',
+            color: '#ffffff',
+            fontSize: '14px',
+            transition: 'all 0.3s ease-in-out',
+            border: '2px solid transparent',
+            width: '120px',
+            height: '36px',
+            backgroundColor: isBusy ? '#6b7280' : '#2563eb',
+            cursor: isBusy ? 'not-allowed' : 'pointer',
+          }}
+          onMouseEnter={(e) => { if (!isBusy) e.currentTarget.style.backgroundColor = '#1d4ed8'; }}
+          onMouseLeave={(e) => { if (!isBusy) e.currentTarget.style.backgroundColor = '#2563eb'; }}
+        >
+          {!jobStatus || jobStatus === 'COMPLETED' || jobStatus === 'FAILED'
+            ? 'Submit'
+            : `${jobStatus.charAt(0).toUpperCase() + jobStatus.slice(1).toLowerCase()}...`
+          }
+        </button>
       </div>
     </div>
   );
