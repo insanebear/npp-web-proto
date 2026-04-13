@@ -53,6 +53,7 @@ const Menu = ({
     color: isActive ? '#2563eb' : '#4B5563',
     fontSize: '14px',
     fontWeight: isActive ? '600' : '500',
+    borderRadius: '0',
     cursor: 'pointer',
     textAlign: 'left' as const,
     transition: 'background-color 0.15s, color 0.15s',

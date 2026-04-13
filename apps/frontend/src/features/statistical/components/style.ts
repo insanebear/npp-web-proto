@@ -198,6 +198,7 @@ export const cssObj = {
     color: ${COLORS.gray500};
     background: none;
     border: none;
+    border-radius: 0;
     border-bottom: 2px solid transparent;
     margin-bottom: -2px;
     cursor: pointer;
