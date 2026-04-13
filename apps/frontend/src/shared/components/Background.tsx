@@ -8,7 +8,7 @@ const Background = () => {
           top: 0,
           left: '300px',
           right: 0,
-          height: '300vh',
+          bottom: 0,
           backgroundColor: '#e5e7eb', // gray-200
           zIndex: -1
         }}

@@ -31,7 +31,7 @@ const initializeInputState = (initialData?: SimulationInput) => {
       const uploadedValueByCode = normalizeToString(uploadedSection?.[codeKey]);
 
       // Special handling for the new FP input
-      if (tab.label === 'FP') {
+      if (tab.label === 'Function Point') {
         const fpValue = uploadedValueByLabel || uploadedValueByCode || '10';
         initialState[key] = fpValue; // Default FP to 56 when nothing uploaded
       } else {

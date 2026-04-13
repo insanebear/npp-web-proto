@@ -36,16 +36,13 @@ const Menu = ({
   results: SimulationResults | null;
 }) => {
   const labels = ['Settings', ...TABS.map(tab => tab.label)];
-  const labelSeparationPx = 48;
   const firstButtonTopPx = 70;
 
   const dotColor = getResultDotColor(jobStatus, results);
   const isResultActive = activeLabel === RESULT_LABEL;
 
   const navButtonStyle = (isActive: boolean) => ({
-    position: 'absolute' as const,
-    left: 0,
-    width: '300px',
+    width: '100%',
     height: '44px',
     display: 'flex',
     alignItems: 'center',
@@ -56,60 +53,50 @@ const Menu = ({
     color: isActive ? '#2563eb' : '#4B5563',
     fontSize: '14px',
     fontWeight: isActive ? '600' : '500',
-    borderRadius: '0',
     cursor: 'pointer',
     textAlign: 'left' as const,
     transition: 'background-color 0.15s, color 0.15s',
+    flexShrink: 0,
   });
 
   return (
     <>
       {/* --- Left sidebar --- */}
       <Sidebar>
-        {/* Input tabs */}
-        {labels.map((label, index) => {
-          const isActive = activeLabel === label;
-          return (
-            <button
-              key={label}
-              onClick={() => setActiveLabel(label)}
-              style={{ ...navButtonStyle(isActive), top: `${firstButtonTopPx + index * labelSeparationPx}px` }}
-              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = '#F3F4F6'; }}
-              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'; }}
-            >
-              {label}
-            </button>
-          );
-        })}
+        {/* Scrollable nav section */}
+        <div style={{ flex: 1, overflowY: 'auto', paddingTop: `${firstButtonTopPx}px` }}>
+          {labels.map((label) => {
+            const isActive = activeLabel === label;
+            return (
+              <button
+                key={label}
+                onClick={() => setActiveLabel(label)}
+                style={navButtonStyle(isActive)}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = '#F3F4F6'; }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
 
-        {/* Separator */}
-        <div style={{
-          position: 'absolute',
-          bottom: '60px',
-          left: '12px',
-          right: '12px',
-          height: '1px',
-          backgroundColor: '#E5E7EB',
-        }} />
-
-        {/* Analysis Result button */}
-        <button
-          onClick={() => setActiveLabel(RESULT_LABEL)}
-          style={{
-            ...navButtonStyle(isResultActive),
-            position: 'absolute',
-            bottom: '10px',
-            gap: '8px',
-          }}
-          onMouseEnter={(e) => { if (!isResultActive) e.currentTarget.style.backgroundColor = '#F3F4F6'; }}
-          onMouseLeave={(e) => { if (!isResultActive) e.currentTarget.style.backgroundColor = 'transparent'; }}
-        >
-          <span style={{
-            width: '8px', height: '8px', borderRadius: '50%',
-            backgroundColor: dotColor, flexShrink: 0,
-          }} />
-          {RESULT_LABEL}
-        </button>
+        {/* Bottom: separator + Analysis Result */}
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ height: '1px', backgroundColor: '#E5E7EB', margin: '0 12px' }} />
+          <button
+            onClick={() => setActiveLabel(RESULT_LABEL)}
+            style={{ ...navButtonStyle(isResultActive), gap: '8px' }}
+            onMouseEnter={(e) => { if (!isResultActive) e.currentTarget.style.backgroundColor = '#F3F4F6'; }}
+            onMouseLeave={(e) => { if (!isResultActive) e.currentTarget.style.backgroundColor = 'transparent'; }}
+          >
+            <span style={{
+              width: '8px', height: '8px', borderRadius: '50%',
+              backgroundColor: dotColor, flexShrink: 0,
+            }} />
+            {RESULT_LABEL}
+          </button>
+        </div>
       </Sidebar>
 
       {/* --- Main container for the right-side inputs --- */}
@@ -118,11 +105,11 @@ const Menu = ({
           position: 'absolute',
           top: '116px',
           left: '300px',
-          right: '2%',
-          minHeight: '87.2%',
+          right: 0,
+          bottom: 0,
           padding: '2rem',
           minWidth: '300px',
-          overflow: 'visible',
+          overflowY: 'auto',
         }}
       >
         {activeLabel === 'Settings' ? (
@@ -131,11 +118,11 @@ const Menu = ({
               <SettingsForm values={settingsValues} onChange={onSettingsChange} />
             </div>
           </div>
-        ) : activeLabel === 'FP' ? (
+        ) : activeLabel === 'Function Point' ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '20vh' }}>
             <div>
               {activeLabelAndDropdowns?.children.map((child: any) => {
-                const key = `FP/${child.label}`;
+                const key = `Function Point/${child.label}`;
                 return (
                   <div key={key}>
                     <label htmlFor={key} style={{ color: '#4B5563', display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '14px' }}>
