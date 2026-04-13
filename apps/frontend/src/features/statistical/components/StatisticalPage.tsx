@@ -601,12 +601,12 @@ export default function StatisticalPage() {
           }
         },
         (error) => {
-          setErrorMsg({ message: "Sensitivity Analysis failed. Please check your inputs and try again.", detail: String(error) });
+          setErrorMsg({ message: "Failed to calculate the required number of tests. Please check your inputs and try again.", detail: String(error) });
         }
       );
     } catch (err: any) {
       console.error(err);
-      setErrorMsg({ message: "Sensitivity Analysis failed. Please check your inputs and try again.", detail: err?.message ?? String(err) });
+      setErrorMsg({ message: "Failed to calculate the required number of tests.Please check your inputs and try again.", detail: err?.message ?? String(err) });
       setLoading(false);
     }
   };
