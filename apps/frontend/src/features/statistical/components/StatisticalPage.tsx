@@ -431,6 +431,32 @@ export default function StatisticalPage() {
     return {};
   }, [bbnTab, selectedBbnKey, bbnBucketInfo, uploadedJsonKey, uploadedNcKey, uploadedBucket]);
 
+  const getBbnSettings = useCallback(() => {
+    let s: { nChains: string; nIter: string; nBurnin: string; nThin: string } | null = null;
+    if (bbnTab === 'select') {
+      s = selectedBbnData?.input?.settings ?? null;
+    } else if (bbnTab === 'upload') {
+      s = uploadedJsonSettings;
+    }
+    if (s) {
+      const nIter = parseInt(s.nIter);
+      const nBurnin = parseInt(s.nBurnin);
+      return {
+        draws: nIter - nBurnin,
+        tune: nBurnin,
+        chains: parseInt(s.nChains),
+        thin: parseInt(s.nThin),
+      };
+    }
+    // Fallback to app settings
+    return {
+      draws: settings.nIter - settings.nBurnin,
+      tune: settings.nBurnin,
+      chains: settings.nChains,
+      thin: settings.nThin,
+    };
+  }, [bbnTab, selectedBbnData, uploadedJsonSettings, settings]);
+
   // Upload tab: handle file selection and upload to S3
   const handleUploadFile = async (
     file: File,
@@ -521,10 +547,7 @@ export default function StatisticalPage() {
         test_mode: testMode || undefined,
         ...buildBbnPayload(),
         settings: {
-          draws: settings.nIter - settings.nBurnin,
-          tune: settings.nBurnin,
-          chains: settings.nChains,
-          thin: settings.nThin,
+          ...getBbnSettings(),
         },
       });
 
@@ -611,10 +634,7 @@ export default function StatisticalPage() {
         test_mode: testMode || undefined,
         ...buildBbnPayload(),
         settings: {
-          draws: settings.nIter - settings.nBurnin,
-          tune: settings.nBurnin,
-          chains: settings.nChains,
-          thin: settings.nThin,
+          ...getBbnSettings(),
         },
       });
 
