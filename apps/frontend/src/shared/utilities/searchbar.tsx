@@ -1,11 +1,5 @@
 import React, { useRef, useState, type CSSProperties } from 'react';
 
-const UploadIcon = ({ size }: { size: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} fill="currentColor" viewBox="0 0 16 16">
-    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
-    <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
-  </svg>
-);
 
 interface SelectionBarProps {
   width?: string;
@@ -77,22 +71,18 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
   };
 
   const chooseButtonStyle: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '6px 14px',
-    height: '34px',
-    backgroundColor: '#2563eb',
-    color: '#ffffff',
-    fontSize: '13px',
-    fontWeight: '600',
+    padding: '5px 12px',
+    fontSize: '14px',
+    fontWeight: '500',
+    border: '1px solid #D1D5DB',
     borderRadius: '6px',
-    border: 'none',
+    backgroundColor: '#FFF',
+    color: '#374151',
     cursor: isLoading ? 'not-allowed' : 'pointer',
     whiteSpace: 'nowrap',
     flexShrink: 0,
-    transition: 'background-color 0.2s',
-    opacity: isLoading ? 0.7 : 1,
+    transition: 'background-color 0.15s, border-color 0.15s',
+    opacity: isLoading ? 0.6 : 1,
   };
 
   const fileNameStyle: CSSProperties = {
@@ -118,10 +108,9 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
         style={chooseButtonStyle}
         onClick={handleChooseClick}
         disabled={isLoading}
-        onMouseEnter={(e) => { if (!isLoading) e.currentTarget.style.backgroundColor = '#1d4ed8'; }}
-        onMouseLeave={(e) => { if (!isLoading) e.currentTarget.style.backgroundColor = '#2563eb'; }}
+        onMouseEnter={(e) => { if (!isLoading) { e.currentTarget.style.backgroundColor = '#F3F4F6'; e.currentTarget.style.borderColor = '#9CA3AF'; } }}
+        onMouseLeave={(e) => { if (!isLoading) { e.currentTarget.style.backgroundColor = '#FFF'; e.currentTarget.style.borderColor = '#D1D5DB'; } }}
       >
-        <UploadIcon size={14} />
         {isLoading ? 'Loading...' : 'Choose file'}
       </button>
       <span style={fileNameStyle} title={fileName ?? ''}>
