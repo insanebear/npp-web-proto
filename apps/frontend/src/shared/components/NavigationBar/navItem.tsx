@@ -6,8 +6,6 @@ export interface NavItemProps {
   to: string;
   size?: string;
   font?: string;
-  color?: string;
-  activeColor?: string;
   hoverColor?: string;
   active?: boolean;
   onClick?: (text: string) => void; // FIXED: Made onClick optional and typed it
@@ -19,8 +17,6 @@ const NavItem: React.FC<NavItemProps> = ({
   to,
   size = 'text-base',
   font = 'sans',
-  color = "text-gray-800",
-  activeColor = "text-red-800",
   active = false,
   onClick,
 }) => {
@@ -32,9 +28,9 @@ const NavItem: React.FC<NavItemProps> = ({
   // Convert Tailwind classes to inline styles
   const getTextColor = () => {
     if (active) {
-      return activeColor === 'text-red-800' ? '#991b1b' : '#dc2626';
+      return '#ffffff';
     } else {
-      return color === 'text-gray-800' ? '#1f2937' : '#374151';
+      return '#9CA3AF';
     }
   };
 
