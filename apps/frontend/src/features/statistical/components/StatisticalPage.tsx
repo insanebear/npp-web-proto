@@ -525,6 +525,7 @@ export default function StatisticalPage() {
     e.preventDefault();
     setErrorMsg(null);
     setLoading(true);
+    setCurrentJobType('sensitivity-analysis');
     setSensitivityJobId(null);
     setSensitivityCompletedTime(null);
 
@@ -595,6 +596,7 @@ export default function StatisticalPage() {
   const handlePfdUpdateSubmit = async () => {
     setErrorMsg(null);
     setLoading(true);
+    setCurrentJobType('full-analysis');
     setPfdUpdateResultData(null);
     setPfdUpdateJobId(null);
     setPfdUpdateCompletedTime(null);
@@ -721,28 +723,6 @@ export default function StatisticalPage() {
             </div>
           </section>
 
-          {(loading || isPolling) && (
-            <div css={cssObj.container} style={{ marginTop: 8, marginBottom: 8 }}>
-              <div style={{
-                border: '1px solid #2563EB',
-                borderRadius: '8px',
-                backgroundColor: 'rgba(37, 99, 235, 0.2)',
-                padding: '16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
-                <p style={{ margin: 0, fontSize: '14px', color: '#1F2937', fontWeight: loading ? 500 : 700 }}>
-                  {loading ? 'Requesting...' : 'Calculating...'}
-                </p>
-                {!loading && isPolling && (
-                  <div style={{ fontSize: '14px', color: '#1F2937' }}>
-                    Elapsed time: {formatElapsedTime(elapsedTime)}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
           {errorMsg && (
             <div
               css={cssObj.container}
@@ -1094,7 +1074,10 @@ export default function StatisticalPage() {
                     css={cssObj.saveButton}
                     disabled={loading || isPolling || (sensitivityJobId !== null && currentJobType === 'sensitivity-analysis')}
                   >
-                    {isPolling && currentJobType === 'sensitivity-analysis' ? 'Calculating...' : 'Calculate'}
+                    {loading && currentJobType === 'sensitivity-analysis' ? 'Requesting...' :
+                      isPolling && currentJobType === 'sensitivity-analysis'
+                        ? `Calculating... (${formatElapsedTime(elapsedTime)})`
+                        : 'Calculate'}
                   </button>
                   {sensitivityCompletedTime !== null && (
                     <span style={{ color: '#666', fontSize: '13px' }}>
@@ -1236,7 +1219,10 @@ export default function StatisticalPage() {
                     css={cssObj.saveButton}
                     disabled={loading || isPolling || (pfdUpdateJobId !== null && currentJobType === 'full-analysis')}
                   >
-                    {isPolling && currentJobType === 'full-analysis' ? 'Analyzing...' : 'Run update'}
+                    {loading && currentJobType === 'full-analysis' ? 'Requesting...' :
+                      isPolling && currentJobType === 'full-analysis'
+                        ? `Analyzing... (${formatElapsedTime(elapsedTime)})`
+                        : 'Run update'}
                   </button>
                   {pfdUpdateCompletedTime !== null && (
                     <span style={{ color: '#666', fontSize: '13px' }}>
