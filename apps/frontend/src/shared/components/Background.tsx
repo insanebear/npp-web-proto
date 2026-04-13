@@ -1,15 +1,16 @@
 const Background = () => {
   return (
     <>
-      {/* 왼쪽 검은색 메뉴 배경 */}
-      <div 
+      {/* 왼쪽 사이드바 배경 */}
+      <div
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           width: '300px',
           height: '300vh',
-          backgroundColor: '#1f2937', // gray-800
+          backgroundColor: '#ffffff',
+          borderRight: '1px solid #E5E7EB',
           zIndex: -1
         }}
       />

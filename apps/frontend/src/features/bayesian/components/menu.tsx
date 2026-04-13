@@ -1,4 +1,3 @@
-import Button from "../../../shared/utilities/button";
 import SelectionBar from "../../../shared/utilities/searchbar";
 import { RadioButtonGrid } from "./RadioButtonGrid";
 import { TABS } from "../../../shared/constants/tabs";
@@ -42,26 +41,49 @@ const Menu = ({
             shape="sharp-rectangle"
             x="150px"
             y="30px"
-            color="bg-gray-800"
+            color="bg-white"
             onFileUpload={onFileUpload}
             pendingFile={pendingFile}
             onFileSelect={onFileSelect}
           />
 
-          {labels.map((label, index) => (
-            <Button
-              key={label}
-              text={label}
-              active={activeLabel === label}
-              onClick={() => setActiveLabel(label)}
-              x={'0'}
-              y={`${firstButtonTopPx + index * labelSeparationPx}px`}
-              width={'300px'}
-              height={'44px'}
-              shape={'smooth'}
-              activeColor={'bg-blue-600'}
-            />
-          ))}
+          {labels.map((label, index) => {
+            const isActive = activeLabel === label;
+            return (
+              <button
+                key={label}
+                onClick={() => setActiveLabel(label)}
+                style={{
+                  position: 'absolute',
+                  top: `${firstButtonTopPx + index * labelSeparationPx}px`,
+                  left: 0,
+                  width: '300px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  paddingLeft: '20px',
+                  border: 'none',
+                  borderLeft: isActive ? '3px solid #2563eb' : '3px solid transparent',
+                  backgroundColor: isActive ? '#EFF6FF' : 'transparent',
+                  color: isActive ? '#2563eb' : '#4B5563',
+                  fontSize: '14px',
+                  fontWeight: isActive ? '600' : '500',
+                  borderRadius: '0',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'background-color 0.15s, color 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.backgroundColor = '#F3F4F6';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

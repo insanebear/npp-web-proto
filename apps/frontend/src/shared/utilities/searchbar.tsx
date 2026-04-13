@@ -50,7 +50,7 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
     event.target.value = '';
   };
 
-  const getBackgroundColor = () => color === 'bg-gray-800' ? '#1f2937' : '#f3f4f6';
+  const isDark = color === 'bg-gray-800';
   const getBorderRadius = () => shape === 'smooth-rectangle' ? '12px' : '0';
 
   const containerStyle: CSSProperties = {
@@ -64,10 +64,11 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
     alignItems: 'center',
     gap: '10px',
     padding: '8px 12px',
-    backgroundColor: getBackgroundColor(),
+    backgroundColor: isDark ? '#1f2937' : '#ffffff',
     borderRadius: getBorderRadius(),
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: isDark ? '0 25px 50px -12px rgba(0, 0, 0, 0.25)' : 'none',
+    border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #E5E7EB',
+    borderBottom: isDark ? undefined : '1px solid #E5E7EB',
   };
 
   const chooseButtonStyle: CSSProperties = {
@@ -86,7 +87,9 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
   };
 
   const fileNameStyle: CSSProperties = {
-    color: fileName ? '#d1d5db' : '#9ca3af',
+    color: isDark
+      ? (fileName ? '#d1d5db' : '#9ca3af')
+      : (fileName ? '#374151' : '#9ca3af'),
     fontSize: '13px',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
