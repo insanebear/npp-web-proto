@@ -7,7 +7,6 @@ type Shape = 'smooth-rectangle' | 'sharp-rectangle' | 'pill' | 'circle';
 interface NavigationBarProps {
   width?: string;
   height?: string;
-  color?: string;
   center?: { x: string; y: string };
   shape?: Shape;
   children: React.ReactNode;
@@ -17,7 +16,6 @@ interface NavigationBarProps {
 const NavigationBar: React.FC<NavigationBarProps> = ({
   width = '100%',
   height = '64px',
-  color = 'bg-gray-100',
   center = { x: '50%', y: '0%' },
   shape = 'sharp-rectangle',
   children,
@@ -29,8 +27,6 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     activeItemText = "Reliability Views";
   } else if (location.pathname.startsWith('/statistical')) {
     activeItemText = "Statistical Methods";
-  } else if (location.pathname.startsWith('/settings')) {
-    activeItemText = "Settings";
   } else if (location.pathname === '/' || location.pathname.startsWith('/bayesian')) {
     activeItemText = "Bayesian Methods";
   }
@@ -55,12 +51,6 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
 
   // Removed unused shapeClasses
 
-  // Convert Tailwind classes to inline styles
-  const getBackgroundColor = () => {
-    return color === 'bg-gray-100' ? '#f3f4f6' : 
-           color === 'bg-gray-800' ? '#1f2937' : '#f3f4f6';
-  };
-
   const getBorderRadius = () => {
     return shape === 'smooth-rectangle' ? '8px' :
            shape === 'sharp-rectangle' ? '0' :
@@ -69,10 +59,8 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
 
   const barContainerStyle: CSSProperties = {
     ...barStyle,
-    backgroundColor: getBackgroundColor(),
+    backgroundColor: '#1f2937',
     borderRadius: getBorderRadius(),
-    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-    transition: 'all 0.3s',
   };
 
   const flexContainerStyle: CSSProperties = {

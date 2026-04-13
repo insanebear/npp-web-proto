@@ -32,7 +32,7 @@ const initializeInputState = (initialData?: SimulationInput) => {
 
       // Special handling for the new FP input
       if (tab.label === 'FP') {
-        const fpValue = uploadedValueByLabel || uploadedValueByCode || '56';
+        const fpValue = uploadedValueByLabel || uploadedValueByCode || '10';
         initialState[key] = fpValue; // Default FP to 56 when nothing uploaded
       } else {
         // Use the uploaded value, or default to 'Medium' for dropdowns

@@ -686,7 +686,6 @@ export default function StatisticalPage() {
             css={[cssObj.container, cssObj.settingsTitleSection]}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h1 css={cssObj.title}>Statistical Methods</h1>
               {isDevelopment && (
                 <div style={{
                   display: 'flex',

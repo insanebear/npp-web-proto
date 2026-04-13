@@ -1,13 +1,12 @@
 import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
 import * as apiService from '../services/apiService';
 import type { SimulationInput } from '../types';
 
 export const useSimulation = () => {
-  const navigate = useNavigate();
   const location = useLocation();
-  
+
   const {
     jobId,
     setJobId,
@@ -33,7 +32,6 @@ export const useSimulation = () => {
     try {
       const newJobId = await apiService.startSimulation(formData);
       setJobId(newJobId);
-      navigate(`/reliability-views/${newJobId}`);
     } catch (err: any) {
       setError(err.message);
       setJobStatus(null);
@@ -51,7 +49,6 @@ export const useSimulation = () => {
     setSimulationInput(null);
     setPendingFile(null);
     setInputValues(initializeInputState());
-    navigate('/');
   };
 
   // Job status polling effect
