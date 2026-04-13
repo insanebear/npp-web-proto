@@ -41,6 +41,9 @@ export default function StatisticalPage() {
   const [uploadedJsonName, setUploadedJsonName] = useState<string | null>(null);
   const [uploadedNcName, setUploadedNcName] = useState<string | null>(null);
   const [uploadedJsonSettings, setUploadedJsonSettings] = useState<{ nChains: string; nIter: string; nBurnin: string; nThin: string } | null>(null);
+  const [editedUploadSettings, setEditedUploadSettings] = useState<{ nChains: string; nIter: string; nBurnin: string; nThin: string } | null>(null);
+  const [isHyperparamModalOpen, setIsHyperparamModalOpen] = useState(false);
+  const [modalDraft, setModalDraft] = useState<{ nChains: string; nIter: string; nBurnin: string; nThin: string }>({ nChains: '', nIter: '', nBurnin: '', nThin: '' });
 
   const [bbnFiles, setBbnFiles] = useState<api.BbnResultItem[]>([]);
   const [bbnBucketInfo, setBbnBucketInfo] = useState<{ bucket: string; prefix: string } | null>(null);
@@ -468,6 +471,7 @@ export default function StatisticalPage() {
       setUploadedJsonKey(null);
       setUploadedJsonName(null);
       setUploadedJsonSettings(null);
+      setEditedUploadSettings(null);
     } else {
       setNcUploading(true);
       setNcUploadError(null);
@@ -750,7 +754,7 @@ export default function StatisticalPage() {
           <div css={cssObj.bbnSelectorBox}>
             <div css={cssObj.bbnSelectorHeader}>
               <div>
-                <h2>BBN JSON Result Selection</h2>
+                <h2>Initial Reliability Assessment Result based on Bayesian Methods</h2>
                 {bbnTab === 'select' && (
                   <p>
                     {bbnBucketInfo
@@ -944,7 +948,25 @@ export default function StatisticalPage() {
                   </span>
                 </div>
 
-                {uploadedJsonSettings && renderHyperparamInfo(uploadedJsonSettings)}
+                {uploadedJsonSettings && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginTop: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      {renderHyperparamInfo(editedUploadSettings ?? uploadedJsonSettings)}
+                    </div>
+                    <button
+                      type="button"
+                      css={cssObj.bbnUploadButton}
+                      style={{ marginTop: '0', whiteSpace: 'nowrap', flexShrink: 0 }}
+                      onClick={() => {
+                        const current = editedUploadSettings ?? uploadedJsonSettings;
+                        setModalDraft({ ...current });
+                        setIsHyperparamModalOpen(true);
+                      }}
+                    >
+                      Edit settings
+                    </button>
+                  </div>
+                )}
 
                 {(!uploadedJsonKey || !uploadedNcKey) && (uploadedJsonKey || uploadedNcKey) && (
                   <span css={cssObj.bbnErrorText}>
