@@ -547,13 +547,18 @@ export default function StatisticalPage() {
       setErrorMsg({ message: "Confidence goal is required." });
       return;
     }
-    if (c < 0 || c > 1) {
+    if (c <= 0 || c >= 1) {
       setLoading(false); setCurrentJobType(null);
-      setErrorMsg({ message: "Confidence goal must be between 0 and 100." });
+      setErrorMsg({ message: "Confidence goal must be greater than 0 and less than 100." });
       return;
     }
 
-    // Upload tab: both files required
+    // BBN file required
+    if (bbnTab === 'select' && !selectedBbnKey) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Please select a BBN result file before calculating." });
+      return;
+    }
     if (bbnTab === 'upload' && (!uploadedJsonKey || !uploadedNcKey)) {
       setLoading(false); setCurrentJobType(null);
       setErrorMsg({ message: "Both JSON and NC files are required. Please upload both files before calculating." });
@@ -634,13 +639,18 @@ export default function StatisticalPage() {
       setErrorMsg({ message: "Confidence goal is required." });
       return;
     }
-    if (c < 0 || c > 1) {
+    if (c <= 0 || c >= 1) {
       setLoading(false); setCurrentJobType(null);
-      setErrorMsg({ message: "Confidence goal must be between 0 and 100." });
+      setErrorMsg({ message: "Confidence goal must be greater than 0 and less than 100." });
       return;
     }
 
-    // Upload tab: both files required
+    // BBN file required
+    if (bbnTab === 'select' && !selectedBbnKey) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Please select a BBN result file before calculating." });
+      return;
+    }
     if (bbnTab === 'upload' && (!uploadedJsonKey || !uploadedNcKey)) {
       setLoading(false); setCurrentJobType(null);
       setErrorMsg({ message: "Both JSON and NC files are required. Please upload both files before calculating." });
@@ -1152,8 +1162,8 @@ export default function StatisticalPage() {
                     <input
                       type="number"
                       step="0.01"
-                      min={0}
-                      max={100}
+                      min={0.01}
+                      max={99.99}
                       value={confidenceGoal}
                       onChange={(e) => setConfidenceGoal(e.target.value)}
                       placeholder="e.g. 95"
@@ -1171,7 +1181,7 @@ export default function StatisticalPage() {
                       pointerEvents: 'none',
                     }}>%</span>
                   </div>
-                  <span css={cssObj.hintText}>Range: 0 – 100, up to 2 decimal places</span>
+                  <span css={cssObj.hintText}>Range: 0 – 100 (exclusive), up to 2 decimal places</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button
