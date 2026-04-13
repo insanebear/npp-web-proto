@@ -147,7 +147,7 @@ export function RadioButtonGrid({ children, tabLabel, inputValues, onInputChange
             transition: 'transform 0.15s',
             fontSize: '10px',
           }}>▶</span>
-          What do these levels mean?
+          What do these levels (High, Medium, Low) mean?
         </button>
 
         {legendOpen && (
