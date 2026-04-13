@@ -1,8 +1,8 @@
 import React from 'react';
 import Background from '../../../shared/components/Background';
+import Sidebar from '../../../shared/components/Sidebar';
 import StatusIndicator from './StatusIndicator';
 import ResultsDisplay from './ResultsDisplay';
-import SelectionBar from '../../../shared/utilities/searchbar';
 import { useAppState } from '../../../shared/contexts/AppStateContext';
 import { useSimulation } from '../../../shared/hooks/useSimulation';
 import { useFileSelect } from '../../../shared/hooks/useFileUpload';
@@ -31,8 +31,7 @@ const ReliabilityPage: React.FC = () => {
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
       <Background />
-      <SelectionBar
-        width="300px" shape="sharp-rectangle" y="94px" color="bg-gray-800"
+      <Sidebar
         onFileUpload={handleReliabilityUpload}
         pendingFile={pendingFile}
         onFileSelect={handleFileSelect}
@@ -77,7 +76,7 @@ const ReliabilityPage: React.FC = () => {
         )}
 
         {!results && !isLoading && !error && (
-          <div style={{ color: '#ffffff', textAlign: 'center' }}>
+          <div style={{ color: '#6B7280', textAlign: 'center' }}>
             <h2 style={{ fontSize: '24px', marginBottom: '8px' }}>No Simulation Job Specified</h2>
             <p>Please start a new simulation or upload a result file.</p>
           </div>

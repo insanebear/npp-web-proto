@@ -1,4 +1,4 @@
-import SelectionBar from "../../../shared/utilities/searchbar";
+import Sidebar from "../../../shared/components/Sidebar";
 import { RadioButtonGrid } from "./RadioButtonGrid";
 import { TABS } from "../../../shared/constants/tabs";
 import SettingsForm, { type SettingsFormValues } from "./SettingsForm";
@@ -32,60 +32,46 @@ const Menu = ({
 
   return (
     <>
-      {/* --- Left sidebar: fixed search bar on top + fixed buttons --- */}
-      <div style={{ position: 'absolute', top: '64px', left: 0, width: '300px', bottom: 0, zIndex: 20 }}>
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-          <SelectionBar
-            width="300px"
-            height="60px"
-            shape="sharp-rectangle"
-            x="150px"
-            y="30px"
-            color="bg-white"
-            onFileUpload={onFileUpload}
-            pendingFile={pendingFile}
-            onFileSelect={onFileSelect}
-          />
-
-          {labels.map((label, index) => {
-            const isActive = activeLabel === label;
-            return (
-              <button
-                key={label}
-                onClick={() => setActiveLabel(label)}
-                style={{
-                  position: 'absolute',
-                  top: `${firstButtonTopPx + index * labelSeparationPx}px`,
-                  left: 0,
-                  width: '300px',
-                  height: '44px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  paddingLeft: '20px',
-                  border: 'none',
-                  borderLeft: isActive ? '3px solid #2563eb' : '3px solid transparent',
-                  backgroundColor: isActive ? '#EFF6FF' : 'transparent',
-                  color: isActive ? '#2563eb' : '#4B5563',
-                  fontSize: '14px',
-                  fontWeight: isActive ? '600' : '500',
-                  borderRadius: '0',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'background-color 0.15s, color 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) e.currentTarget.style.backgroundColor = '#F3F4F6';
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* --- Left sidebar --- */}
+      <Sidebar onFileUpload={onFileUpload} pendingFile={pendingFile} onFileSelect={onFileSelect}>
+        {labels.map((label, index) => {
+          const isActive = activeLabel === label;
+          return (
+            <button
+              key={label}
+              onClick={() => setActiveLabel(label)}
+              style={{
+                position: 'absolute',
+                top: `${firstButtonTopPx + index * labelSeparationPx}px`,
+                left: 0,
+                width: '300px',
+                height: '44px',
+                display: 'flex',
+                alignItems: 'center',
+                paddingLeft: '20px',
+                border: 'none',
+                borderLeft: isActive ? '3px solid #2563eb' : '3px solid transparent',
+                backgroundColor: isActive ? '#EFF6FF' : 'transparent',
+                color: isActive ? '#2563eb' : '#4B5563',
+                fontSize: '14px',
+                fontWeight: isActive ? '600' : '500',
+                borderRadius: '0',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'background-color 0.15s, color 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) e.currentTarget.style.backgroundColor = '#F3F4F6';
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </Sidebar>
 
       {/* --- Main container for the right-side inputs --- */}
       <div
