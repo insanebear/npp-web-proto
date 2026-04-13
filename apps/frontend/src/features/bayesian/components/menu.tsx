@@ -1,5 +1,6 @@
 import Sidebar from "../../../shared/components/Sidebar";
 import { RadioButtonGrid } from "./RadioButtonGrid";
+
 import { TABS } from "../../../shared/constants/tabs";
 import SettingsForm, { type SettingsFormValues } from "./SettingsForm";
 import type { SimulationResults } from "../../../shared/types";
@@ -19,9 +20,6 @@ const Menu = ({
   inputValues,
   onInputChange,
   activeLabelAndDropdowns,
-  onFileUpload,
-  pendingFile,
-  onFileSelect,
   settingsValues,
   onSettingsChange,
   jobStatus,
@@ -32,9 +30,6 @@ const Menu = ({
   inputValues: any;
   onInputChange: (key: string, value: string) => void;
   activeLabelAndDropdowns: any;
-  onFileUpload: any;
-  pendingFile: any;
-  onFileSelect: any;
   settingsValues: SettingsFormValues;
   onSettingsChange: (key: keyof SettingsFormValues, value: number) => void;
   jobStatus: string | null;
@@ -70,7 +65,7 @@ const Menu = ({
   return (
     <>
       {/* --- Left sidebar --- */}
-      <Sidebar onFileUpload={onFileUpload} pendingFile={pendingFile} onFileSelect={onFileSelect}>
+      <Sidebar>
         {/* Input tabs */}
         {labels.map((label, index) => {
           const isActive = activeLabel === label;
@@ -121,7 +116,7 @@ const Menu = ({
       <div
         style={{
           position: 'absolute',
-          top: '160px',
+          top: '116px',
           left: '300px',
           right: '2%',
           minHeight: '87.2%',
