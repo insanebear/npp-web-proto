@@ -1,11 +1,6 @@
-// TODO: Consider integration with useBayesianFileUpload (~70% common logic) before rename
-// TODO: Rename to useLoadReliabilityResult - current name doesn't clearly indicate purpose
-
-import { useNavigate } from 'react-router-dom';
 import { useAppState } from '../contexts/AppStateContext';
 
-export const useReliabilityFileUpload = () => {
-  const navigate = useNavigate();
+export const useReliabilityFileUpload = (onLoaded?: () => void) => {
   const {
     setResults,
     setSimulationInput,
@@ -21,7 +16,6 @@ export const useReliabilityFileUpload = () => {
       if (typeof data === 'object' && data !== null && 'output' in data) {
         const output = (data as any).output;
         if (output && typeof output === 'object') {
-          // Preserve the full uploaded JSON text for the Raw viewer
           (output as any).__rawText = fileContent;
         }
         setResults(output);
@@ -29,8 +23,8 @@ export const useReliabilityFileUpload = () => {
         setJobId('local');
         setJobStatus('COMPLETED');
         setError(null);
-        navigate('/reliability-views/local');
         setPendingFile(null);
+        onLoaded?.();
       } else {
         throw new Error("Invalid file. JSON must contain an 'output' key.");
       }
