@@ -1,6 +1,3 @@
-// TODO: Consider integration with useReliabilityFileUpload (~70% common logic) before rename
-// TODO: Rename to useLoadBayesianInput - current name doesn't clearly indicate purpose
-
 import { useAppState } from '../contexts/AppStateContext';
 
 type SettingsSnapshot = {

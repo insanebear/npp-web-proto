@@ -8,7 +8,6 @@ import { getCodeKey } from '../../../shared/constants/labelToCode';
 import { useAppState } from '../../../shared/contexts/AppStateContext';
 import { useSimulation } from '../../../shared/hooks/useSimulation';
 import { useBayesianFileUpload } from '../../../shared/hooks/useBayesianFileUpload';
-import { useReliabilityFileUpload } from '../../../shared/hooks/useReliabilityFileUpload';
 
 import { useAppSettings } from '../../../shared/hooks/useAppSettings';
 import { defaultSettings } from '../../../shared/contexts/AppSettingsContext';
