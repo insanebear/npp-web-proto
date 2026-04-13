@@ -13,9 +13,9 @@ export type AppSettings = {
   setworkingDir: Dispatch<SetStateAction<string>>;
 };
 
-const defaultSettings = {
+export const defaultSettings = {
   nChains: 1,
-  nIter: 20000,
+  nIter: 2500,
   nBurnin: 500,
   nThin: 1,
   workingDir: '/app/results',

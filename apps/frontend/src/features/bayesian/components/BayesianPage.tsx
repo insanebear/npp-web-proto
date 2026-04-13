@@ -8,6 +8,7 @@ import { useSimulation } from '../../../shared/hooks/useSimulation';
 import { useFileSelect } from '../../../shared/hooks/useFileUpload';
 import { useBayesianFileUpload } from '../../../shared/hooks/useBayesianFileUpload';
 import { useAppSettings } from '../../../shared/hooks/useAppSettings';
+import { defaultSettings } from '../../../shared/contexts/AppSettingsContext';
 import type { SettingsFormValues } from '../../settings/components/SettingsForm';
 
 function BayesianPage() {
@@ -25,10 +26,10 @@ function BayesianPage() {
   const { workingDir } = useAppSettings();
 
   const [settingsValues, setSettingsValues] = useState<SettingsFormValues>({
-    nChains: 1,
-    nIter: 20000,
-    nBurnin: 500,
-    nThin: 1,
+    nChains: defaultSettings.nChains,
+    nIter: defaultSettings.nIter,
+    nBurnin: defaultSettings.nBurnin,
+    nThin: defaultSettings.nThin,
   });
 
   const handleSettingsChange = (key: keyof SettingsFormValues, value: number) => {
