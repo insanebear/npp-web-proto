@@ -390,6 +390,28 @@ export default function StatisticalPage() {
     ? bbnFiles.find((item) => item.key === selectedBbnKey)
     : undefined;
 
+  const renderHyperparamInfo = (s: { nChains: string; nIter: string; nBurnin: string; nThin: string }) => (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '6px 24px',
+      marginTop: '10px',
+      padding: '10px 14px',
+      background: '#F3F4F6',
+      borderRadius: '6px',
+      fontSize: '13px',
+    }}>
+      <span style={{ color: '#6B7280' }}>Chains</span>
+      <span style={{ fontWeight: 600 }}>{s.nChains}</span>
+      <span style={{ color: '#6B7280' }}>Iterations</span>
+      <span style={{ fontWeight: 600 }}>{s.nIter}</span>
+      <span style={{ color: '#6B7280' }}>Burn-in</span>
+      <span style={{ fontWeight: 600 }}>{s.nBurnin}</span>
+      <span style={{ color: '#6B7280' }}>Thin</span>
+      <span style={{ fontWeight: 600 }}>{s.nThin}</span>
+    </div>
+  );
+
   const buildBbnPayload = useCallback(() => {
     if (bbnTab === 'upload') {
       // Upload tab: use uploaded file S3 keys
