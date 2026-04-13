@@ -40,6 +40,7 @@ export default function StatisticalPage() {
   const [ncUploadError, setNcUploadError] = useState<string | null>(null);
   const [uploadedJsonName, setUploadedJsonName] = useState<string | null>(null);
   const [uploadedNcName, setUploadedNcName] = useState<string | null>(null);
+  const [uploadedJsonSettings, setUploadedJsonSettings] = useState<{ nChains: string; nIter: string; nBurnin: string; nThin: string } | null>(null);
 
   const [bbnFiles, setBbnFiles] = useState<api.BbnResultItem[]>([]);
   const [bbnBucketInfo, setBbnBucketInfo] = useState<{ bucket: string; prefix: string } | null>(null);
@@ -426,6 +427,7 @@ export default function StatisticalPage() {
       setJsonUploadError(null);
       setUploadedJsonKey(null);
       setUploadedJsonName(null);
+      setUploadedJsonSettings(null);
     } else {
       setNcUploading(true);
       setNcUploadError(null);
@@ -438,6 +440,18 @@ export default function StatisticalPage() {
         setUploadedJsonKey(s3_key);
         setUploadedJsonName(file.name);
         setUploadedBucket(bucket);
+
+        // Parse JSON locally to extract hyperparameter settings
+        try {
+          const text = await file.text();
+          const parsed = JSON.parse(text);
+          const s = parsed?.settings;
+          if (s && s.nChains !== undefined && s.nIter !== undefined && s.nBurnin !== undefined && s.nThin !== undefined) {
+            setUploadedJsonSettings({ nChains: String(s.nChains), nIter: String(s.nIter), nBurnin: String(s.nBurnin), nThin: String(s.nThin) });
+          }
+        } catch {
+          // settings not available — silently ignore
+        }
       } else {
         setUploadedNcKey(s3_key);
         setUploadedNcName(file.name);
