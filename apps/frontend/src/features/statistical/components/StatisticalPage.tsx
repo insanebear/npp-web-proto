@@ -22,7 +22,7 @@ export default function StatisticalPage() {
   const [tests, setTests] = useState<number | null>(null);
   const [failures, setFailures] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<{ message: string; detail?: string } | null>(null);
   const [pfdUpdateResultData, setPfdUpdateResultData] = useState<any | null>(null);
   const [sensitivityJobId, setSensitivityJobId] = useState<string | null>(null);
   const [pfdUpdateJobId, setPfdUpdateJobId] = useState<string | null>(null);
@@ -525,22 +525,43 @@ export default function StatisticalPage() {
     e.preventDefault();
     setErrorMsg(null);
     setLoading(true);
+    setCurrentJobType('sensitivity-analysis');
     setSensitivityJobId(null);
     setSensitivityCompletedTime(null);
 
-    // Quick validation
+    // Validation
     const p = parseFloat(pfdGoal);
-    const c = parseFloat(confidenceGoal);
-    if (!Number.isFinite(p) || !Number.isFinite(c)) {
-      setLoading(false);
-      setErrorMsg("Please enter valid numbers.");
+    const c = parseFloat(confidenceGoal) / 100;
+    if (!Number.isFinite(p)) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "PFD goal is required." });
+      return;
+    }
+    if (p < 0 || p > 1) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "PFD goal must be between 0 and 1." });
+      return;
+    }
+    if (!Number.isFinite(c)) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Confidence goal is required." });
+      return;
+    }
+    if (c <= 0 || c >= 1) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Confidence goal must be greater than 0 and less than 100." });
       return;
     }
 
-    // Upload tab: both files required
+    // BBN file required
+    if (bbnTab === 'select' && !selectedBbnKey) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Please select a BBN result file before calculating." });
+      return;
+    }
     if (bbnTab === 'upload' && (!uploadedJsonKey || !uploadedNcKey)) {
-      setLoading(false);
-      setErrorMsg("Upload tab is selected but both JSON and NC files are required. Please upload both files before calculating.");
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Both JSON and NC files are required. Please upload both files before calculating." });
       return;
     }
 
@@ -580,12 +601,12 @@ export default function StatisticalPage() {
           }
         },
         (error) => {
-          setErrorMsg(`Sensitivity Analysis error: ${error}`);
+          setErrorMsg({ message: "Failed to calculate the required number of tests. Please check your inputs and try again.", detail: String(error) });
         }
       );
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(`Sensitivity Analysis error: ${err?.message ?? String(err)}`);
+      setErrorMsg({ message: "Failed to calculate the required number of tests.Please check your inputs and try again.", detail: err?.message ?? String(err) });
       setLoading(false);
     }
   };
@@ -595,37 +616,68 @@ export default function StatisticalPage() {
   const handlePfdUpdateSubmit = async () => {
     setErrorMsg(null);
     setLoading(true);
+    setCurrentJobType('full-analysis');
     setPfdUpdateResultData(null);
     setPfdUpdateJobId(null);
     setPfdUpdateCompletedTime(null);
     setPfdUpdateUsedDefaultBbn(bbnTab === 'select' ? !selectedBbnKey : false);
 
     const p = parseFloat(pfdGoal);
-    const c = parseFloat(confidenceGoal);
-    if (!Number.isFinite(p) || !Number.isFinite(c)) {
-      setLoading(false);
-      setErrorMsg("Please enter valid numbers.");
+    const c = parseFloat(confidenceGoal) / 100;
+    if (!Number.isFinite(p)) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "PFD goal is required." });
+      return;
+    }
+    if (p < 0 || p > 1) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "PFD goal must be between 0 and 1." });
+      return;
+    }
+    if (!Number.isFinite(c)) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Confidence goal is required." });
+      return;
+    }
+    if (c <= 0 || c >= 1) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Confidence goal must be greater than 0 and less than 100." });
       return;
     }
 
-    // Upload tab: both files required
+    // BBN file required
+    if (bbnTab === 'select' && !selectedBbnKey) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Please select a BBN result file before calculating." });
+      return;
+    }
     if (bbnTab === 'upload' && (!uploadedJsonKey || !uploadedNcKey)) {
-      setLoading(false);
-      setErrorMsg("Upload tab is selected but both JSON and NC files are required. Please upload both files before calculating.");
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Both JSON and NC files are required. Please upload both files before calculating." });
       return;
     }
 
     // Check if Sensitivity Analysis has been run
     if (tests === null || tests === 0) {
-      setLoading(false);
-      setErrorMsg("Please run Sensitivity Analysis first, or enter the number of tests manually.");
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Please run Sensitivity Analysis first, or enter the number of tests manually." });
+      return;
+    }
+    if (tests < 1 || tests > 10_000_000) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Number of tests must be between 1 and 10,000,000." });
       return;
     }
 
     // Check Failures value
     if (failures === null) {
-      setLoading(false);
-      setErrorMsg("Please enter a Failures value.");
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Number of failures is required." });
+      return;
+    }
+    if (failures < 0 || failures > 1_000_000) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Number of failures must be between 0 and 1,000,000." });
       return;
     }
 
@@ -666,12 +718,12 @@ export default function StatisticalPage() {
           }
         },
         (error) => {
-          setErrorMsg(`PFD Update error: ${error}`);
+          setErrorMsg({ message: "PFD Update failed. Please check your inputs and try again.", detail: String(error) });
         }
       );
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(`PFD Update error: ${err?.message ?? String(err)}`);
+      setErrorMsg({ message: "PFD Update failed. Please check your inputs and try again.", detail: err?.message ?? String(err) });
       setLoading(false);
     }
   };
@@ -721,34 +773,59 @@ export default function StatisticalPage() {
             </div>
           </section>
 
-          {(loading || isPolling) && (
-            <div css={cssObj.container} style={{ marginTop: 8, marginBottom: 8 }}>
-              <div style={{
-                border: '1px solid #2563EB',
-                borderRadius: '8px',
-                backgroundColor: 'rgba(37, 99, 235, 0.2)',
-                padding: '16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
-                <p style={{ margin: 0, fontSize: '14px', color: '#1F2937', fontWeight: loading ? 500 : 700 }}>
-                  {loading ? 'Requesting...' : 'Calculating...'}
-                </p>
-                {!loading && isPolling && (
-                  <div style={{ fontSize: '14px', color: '#1F2937' }}>
-                    Elapsed time: {formatElapsedTime(elapsedTime)}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
           {errorMsg && (
             <div
-              css={cssObj.container}
-              style={{ marginTop: 8, color: "#d33" }}
+              onClick={() => setErrorMsg(null)}
+              style={{
+                position: 'fixed', inset: 0,
+                backgroundColor: 'rgba(0,0,0,0.4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                zIndex: 1000,
+              }}
             >
-              <p>{errorMsg}</p>
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  backgroundColor: '#fff',
+                  borderRadius: '10px',
+                  padding: '28px 32px',
+                  maxWidth: '420px',
+                  width: '90%',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <span style={{ fontSize: '20px', lineHeight: 1 }}>⚠️</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#1F2937', lineHeight: '1.6' }}>{errorMsg.message}</p>
+                    {errorMsg.detail && (
+                      <p style={{ margin: 0, fontSize: '11px', color: '#9CA3AF', fontFamily: 'monospace', lineHeight: '1.5', wordBreak: 'break-all' }}>
+                        {errorMsg.detail}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setErrorMsg(null)}
+                    style={{
+                      padding: '8px 20px',
+                      backgroundColor: '#2563EB',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1069,24 +1146,42 @@ export default function StatisticalPage() {
                   <input
                     type="number"
                     step="any"
+                    min={0}
+                    max={1}
                     value={pfdGoal}
                     onChange={(e) => setPfdGoal(e.target.value)}
                     placeholder="e.g. 0.0001"
                     css={cssObj.inputBox}
                     required
                   />
+                  <span css={cssObj.hintText}>Range: 0 – 1</span>
                 </div>
                 <div css={cssObj.inputGroup}>
                   <label css={cssObj.inputLabel}>Confidence goal</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={confidenceGoal}
-                    onChange={(e) => setConfidenceGoal(e.target.value)}
-                    placeholder="e.g. 0.95"
-                    css={cssObj.inputBox}
-                    required
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min={0.01}
+                      max={99.99}
+                      value={confidenceGoal}
+                      onChange={(e) => setConfidenceGoal(e.target.value)}
+                      placeholder="e.g. 95"
+                      css={cssObj.inputBox}
+                      style={{ paddingRight: '28px' }}
+                      required
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      fontSize: '14px',
+                      color: '#6B7280',
+                      pointerEvents: 'none',
+                    }}>%</span>
+                  </div>
+                  <span css={cssObj.hintText}>Range: 0 – 100 (exclusive), up to 2 decimal places</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button
@@ -1094,7 +1189,10 @@ export default function StatisticalPage() {
                     css={cssObj.saveButton}
                     disabled={loading || isPolling || (sensitivityJobId !== null && currentJobType === 'sensitivity-analysis')}
                   >
-                    {isPolling && currentJobType === 'sensitivity-analysis' ? 'Calculating...' : 'Calculate'}
+                    {loading && currentJobType === 'sensitivity-analysis' ? 'Requesting...' :
+                      isPolling && currentJobType === 'sensitivity-analysis'
+                        ? `Calculating... (${formatElapsedTime(elapsedTime)})`
+                        : 'Calculate'}
                   </button>
                   {sensitivityCompletedTime !== null && (
                     <span style={{ color: '#666', fontSize: '13px' }}>
@@ -1164,7 +1262,7 @@ export default function StatisticalPage() {
                 </h2>
                 <div css={cssObj.hintText} style={{ display: 'flex', gap: '12px', fontSize: '13px' }}>
                   <span>PFD goal: <strong>{pfdGoal !== '' ? pfdGoal : '—'}</strong></span>
-                  <span>Confidence goal: <strong>{confidenceGoal !== '' ? confidenceGoal : '—'}</strong></span>
+                  <span>Confidence goal: <strong>{confidenceGoal !== '' ? `${confidenceGoal}%` : '—'}</strong></span>
                 </div>
                 <div css={cssObj.inputGroup}>
                   <label css={cssObj.inputLabel}>Number of tests</label>
@@ -1183,6 +1281,8 @@ export default function StatisticalPage() {
                         placeholder="e.g. 10"
                         css={[cssObj.inputBox, isNumOfTestsLocked ? cssObj.lockedInputBox : null]}
                         min={1}
+                        max={10_000_000}
+                        step={1}
                       />
                       {isNumOfTestsLocked && (
                         <span css={cssObj.lockIcon}>🔒</span>
@@ -1214,6 +1314,7 @@ export default function StatisticalPage() {
                       ? 'Auto-filled from Sensitivity analysis result.'
                       : 'Will run with the entered value, independent of Sensitivity analysis result.'}
                   </span>
+                  <span css={cssObj.hintText}>Range: 1 – 10,000,000 (integer)</span>
                 </div>
                 <div css={cssObj.inputGroup}>
                   <label css={cssObj.inputLabel}>Number of failures</label>
@@ -1227,8 +1328,11 @@ export default function StatisticalPage() {
                     placeholder="e.g. 1"
                     css={cssObj.inputBox}
                     min={0}
+                    max={1_000_000}
+                    step={1}
                     required
                   />
+                  <span css={cssObj.hintText}>Range: 0 – 1,000,000 (integer)</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button
@@ -1236,7 +1340,10 @@ export default function StatisticalPage() {
                     css={cssObj.saveButton}
                     disabled={loading || isPolling || (pfdUpdateJobId !== null && currentJobType === 'full-analysis')}
                   >
-                    {isPolling && currentJobType === 'full-analysis' ? 'Analyzing...' : 'Run update'}
+                    {loading && currentJobType === 'full-analysis' ? 'Requesting...' :
+                      isPolling && currentJobType === 'full-analysis'
+                        ? `Analyzing... (${formatElapsedTime(elapsedTime)})`
+                        : 'Run update'}
                   </button>
                   {pfdUpdateCompletedTime !== null && (
                     <span style={{ color: '#666', fontSize: '13px' }}>
