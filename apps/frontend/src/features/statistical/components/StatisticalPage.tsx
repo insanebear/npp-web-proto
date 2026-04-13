@@ -531,7 +531,7 @@ export default function StatisticalPage() {
 
     // Quick validation
     const p = parseFloat(pfdGoal);
-    const c = parseFloat(confidenceGoal);
+    const c = parseFloat(confidenceGoal) / 100;
     if (!Number.isFinite(p) || !Number.isFinite(c)) {
       setLoading(false);
       setErrorMsg("Please enter valid numbers.");
@@ -603,7 +603,7 @@ export default function StatisticalPage() {
     setPfdUpdateUsedDefaultBbn(bbnTab === 'select' ? !selectedBbnKey : false);
 
     const p = parseFloat(pfdGoal);
-    const c = parseFloat(confidenceGoal);
+    const c = parseFloat(confidenceGoal) / 100;
     if (!Number.isFinite(p) || !Number.isFinite(c)) {
       setLoading(false);
       setErrorMsg("Please enter valid numbers.");
@@ -1058,15 +1058,29 @@ export default function StatisticalPage() {
                 </div>
                 <div css={cssObj.inputGroup}>
                   <label css={cssObj.inputLabel}>Confidence goal</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={confidenceGoal}
-                    onChange={(e) => setConfidenceGoal(e.target.value)}
-                    placeholder="e.g. 0.95"
-                    css={cssObj.inputBox}
-                    required
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="number"
+                      step="any"
+                      min={0}
+                      max={100}
+                      value={confidenceGoal}
+                      onChange={(e) => setConfidenceGoal(e.target.value)}
+                      placeholder="e.g. 95"
+                      css={cssObj.inputBox}
+                      style={{ paddingRight: '28px' }}
+                      required
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      fontSize: '14px',
+                      color: '#6B7280',
+                      pointerEvents: 'none',
+                    }}>%</span>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button
@@ -1147,7 +1161,7 @@ export default function StatisticalPage() {
                 </h2>
                 <div css={cssObj.hintText} style={{ display: 'flex', gap: '12px', fontSize: '13px' }}>
                   <span>PFD goal: <strong>{pfdGoal !== '' ? pfdGoal : '—'}</strong></span>
-                  <span>Confidence goal: <strong>{confidenceGoal !== '' ? confidenceGoal : '—'}</strong></span>
+                  <span>Confidence goal: <strong>{confidenceGoal !== '' ? `${confidenceGoal}%` : '—'}</strong></span>
                 </div>
                 <div css={cssObj.inputGroup}>
                   <label css={cssObj.inputLabel}>Number of tests</label>
