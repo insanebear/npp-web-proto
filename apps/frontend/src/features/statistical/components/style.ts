@@ -544,8 +544,6 @@ export const cssObj = {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    flex: 1;
-    align-items: start;
   `,
   resultCard: css`
     background-color: ${COLORS.gray50};
