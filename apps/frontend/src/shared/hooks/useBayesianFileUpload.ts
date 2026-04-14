@@ -34,7 +34,7 @@ export const useBayesianFileUpload = (onSettingsLoad?: (values: SettingsSnapshot
         }
         setInputValues(initializeInputState(data.input));
         setError(null);
-        alert("Inputs and settings have been loaded from the file. Results are available on the Analysis Result.");
+        alert("File loaded successfully. Inputs, settings, and results are ready to review.");
         setPendingFile(null);
       } else {
         throw new Error("Invalid file. JSON must contain 'input' and 'output' keys.");
