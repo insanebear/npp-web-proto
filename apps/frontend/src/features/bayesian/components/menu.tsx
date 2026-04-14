@@ -8,8 +8,8 @@ import type { SimulationResults } from "../../../shared/types";
 const RESULT_LABEL = 'Analysis Result';
 
 const getResultDotColor = (jobStatus: string | null, results: SimulationResults | null) => {
-  if (jobStatus === 'COMPLETED' || results) return '#059669'; // green
   if (jobStatus === 'FAILED') return '#dc2626';              // red
+  if (jobStatus === 'COMPLETED' || results) return '#059669'; // green
   if (jobStatus !== null) return '#f59e0b';                  // orange (running)
   return '#9CA3AF';                                          // gray (no job)
 };
