@@ -55,84 +55,109 @@ fi
 if [ -n "$BBN_TASK_DEFINITION_DEV" ]; then
   echo "  BBN_TASK_DEFINITION_DEV: $BBN_TASK_DEFINITION_DEV (for /develop stage)"
 fi
+if [ -n "$BBN_CONTAINER_NAME_DEV" ]; then
+  echo "  BBN_CONTAINER_NAME_DEV: $BBN_CONTAINER_NAME_DEV (for /develop stage)"
+fi
 echo "  AWS_REGION: $AWS_REGION (Note: Lambda reserved variable, not set in env vars)"
 echo ""
 
-# 환경 변수 JSON 생성
+# Windows 호환 임시 파일 경로
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+  ENV_JSON_FILE="/tmp/lambda-env-$$.json"
+  CLI_INPUT_FILE="/tmp/lambda-input-$$.json"
+  ERR_FILE="/tmp/lambda-error-$$.txt"
+else
+  ENV_JSON_FILE=$(mktemp)
+  CLI_INPUT_FILE=$(mktemp)
+  ERR_FILE=$(mktemp)
+fi
+
+# Python으로 JSON 생성 (Windows bash에서 echo \n 이슈 방지)
 # 주의: AWS_REGION은 Lambda의 예약된 환경 변수이므로 설정하지 않음
-# DEV 변수는 선택적이므로 값이 있을 때만 포함
-ENV_VARS_JSON=$(cat <<EOF
-{
-  "Variables": {
+PYTHON_CMD=$(command -v python3 2>/dev/null || command -v python)
+if [ -z "$PYTHON_CMD" ]; then
+  echo "❌ Error: python3 or python not found"
+  exit 1
+fi
+
+$PYTHON_CMD - <<PYEOF > "$ENV_JSON_FILE"
+import json, sys
+
+variables = {
     "CLUSTER_NAME": "$CLUSTER_NAME",
     "BBN_TASK_DEFINITION": "$BBN_TASK_DEFINITION",
     "SUBNET_IDS": "$SUBNET_IDS",
     "JOBS_TABLE_NAME": "${JOBS_TABLE_NAME:-}",
-    "CONTAINER_NAME": "$BBN_CONTAINER_NAME"$([ -n "$CLUSTER_NAME_DEV" ] && echo ",\n    \"CLUSTER_NAME_DEV\": \"$CLUSTER_NAME_DEV\"" || echo "")$([ -n "$BBN_TASK_DEFINITION_DEV" ] && echo ",\n    \"BBN_TASK_DEFINITION_DEV\": \"$BBN_TASK_DEFINITION_DEV\"" || echo "")
-  }
+    "CONTAINER_NAME": "$BBN_CONTAINER_NAME",
 }
-EOF
-)
 
-# JSON 유효성 검증 (Python 사용)
-if command -v python3 > /dev/null 2>&1 || command -v python > /dev/null 2>&1; then
-  PYTHON_CMD=$(command -v python3 2>/dev/null || command -v python)
-  if ! echo "$ENV_VARS_JSON" | $PYTHON_CMD -m json.tool > /dev/null 2>&1; then
-    echo "❌ Error: Generated JSON is invalid!"
-    echo "JSON content:"
-    echo "$ENV_VARS_JSON"
-    exit 1
-  fi
+cluster_dev = "$CLUSTER_NAME_DEV"
+task_def_dev = "$BBN_TASK_DEFINITION_DEV"
+container_dev = "$BBN_CONTAINER_NAME_DEV"
+
+if cluster_dev:
+    variables["CLUSTER_NAME_DEV"] = cluster_dev
+if task_def_dev:
+    variables["BBN_TASK_DEFINITION_DEV"] = task_def_dev
+if container_dev:
+    variables["CONTAINER_NAME_DEV"] = container_dev
+
+print(json.dumps({"Variables": variables}, indent=2))
+PYEOF
+
+# JSON 유효성 검증
+if ! $PYTHON_CMD -m json.tool "$ENV_JSON_FILE" > /dev/null 2>&1; then
+  echo "❌ Error: Generated JSON is invalid!"
+  cat "$ENV_JSON_FILE"
+  rm -f "$ENV_JSON_FILE" "$CLI_INPUT_FILE" "$ERR_FILE"
+  exit 1
 fi
+
+# --cli-input-json 용 파일 생성
+$PYTHON_CMD - <<PYEOF > "$CLI_INPUT_FILE"
+import json
+
+with open("$ENV_JSON_FILE") as f:
+    env = json.load(f)
+
+print(json.dumps({
+    "FunctionName": "$BBN_LAMBDA_FUNCTION_NAME",
+    "Environment": env
+}))
+PYEOF
 
 # 디버그 모드에서 JSON 출력
 if [ "$DEBUG" = "1" ]; then
   echo ""
-  echo "Debug: Environment variables JSON:"
-  if command -v jq > /dev/null 2>&1; then
-    echo "$ENV_VARS_JSON" | jq .
-  else
-    echo "$ENV_VARS_JSON"
-  fi
+  echo "Debug: cli-input-json:"
+  cat "$CLI_INPUT_FILE"
   echo ""
 fi
 
 # Lambda 함수 존재 여부 확인
 echo "[Setting env vars] $BBN_LAMBDA_FUNCTION_NAME..."
 
-# Windows 호환 임시 파일 경로
-if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
-  TMP_FILE="/tmp/lambda-update-$$.json"
-  ERR_FILE="/tmp/lambda-error-$$.txt"
-else
-  TMP_FILE=$(mktemp)
-  ERR_FILE=$(mktemp)
-fi
-
-# Lambda 함수 존재 여부 확인
 if ! aws lambda get-function \
     --function-name "$BBN_LAMBDA_FUNCTION_NAME" \
     --region "$AWS_REGION" \
     --profile "$AWS_PROFILE" \
     --output json > /dev/null 2>&1; then
   echo "  ⚠️  Function does not exist: $BBN_LAMBDA_FUNCTION_NAME"
-    echo "     (Deploy the function first using scripts/deploy/bbn/deploy-bbn-lambda.sh)"
+  echo "     (Deploy the function first using scripts/deploy/bbn/deploy-bbn-lambda.sh)"
   echo ""
-  rm -f "$TMP_FILE" "$ERR_FILE"
+  rm -f "$ENV_JSON_FILE" "$CLI_INPUT_FILE" "$ERR_FILE"
   exit 1
 fi
 
-# 환경 변수 업데이트
+# 환경 변수 업데이트 (file://로 전달하여 Windows bash 파싱 문제 방지)
 UPDATE_RESULT=$(aws lambda update-function-configuration \
-    --function-name "$BBN_LAMBDA_FUNCTION_NAME" \
-    --environment "$ENV_VARS_JSON" \
+    --cli-input-json "file://$CLI_INPUT_FILE" \
     --region "$AWS_REGION" \
     --profile "$AWS_PROFILE" \
     --output json 2>"$ERR_FILE")
 UPDATE_EXIT_CODE=$?
 
 if [ $UPDATE_EXIT_CODE -eq 0 ]; then
-  echo "$UPDATE_RESULT" > "$TMP_FILE"
   if command -v jq > /dev/null 2>&1; then
     echo "  ✅ Updated: $(echo "$UPDATE_RESULT" | jq -r '.FunctionName + " - Status: " + .LastUpdateStatus')"
   else
@@ -144,19 +169,10 @@ else
   if [ -n "$ERR_CONTENT" ]; then
     echo "     Error details:"
     echo "$ERR_CONTENT" | sed 's/^/     /'
-  else
-    echo "     (No error message - check AWS CLI configuration and permissions)"
-    echo "     Debug: Exit code = $UPDATE_EXIT_CODE"
-    echo "     Debug: Try running manually:"
-    echo "       aws lambda update-function-configuration \\"
-    echo "         --function-name $BBN_LAMBDA_FUNCTION_NAME \\"
-    echo "         --environment '$ENV_VARS_JSON' \\"
-    echo "         --region $AWS_REGION \\"
-    echo "         --profile $AWS_PROFILE"
   fi
 fi
 
-rm -f "$TMP_FILE" "$ERR_FILE"
+rm -f "$ENV_JSON_FILE" "$CLI_INPUT_FILE" "$ERR_FILE"
 
 echo ""
 echo "=========================================="

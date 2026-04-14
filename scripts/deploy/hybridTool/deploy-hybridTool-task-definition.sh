@@ -6,12 +6,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 cd "$PROJECT_ROOT"
 
+# 부모 스크립트에서 export된 DOCKER_IMAGE_TAG를 config 로딩 전에 캡처 (우선순위 보장)
+DOCKER_IMAGE_TAG_OVERRIDE="${DOCKER_IMAGE_TAG:-}"
+
 # 환경 변수 설정 파일이 있으면 로드
 CONFIG_FILE="scripts/config/.nppswrel-env"
 if [ -f "$CONFIG_FILE" ]; then
   set -a
   . "$CONFIG_FILE"
   set +a
+fi
+
+# 부모에서 export된 값이 있으면 config보다 우선 적용
+if [ -n "${DOCKER_IMAGE_TAG_OVERRIDE:-}" ]; then
+  DOCKER_IMAGE_TAG="${DOCKER_IMAGE_TAG_OVERRIDE}"
 fi
 
 # 환경 변수 확인

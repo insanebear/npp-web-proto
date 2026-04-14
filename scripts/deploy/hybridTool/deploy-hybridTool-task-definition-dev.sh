@@ -22,7 +22,8 @@ fi
 : "${AWS_REGION:=ap-northeast-2}"
 : "${AWS_PROFILE:=default}"
 : "${ECR_REPOSITORY:=hybrid-tool-pymc}"
-# Dev script always uses dev image tag (DOCKER_IMAGE_TAG_DEV takes priority)
+# Dev script always uses dev image tag (DOCKER_IMAGE_TAG_DEV takes priority, then dev default)
+# config의 DOCKER_IMAGE_TAG가 latest로 설정돼 있어도 dev 스크립트는 항상 dev 태그 사용
 DOCKER_IMAGE_TAG="${DOCKER_IMAGE_TAG_DEV:-dev}"
 : "${AWS_ACCOUNT_ID:?Set AWS_ACCOUNT_ID env var}"
 

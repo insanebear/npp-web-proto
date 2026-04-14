@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# HybridTool 전체 배포 스크립트
+# HybridTool 전체 배포 스크립트 (프로덕션 - latest 태그)
 # Docker 이미지, Task Definition, Lambda 함수를 순서대로 배포
 # 사용법: ./scripts/deploy/hybridTool/deploy-hybridTool-all.sh
 
 set -euo pipefail
+
+# 프로젝트 루트로 이동
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../.."
 
 # 환경 변수 설정 파일이 있으면 로드
 CONFIG_FILE="scripts/config/.nppswrel-env"
@@ -13,16 +16,16 @@ if [ -f "$CONFIG_FILE" ]; then
   set +a
 fi
 
-# 프로젝트 루트로 이동
-cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../.."
+# 프로덕션 배포: 항상 latest 태그 사용 (config 파일의 DOCKER_IMAGE_TAG 무시)
+export DOCKER_IMAGE_TAG="latest"
 
 echo "=========================================="
-echo "HybridTool 전체 배포 프로세스"
+echo "HybridTool 전체 배포 프로세스 (prod / latest)"
 echo "=========================================="
 echo ""
 
 # 1. Docker 이미지 빌드 및 ECR 푸시
-echo "[1/4] Building and pushing Docker image to ECR..."
+echo "[1/4] Building and pushing Docker image to ECR (tag: $DOCKER_IMAGE_TAG)..."
 bash scripts/deploy/hybridTool/deploy-hybridTool-docker.sh
 echo ""
 
