@@ -219,14 +219,28 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
         flexDirection: 'column'
       }}
     >
-      <h2 style={{ 
-        fontSize: '24px', 
-        fontWeight: 'bold', 
-        marginBottom: '16px', 
-        textAlign: 'center' 
+      <h2 style={{
+        fontSize: '24px',
+        fontWeight: 'bold',
+        marginBottom: !jobId ? '8px' : '16px',
+        textAlign: 'center'
       }}>
         Simulation Results
       </h2>
+      {!jobId && (
+        <p style={{
+          marginBottom: '16px',
+          textAlign: 'center',
+          fontSize: '13px',
+          color: '#6b7280',
+          backgroundColor: '#f9fafb',
+          border: '1px solid #e5e7eb',
+          borderRadius: '6px',
+          padding: '8px 16px'
+        }}>
+          These results were loaded from an uploaded file. <br/> To modify inputs or obtain a simulation trace (.nc), please re-submit the form.
+        </p>
+      )}
       <div style={{ flexGrow: 1, overflow: 'auto' }}>
         {renderResults()}
       </div>
@@ -237,24 +251,26 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
         alignItems: 'center', 
         gap: '16px' 
       }}>
-        <button
-          onClick={handleSaveResults}
-          style={{
-            padding: '8px 24px',
-            backgroundColor: '#059669',
-            color: '#ffffff',
-            fontWeight: '600',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#047857'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#059669'}
-          title={jobId ? "Download JSON result + NC trace file" : "Save input and output to a JSON file"}
-        >
-          Download Results{jobId ? ' (JSON + NC)' : ''}
-        </button>
+        {jobId && (
+          <button
+            onClick={handleSaveResults}
+            style={{
+              padding: '8px 24px',
+              backgroundColor: '#059669',
+              color: '#ffffff',
+              fontWeight: '600',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#047857'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#059669'}
+            title="Download JSON result + NC trace file"
+          >
+            Download Results (JSON + NC)
+          </button>
+        )}
         <button
           onClick={onReset}
           style={{
