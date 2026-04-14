@@ -833,7 +833,57 @@ export default function StatisticalPage() {
           <div css={cssObj.bbnSelectorBox}>
             <div css={cssObj.bbnSelectorHeader}>
               <div>
-                <h2>Initial Reliability Assessment Result based on Bayesian Methods</h2>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  Initial Reliability Assessment Result
+                  <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        border: '1.5px solid #6B7280',
+                        color: '#6B7280',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        cursor: 'default',
+                        userSelect: 'none',
+                      }}
+                      className="info-icon-trigger"
+                    >
+                      i
+                    </span>
+                    <span
+                      className="info-tooltip"
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        bottom: 'calc(100% + 6px)',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: '#1F2937',
+                        color: '#F9FAFB',
+                        fontSize: '12px',
+                        fontWeight: 'normal',
+                        lineHeight: '1.5',
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'none',
+                        opacity: 0,
+                        transition: 'opacity 0.15s',
+                        zIndex: 10,
+                      }}
+                    >
+                      Select or upload the results from the Bayesian Methods tab
+                      <br />to apply the initial Probability of Failure on Demand (PFD).
+                    </span>
+                  </span>
+                </h2>
+                {/* <div style={{fontSize: '14px',}}>
+                  Estimates the initial Probability of Failure on Demand (PFD) based on your development and V&V quality evaluations.
+                </div> */}
                 {bbnTab === 'select' && (
                   <p>
                     {bbnBucketInfo
@@ -1093,7 +1143,7 @@ export default function StatisticalPage() {
             <div css={cssObj.settingBox}>
               <form onSubmit={handleSensitivitySubmit} css={cssObj.formWrapper}>
                 <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  1. Required number of tests
+                  1. Validation Planning
                   <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
                     <span
                       style={{
@@ -1136,13 +1186,13 @@ export default function StatisticalPage() {
                       }}
                     >
                       Calculates the required number of tests 
-                      <br />to achieve the input PFD and confidence goal,
+                      <br />to achieve the target failure probability and confidence,
                       <br />assuming no failures occur.
                     </span>
                   </span>
                 </h2>
                 <div css={cssObj.inputGroup}>
-                  <label css={cssObj.inputLabel}>PFD goal</label>
+                  <label css={cssObj.inputLabel}>Target Failure Proability</label>
                   <input
                     type="number"
                     step="any"
@@ -1157,7 +1207,7 @@ export default function StatisticalPage() {
                   <span css={cssObj.hintText}>Range: 0 – 1</span>
                 </div>
                 <div css={cssObj.inputGroup}>
-                  <label css={cssObj.inputLabel}>Confidence goal</label>
+                  <label css={cssObj.inputLabel}>Target Confidence</label>
                   <div style={{ position: 'relative' }}>
                     <input
                       type="number"
@@ -1213,7 +1263,7 @@ export default function StatisticalPage() {
             <div css={cssObj.settingBox}>
               <form onSubmit={(e) => { e.preventDefault(); handlePfdUpdateSubmit(); }} css={cssObj.formWrapper}>
                 <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  2. PFD update
+                  2. Update Probability
                   <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
                     <span
                       style={{
@@ -1255,17 +1305,17 @@ export default function StatisticalPage() {
                         zIndex: 10,
                       }}
                     >
-                      Updates the BBN-derived prior PFD with observed test results
-                      <br/> to reflect the current system reliability.
+                      Updates the BBN-derived initial failure probability
+                      <br/> with observed test results to reflect the current system reliability.
                     </span>
                   </span>
                 </h2>
                 <div css={cssObj.hintText} style={{ display: 'flex', gap: '12px', fontSize: '13px' }}>
-                  <span>PFD goal: <strong>{pfdGoal !== '' ? pfdGoal : '—'}</strong></span>
-                  <span>Confidence goal: <strong>{confidenceGoal !== '' ? `${confidenceGoal}%` : '—'}</strong></span>
+                  <span>Target Failure Prob.: <strong>{pfdGoal !== '' ? pfdGoal : '—'}</strong></span>
+                  <span>Target Confidence: <strong>{confidenceGoal !== '' ? `${confidenceGoal}%` : '—'}</strong></span>
                 </div>
                 <div css={cssObj.inputGroup}>
-                  <label css={cssObj.inputLabel}>Number of tests</label>
+                  <label css={cssObj.inputLabel}>Total Tests</label>
                   <div css={cssObj.lockedInputRow}>
                     <div css={cssObj.lockedInputWrapper}>
                       <input
@@ -1311,13 +1361,13 @@ export default function StatisticalPage() {
                   </div>
                   <span css={isNumOfTestsLocked ? cssObj.hintText : cssObj.warningHintText}>
                     {isNumOfTestsLocked
-                      ? 'Auto-filled from Sensitivity analysis result.'
-                      : 'Will run with the entered value, independent of Sensitivity analysis result.'}
+                      ? 'Auto-filled from  Required number of tests result.'
+                      : 'Will run with the entered value, independent of  Required number of tests result.'}
                   </span>
                   <span css={cssObj.hintText}>Range: 1 – 10,000,000 (integer)</span>
                 </div>
                 <div css={cssObj.inputGroup}>
-                  <label css={cssObj.inputLabel}>Number of failures</label>
+                  <label css={cssObj.inputLabel}>Observed Failures</label>
                   <input
                     type="number"
                     value={failures ?? ''}
@@ -1375,14 +1425,14 @@ export default function StatisticalPage() {
                     css={cssObj.jsonDownloadBtn}
                     onClick={handleDownloadPfdUpdateJson}
                     disabled={!pfdUpdateResultData}
-                    title="JSON 다운로드"
+                    title="Download JSON"
                   >
                     ↓ JSON
                   </button>
                 </div>
               </div>
               <div css={cssObj.resultCardPriorRow}>
-                <span>Prior PFD:</span>
+                <span>Initial Failure Prob.:</span>
                 <span style={{ fontWeight: 600, color: '#374151' }}>
                   {pfdUpdateResultData?.input?.parameter?.prior?.mean != null
                     ? pfdUpdateResultData.input.parameter.prior.mean.toExponential(4)
@@ -1391,7 +1441,7 @@ export default function StatisticalPage() {
               </div>
               <div css={cssObj.resultCardGrid}>
                 <div css={cssObj.resultCardPrimary}>
-                  <span css={cssObj.resultCardLabelPrimary}>Updated PFD</span>
+                  <span css={cssObj.resultCardLabelPrimary}>Updated Failure Prob.</span>
                   <span css={cssObj.resultCardValuePrimary}>
                     {pfdUpdateResultData?.output?.mean_posterior_pfd?.[0]?.[1] != null
                       ? pfdUpdateResultData.output.mean_posterior_pfd[0][1].toExponential(4)
