@@ -57,7 +57,10 @@ function BayesianPage() {
     if (!file) return;
     setLoadedFileName(file.name);
     const reader = new FileReader();
-    reader.onload = (ev) => handleBayesianUpload(ev.target?.result as string);
+    reader.onload = (ev) => {
+      handleBayesianUpload(ev.target?.result as string);
+      setActiveLabel(RESULT_LABEL);
+    };
     reader.readAsText(file);
     e.target.value = '';
   };
