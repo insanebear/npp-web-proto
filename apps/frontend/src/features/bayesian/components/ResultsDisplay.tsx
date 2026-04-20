@@ -153,7 +153,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>90% CI:</span>
                         <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>[
-                          {data?.q5 !== undefined ? Number(data.q5).toFixed(6) : 'N/A'}, {data?.q95 !== undefined ? Number(data.q95).toFixed(6) : 'N/A'}
+                          {/* TODO: remove q2_5/q97_5 fallback once all stored results are migrated to q5/q95 */}
+                          {(data?.q5 ?? data?.q2_5) !== undefined ? Number(data?.q5 ?? data?.q2_5).toFixed(6) : 'N/A'}, {(data?.q95 ?? data?.q97_5) !== undefined ? Number(data?.q95 ?? data?.q97_5).toFixed(6) : 'N/A'}
                         ]</span>
                       </div>
                     </div>
