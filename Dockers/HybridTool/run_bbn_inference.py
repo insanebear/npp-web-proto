@@ -212,9 +212,15 @@ def main():
 
         update_job_status(dynamodb_client, config, status='RUNNING')
 
-        # Reconstruct input JSON from flat env vars
-        input_json = build_input_json_from_env()
-        bbn_data: BayesianData = bayesian_data_from_json(input_json)
+        # Reconstruct input JSON from flat env vars (or use NRC report data for local testing)
+        if os.environ.get("USE_NRC_DATA", "false").lower() == "true":
+            from bbn_inference.data import nrc_report_data
+            bbn_data: BayesianData = nrc_report_data()
+            input_json = {"note": "nrc_report_data (local test)"}
+            print("[CONFIG] Using nrc_report_data() for local testing")
+        else:
+            input_json = build_input_json_from_env()
+            bbn_data: BayesianData = bayesian_data_from_json(input_json)
 
         if config["TEST_MODE"]:
             print("\n[TEST MODE] Skipping computation, using dummy values")

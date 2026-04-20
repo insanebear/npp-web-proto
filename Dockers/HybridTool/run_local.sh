@@ -129,7 +129,10 @@ export THIN="${THIN:-1}"
 
 # bbn_inference용 환경 변수 (TASK_TYPE=bbn_inference 시 사용)
 # BayesianPage 폼 데이터 예시값 (실제 값으로 교체 가능)
-export FP_Input="${FP_Input:-50}"
+export FP_Input="${FP_Input:-56}"
+# USE_NRC_DATA=true: nrc_report_data() 값으로 실행 (로컬 테스트 기본값)
+# USE_NRC_DATA=false: env var로 직접 속성값을 지정할 때 사용
+export USE_NRC_DATA="${USE_NRC_DATA:-true}"
 export nChains="${nChains:-1}"
 export nIter="${nIter:-500}"
 export nBurnin="${nBurnin:-100}"
