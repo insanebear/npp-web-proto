@@ -215,8 +215,17 @@ def main():
         # Reconstruct input JSON from flat env vars (or use NRC report data for local testing)
         if os.environ.get("USE_NRC_DATA", "false").lower() == "true":
             from bbn_inference.data import nrc_report_data
+            from bbn_inference.bbn_data_model import State
             bbn_data: BayesianData = nrc_report_data()
-            input_json = {"note": "nrc_report_data (local test)"}
+            _state_to_str = {State.High: "High", State.Medium: "Medium", State.Low: "Low"}
+            input_json = {"FP": {"FP_Input": str(bbn_data.function_point)}}
+            for _section, _keys in SECTION_KEYS.items():
+                _section_data = {k: _state_to_str[bbn_data.attr_states[k]] for k in _keys if k in bbn_data.attr_states}
+                if _section_data:
+                    input_json[_section] = _section_data
+            _settings = {k: os.environ.get(k) for k in SETTINGS_KEYS if os.environ.get(k) is not None}
+            if _settings:
+                input_json["settings"] = _settings
             print("[CONFIG] Using nrc_report_data() for local testing")
         else:
             input_json = build_input_json_from_env()
