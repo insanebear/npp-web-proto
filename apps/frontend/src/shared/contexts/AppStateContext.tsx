@@ -25,7 +25,8 @@ const initializeInputState = (initialData?: SimulationInput) => {
     tab.children.forEach(child => {
 
       const key = `${tab.label}/${child.label}`;
-      const uploadedSection = initialData?.[tab.label] || {};
+      // Backend saves "Function Point" section as "FP" — check both keys
+      const uploadedSection = initialData?.[tab.label] ?? (tab.label === 'Function Point' ? initialData?.['FP'] : undefined) ?? {};
       const uploadedValueByLabel = normalizeToString(uploadedSection?.[child.label]);
       const codeKey = getCodeKey(tab.label, child.label) || child.label;
       const uploadedValueByCode = normalizeToString(uploadedSection?.[codeKey]);
