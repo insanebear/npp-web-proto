@@ -2,8 +2,8 @@ export interface SimulationMetric {
     mean?: number;
     sd?: number;
     median?: number;
-    q2_5?: number;
-    q97_5?: number;
+    q5?: number;
+    q95?: number;
     [key: string]: number | undefined;
 }
 

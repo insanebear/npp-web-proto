@@ -151,9 +151,9 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset, simul
                         <span style={{ fontFamily: 'monospace' }}>{data?.median !== undefined ? Number(data.median).toFixed(6) : 'N/A'}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>95% CI:</span>
+                        <span>90% CI:</span>
                         <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>[
-                          {data?.q2_5 !== undefined ? Number(data.q2_5).toFixed(6) : 'N/A'}, {data?.q97_5 !== undefined ? Number(data.q97_5).toFixed(6) : 'N/A'}
+                          {data?.q5 !== undefined ? Number(data.q5).toFixed(6) : 'N/A'}, {data?.q95 !== undefined ? Number(data.q95).toFixed(6) : 'N/A'}
                         ]</span>
                       </div>
                     </div>

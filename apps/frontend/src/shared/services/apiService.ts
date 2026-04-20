@@ -89,7 +89,7 @@ export const getJobStatus = async (jobId: string) => {
  * Gets the final results for a completed BBN simulation job.
  * Fetches from hybrid-tool-results S3 bucket via getResults Lambda.
  * @param jobId - The unique identifier for the job
- * @returns The final JSON results: { input, output: { PFD: { mean, sd, median, q2_5, q97_5 } } }
+ * @returns The final JSON results: { input, output: { PFD: { mean, sd, median, q5, q95 } } }
  */
 export const getResults = async (jobId: string) => {
   const response = await fetch(
