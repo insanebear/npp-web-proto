@@ -1,5 +1,6 @@
 import arviz as az
 import numpy as np
+import pandas as pd
 import time
 import pymc as pm
 import pymc.sampling.jax as pmjax
@@ -56,9 +57,11 @@ def filtered_var_names(data):
 def print_summary(data, round_to=5):
     var_names = filtered_var_names(data)
     if not var_names:
-        print(az.summary(data, stat_funcs=func_dict, round_to=round_to, extend=False))
+        summary = az.summary(data, stat_funcs=func_dict, round_to=round_to, extend=False)
     else:
-        print(az.summary(data, var_names=filtered_var_names(data), stat_funcs=func_dict, round_to=round_to, extend=False))
+        summary = az.summary(data, var_names=var_names, stat_funcs=func_dict, round_to=round_to, extend=False)
+    with pd.option_context('display.max_columns', None, 'display.width', None):
+        print(summary)
 
 def run_sampling(model, numpyro=False, draws=1000, tune=1000, chains=1, thin=1):
     pytensor.config.exception_verbosity = 'high'  # 디버깅 정보 상세 출력

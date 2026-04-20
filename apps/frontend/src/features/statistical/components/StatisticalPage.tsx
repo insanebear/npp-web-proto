@@ -11,7 +11,7 @@ type BbnTab = 'select' | 'upload';
 // Polling configuration
 const POLL_INTERVAL = 5000; // 5 seconds
 const MAX_WAIT_TIME = 7_200_000; // 120 minutes (milliseconds)
-const MAX_ATTEMPTS = 240; // Maximum 240 attempts (20 minutes / 5 seconds)
+const MAX_ATTEMPTS = 1_440; // Maximum 1440 attempts (120 minutes / 5 seconds)
 
 export default function StatisticalPage() {
   const settings = useAppSettings();
