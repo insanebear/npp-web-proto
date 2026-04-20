@@ -1,22 +1,19 @@
 # Dockerfile for HybridTool PyMC Fargate Task
-# Python environment with PyMC and JAX for Bayesian inference
+# conda environment for PyMC/JAX/numpyro dependency compatibility
 
-FROM python:3.11-slim
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    gcc \
-    g++ \
-    libopenblas-dev \
-    liblapack-dev \
-    && rm -rf /var/lib/apt/lists/*
+FROM condaforge/miniforge3:latest
 
 WORKDIR /app
 
-# Copy and install Python dependencies
-COPY server_min/requirements.txt /app/requirements.txt
-RUN pip install --timeout 1000 -r requirements.txt
+# Copy conda environment file and create environment
+# Uses mamba (faster conda solver) bundled with miniforge3
+COPY Dockers/HybridTool/environment-docker.yml /tmp/environment.yml
+RUN mamba env create -f /tmp/environment.yml && \
+    mamba clean -afy && \
+    find /opt/conda/envs/hybridtool -name "*.pyc" -delete
+
+# Use conda environment by default
+ENV PATH=/opt/conda/envs/hybridtool/bin:$PATH
 
 # Copy project files
 COPY server_min/ /app/server/
@@ -28,6 +25,6 @@ COPY Dockers/HybridTool/bbn_input_loader.py /app/
 RUN chmod +x /app/run_*.py
 
 # Default command (script selected via TASK_TYPE environment variable)
-# TASK_TYPE: sensitivity_analysis, update_pfd, full_analysis
+# TASK_TYPE: bbn_inference, sensitivity_analysis, update_pfd, full_analysis
 CMD ["sh", "-c", "python /app/run_${TASK_TYPE:-full_analysis}.py"]
 

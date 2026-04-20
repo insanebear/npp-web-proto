@@ -9,6 +9,8 @@ import os
 import sys
 import json
 import tempfile
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional, Callable
 import boto3
@@ -277,10 +279,14 @@ def run_task(
     print("=" * 80)
     print(f"HybridTool {task_name} - Starting")
     print("=" * 80)
-    
+
+    task_start = time.time()
+    start_dt = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    print(f"[TIMING] Start: {start_dt}")
+
     dynamodb_client = None
     config = {}
-    
+
     try:
         # 1. Read environment variables and validate them
         config = get_config_func()
@@ -320,7 +326,14 @@ def run_task(
         
         completion_payload = build_completion_payload_func(config, result_metrics, s3_location)
         print(json.dumps(completion_payload))
-        
+
     except Exception as e:
         handle_error_and_exit(e, config if 'config' in locals() else {}, dynamodb_client, task_name)
+
+    finally:
+        elapsed = time.time() - task_start
+        end_dt = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        minutes, seconds = divmod(int(elapsed), 60)
+        print(f"[TIMING] End: {end_dt}")
+        print(f"[TIMING] Duration: {minutes}m {seconds}s ({elapsed:.1f}s)")
 

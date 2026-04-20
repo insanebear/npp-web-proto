@@ -19,7 +19,7 @@ source "$CONDA_BASE/etc/profile.d/conda.sh" 2>/dev/null || {
 conda activate "$CONDA_ENV_NAME" 2>/dev/null || {
     echo "❌ conda 환경 '$CONDA_ENV_NAME'을 활성화할 수 없습니다."
     echo "  conda env list 로 환경 목록을 확인하세요."
-        exit 1
+    exit 1
 }
 
 echo "✅ conda 환경 활성화: $CONDA_ENV_NAME ($(python --version))"
@@ -37,8 +37,8 @@ fi
 if ! python -c "import pymc" &> /dev/null; then
     echo "❌ pymc가 설치되어 있지 않습니다."
     echo "  conda install -c conda-forge pymc 로 설치하세요."
-        exit 1
-    fi
+    exit 1
+fi
 
 echo "✅ 의존성 확인 완료"
 
@@ -46,7 +46,7 @@ echo "✅ 의존성 확인 완료"
 export PYTHONPATH="$PROJECT_ROOT/server_min:$PROJECT_ROOT/Dockers/HybridTool:$PYTHONPATH"
 
 # 환경 변수 설정 (필요에 따라 수정하세요)
-export TASK_TYPE="${TASK_TYPE:-full_analysis}"
+export TASK_TYPE="${TASK_TYPE:-bbn_inference}"
 export JOB_ID="${JOB_ID:-local-full-001}"
 export PFD_GOAL="${PFD_GOAL:-0.0001}"
 export CONFIDENCE_GOAL="${CONFIDENCE_GOAL:-0.95}"
@@ -54,7 +54,7 @@ export FAILURES="${FAILURES:-0}"
 export DEMAND_REQUIRED="${DEMAND_REQUIRED:-10000}"
 export S3_BUCKET="${S3_BUCKET:-dummy}"
 export AWS_REGION="${AWS_REGION:-ap-northeast-2}"
-export TEST_MODE="${TEST_MODE:-true}"
+export TEST_MODE="${TEST_MODE:-false}"
 export TEST_OUTPUT_DIR="${TEST_OUTPUT_DIR:-$PROJECT_ROOT/tempDoc/hybrid-tool-test}"
 export DRAWS="${DRAWS:-19500}"
 export TUNE="${TUNE:-500}"
@@ -68,8 +68,8 @@ export FP_Input="${FP_Input:-56}"
 # USE_NRC_DATA=false: env var로 직접 속성값을 지정할 때 사용
 export USE_NRC_DATA="${USE_NRC_DATA:-true}"
 export nChains="${nChains:-1}"
-export nIter="${nIter:-500}"
-export nBurnin="${nBurnin:-100}"
+export nIter="${nIter:-19500}"
+export nBurnin="${nBurnin:-500}"
 export nThin="${nThin:-1}"
 
 # 출력 디렉토리 생성

@@ -1,3 +1,7 @@
+# DEPRECATED: This file is no longer used.
+# HybridTool Docker: Dockers/HybridTool/environment-docker.yml (conda)
+# Local HybridTool runs: conda env gxx_env_311 (environment.yml)
+
 # Core FastAPI dependencies
 fastapi==0.120.0
 uvicorn==0.38.0

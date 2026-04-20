@@ -23,6 +23,8 @@ Environment variables (passed by BayesianStarterLambda as flat key=value):
 import json
 import os
 import sys
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -125,8 +127,8 @@ def get_job_config() -> Dict[str, Any]:
         "TEST_MODE": os.environ.get("TEST_MODE", "false").lower() == "true",
         "TEST_OUTPUT_DIR": os.environ.get("TEST_OUTPUT_DIR"),
         "JOBS_TABLE_NAME": os.environ.get("JOBS_TABLE_NAME"),
-        "DRAWS": int(os.environ.get("nIter", os.environ.get("DRAWS", "1000"))),
         "TUNE": int(os.environ.get("nBurnin", os.environ.get("TUNE", "100"))),
+        "DRAWS": int(os.environ.get("nIter", os.environ.get("DRAWS", "1000"))) - int(os.environ.get("nBurnin", os.environ.get("TUNE", "100"))),
         "CHAINS": int(os.environ.get("nChains", os.environ.get("CHAINS", "4"))),
         "THIN": int(os.environ.get("nThin", os.environ.get("THIN", "1"))),
     }
@@ -195,10 +197,17 @@ def _save_results(config: Dict[str, Any], result_json: Dict[str, Any]) -> str:
         return s3_key
 
 
+# TODO: Unlike run_full_analysis, run_sensitivity_analysis, and run_update_pfd which share
+# task_common.run_task(), this file has its own main() from a separate BBN implementation.
+# Should be refactored to use run_task() for consistency.
 def main():
     print("=" * 80)
     print("HybridTool BBN Inference - Starting")
     print("=" * 80)
+
+    task_start = time.time()
+    start_dt = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    print(f"[TIMING] Start: {start_dt}")
 
     dynamodb_client = None
     config = {}
@@ -301,6 +310,13 @@ def main():
         update_job_status(dynamodb_client, config, status='FAILED', error_msg=error_msg)
         print(json.dumps({"status": "failed", "job_id": job_id, "error": error_msg}))
         sys.exit(1)
+
+    finally:
+        elapsed = time.time() - task_start
+        end_dt = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        minutes, seconds = divmod(int(elapsed), 60)
+        print(f"[TIMING] End: {end_dt}")
+        print(f"[TIMING] Duration: {minutes}m {seconds}s ({elapsed:.1f}s)")
 
 
 if __name__ == "__main__":
