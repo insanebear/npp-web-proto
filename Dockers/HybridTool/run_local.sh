@@ -1,112 +1,46 @@
 #!/usr/bin/env bash
 # 로컬에서 HybridTool 스크립트를 실행하기 위한 헬퍼 스크립트
 # Docker 이미지 빌드 없이 빠르게 테스트할 수 있습니다.
-# Python 3.11 가상환경을 자동으로 생성하고 관리합니다.
+# conda 환경(gxx_env)을 사용합니다.
 
 # 프로젝트 루트 디렉토리 찾기
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-VENV_DIR="$PROJECT_ROOT/.venv-hybridtool"
-REQUIREMENTS_FILE="$PROJECT_ROOT/server_min/requirements.txt"
 
-# Python 3.11 필수로 찾기 (Docker 환경과 동일하게)
-PYTHON_CMD=""
-PYTHON_VERSION=""
-PYTHON_MAJOR=0
-PYTHON_MINOR=0
+CONDA_ENV_NAME="${CONDA_ENV_NAME:-gxx_env_311}"
 
-# Python 3.11을 찾기 (여러 가능한 명령어 시도)
-# Windows Python Launcher (py -3.11)는 공백이 있어서 별도 처리
-if command -v py &> /dev/null; then
-    PYTHON_VERSION=$(py -3.11 --version 2>&1 | awk '{print $2}')
-    if [ $? -eq 0 ] && [ -n "$PYTHON_VERSION" ]; then
-        PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
-        PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
-        if [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -eq 11 ]; then
-            PYTHON_CMD="py -3.11"
-        fi
-    fi
-fi
-
-# 다른 명령어 시도
-if [ -z "$PYTHON_CMD" ]; then
-    for py_cmd in python3.11 python311; do
-        if command -v "$py_cmd" &> /dev/null; then
-            PYTHON_VERSION=$("$py_cmd" --version 2>&1 | awk '{print $2}')
-            PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
-            PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
-            if [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -eq 11 ]; then
-                PYTHON_CMD="$py_cmd"
-                break
-            fi
-        fi
-    done
-fi
-
-if [ -z "$PYTHON_CMD" ]; then
-    echo "❌ Python 3.11을 찾을 수 없습니다."
-    echo ""
-    echo "Python 3.11을 설치해주세요 (Docker 환경과 동일한 버전 필요):"
-    echo "  - Windows: https://www.python.org/downloads/release/python-3119/"
-    echo "    설치 시 'Add Python to PATH' 옵션을 체크하세요"
-    echo "  - Mac: brew install python@3.11"
-    echo "  - Linux: sudo apt-get install python3.11 python3.11-venv"
-    echo ""
-    echo "설치 후 다음 명령어로 확인:"
-    echo "  python3.11 --version"
-    echo ""
-    echo "현재 시스템 Python 버전:"
-    python3 --version 2>&1 || python --version 2>&1 || echo "Python이 설치되어 있지 않습니다."
+# conda 초기화 및 환경 활성화
+CONDA_BASE=$(conda info --base 2>/dev/null || echo "$HOME/miniconda3")
+source "$CONDA_BASE/etc/profile.d/conda.sh" 2>/dev/null || {
+    echo "❌ conda를 찾을 수 없습니다. miniconda가 설치되어 있는지 확인하세요."
     exit 1
-fi
+}
 
-echo "✅ Python 3.11 발견: $PYTHON_CMD ($PYTHON_VERSION)"
-
-# 가상환경이 없으면 생성
-if [ ! -d "$VENV_DIR" ]; then
-    echo ""
-    echo "가상환경 생성 중... ($VENV_DIR)"
-    # py -3.11 같은 공백이 있는 명령어를 처리하기 위해 eval 사용
-    eval "$PYTHON_CMD -m venv \"$VENV_DIR\""
-    if [ $? -ne 0 ]; then
-        echo "❌ 가상환경 생성 실패"
+conda activate "$CONDA_ENV_NAME" 2>/dev/null || {
+    echo "❌ conda 환경 '$CONDA_ENV_NAME'을 활성화할 수 없습니다."
+    echo "  conda env list 로 환경 목록을 확인하세요."
         exit 1
-    fi
-    echo "✅ 가상환경 생성 완료"
-fi
+}
 
-# 가상환경 활성화
-if [ -f "$VENV_DIR/Scripts/activate" ]; then
-    # Windows Git Bash
-    source "$VENV_DIR/Scripts/activate"
-elif [ -f "$VENV_DIR/bin/activate" ]; then
-    # Linux/Mac
-    source "$VENV_DIR/bin/activate"
-else
-    echo "❌ 가상환경 활성화 스크립트를 찾을 수 없습니다: $VENV_DIR"
+echo "✅ conda 환경 활성화: $CONDA_ENV_NAME ($(python --version))"
+
+# Python 3.11 버전 확인 (Docker 환경과 동일해야 함)
+PYTHON_MINOR=$(python -c "import sys; print(sys.version_info.minor)")
+PYTHON_MAJOR=$(python -c "import sys; print(sys.version_info.major)")
+if [ "$PYTHON_MAJOR" -ne 3 ] || [ "$PYTHON_MINOR" -ne 11 ]; then
+    echo "❌ Python 3.11이 필요합니다. 현재: $(python --version)"
+    echo "  conda install python=3.11 로 설치하거나 다른 환경을 사용하세요."
     exit 1
 fi
 
-# pip 업그레이드
-echo "pip 업그레이드 중..."
-python -m pip install --quiet --upgrade pip
-
-# 의존성 설치 확인 (requirements.txt의 패키지 중 하나만 체크)
+# pymc 설치 확인
 if ! python -c "import pymc" &> /dev/null; then
-    echo ""
-    echo "의존성 패키지 설치 중... (시간이 걸릴 수 있습니다)"
-    echo ""
-    python -m pip install -r "$REQUIREMENTS_FILE"
-    if [ $? -ne 0 ]; then
-        echo ""
-        echo "❌ 의존성 설치 실패"
+    echo "❌ pymc가 설치되어 있지 않습니다."
+    echo "  conda install -c conda-forge pymc 로 설치하세요."
         exit 1
     fi
-    echo ""
-    echo "✅ 의존성 설치 완료"
-else
-    echo "✅ 의존성 이미 설치되어 있음"
-fi
+
+echo "✅ 의존성 확인 완료"
 
 # Python 경로 설정
 export PYTHONPATH="$PROJECT_ROOT/server_min:$PROJECT_ROOT/Dockers/HybridTool:$PYTHONPATH"
@@ -142,6 +76,9 @@ export nThin="${nThin:-1}"
 mkdir -p "$TEST_OUTPUT_DIR"
 
 # Python wrapper 스크립트 실행
+LOG_FILE="$TEST_OUTPUT_DIR/run_local_$(date +%Y%m%d_%H%M%S).log"
 cd "$PROJECT_ROOT"
-python "$SCRIPT_DIR/run_local.py"
+python "$SCRIPT_DIR/run_local.py" 2>&1 | tee "$LOG_FILE"
+echo ""
+echo "로그 저장됨: $LOG_FILE"
 
