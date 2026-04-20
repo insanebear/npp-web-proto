@@ -23,6 +23,8 @@ Environment variables (passed by BayesianStarterLambda as flat key=value):
 import json
 import os
 import sys
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -195,10 +197,17 @@ def _save_results(config: Dict[str, Any], result_json: Dict[str, Any]) -> str:
         return s3_key
 
 
+# TODO: Unlike run_full_analysis, run_sensitivity_analysis, and run_update_pfd which share
+# task_common.run_task(), this file has its own main() from a separate BBN implementation.
+# Should be refactored to use run_task() for consistency.
 def main():
     print("=" * 80)
     print("HybridTool BBN Inference - Starting")
     print("=" * 80)
+
+    task_start = time.time()
+    start_dt = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    print(f"[TIMING] Start: {start_dt}")
 
     dynamodb_client = None
     config = {}
@@ -301,6 +310,13 @@ def main():
         update_job_status(dynamodb_client, config, status='FAILED', error_msg=error_msg)
         print(json.dumps({"status": "failed", "job_id": job_id, "error": error_msg}))
         sys.exit(1)
+
+    finally:
+        elapsed = time.time() - task_start
+        end_dt = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        minutes, seconds = divmod(int(elapsed), 60)
+        print(f"[TIMING] End: {end_dt}")
+        print(f"[TIMING] Duration: {minutes}m {seconds}s ({elapsed:.1f}s)")
 
 
 if __name__ == "__main__":
