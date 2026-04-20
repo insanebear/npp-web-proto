@@ -58,7 +58,7 @@ SR_RaA_DevL_npt = [[0.132, 0.137], [0.296, 0.122], [0.572, 0.201]]
 # Dimension: row, col
 # row represents attribute states (H/M/L), column represents mu and sigma
 SR_SVVP_VVH_npt = [[0.750, 0.122], [0.208, 0.102], [0.042, 0.038]]
-SR_SVVP_VVM_npt = [[0.179, 0.057], [0.643, 0.113], [0.179], [0.099]]
+SR_SVVP_VVM_npt = [[0.179, 0.057], [0.643, 0.113], [0.179, 0.099]]
 SR_SVVP_VVL_npt = [[0.075, 0.069], [0.242, 0.092], [0.683, 0.133]]
 
 SR_CDE_VVH_npt = [[0.692, 0.102], [0.267, 0.082], [0.042, 0.020]]
