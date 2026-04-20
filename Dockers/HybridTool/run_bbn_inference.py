@@ -127,8 +127,8 @@ def get_job_config() -> Dict[str, Any]:
         "TEST_MODE": os.environ.get("TEST_MODE", "false").lower() == "true",
         "TEST_OUTPUT_DIR": os.environ.get("TEST_OUTPUT_DIR"),
         "JOBS_TABLE_NAME": os.environ.get("JOBS_TABLE_NAME"),
-        "DRAWS": int(os.environ.get("nIter", os.environ.get("DRAWS", "1000"))),
         "TUNE": int(os.environ.get("nBurnin", os.environ.get("TUNE", "100"))),
+        "DRAWS": int(os.environ.get("nIter", os.environ.get("DRAWS", "1000"))) - int(os.environ.get("nBurnin", os.environ.get("TUNE", "100"))),
         "CHAINS": int(os.environ.get("nChains", os.environ.get("CHAINS", "4"))),
         "THIN": int(os.environ.get("nThin", os.environ.get("THIN", "1"))),
     }
