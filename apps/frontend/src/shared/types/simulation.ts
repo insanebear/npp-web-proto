@@ -2,6 +2,9 @@ export interface SimulationMetric {
     mean?: number;
     sd?: number;
     median?: number;
+    q5?: number;
+    q95?: number;
+    // TODO: remove legacy keys once all stored results are migrated to q5/q95
     q2_5?: number;
     q97_5?: number;
     [key: string]: number | undefined;

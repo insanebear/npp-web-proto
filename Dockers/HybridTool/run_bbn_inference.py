@@ -156,8 +156,8 @@ def _var_stats(samples: Any) -> Dict[str, float]:
         "mean": float(values.mean()),
         "sd": float(values.std()),
         "median": float(np.median(values)),
-        "q2_5": float(np.percentile(values, 2.5)),
-        "q97_5": float(np.percentile(values, 97.5)),
+        "q5": float(np.percentile(values, 5)),
+        "q95": float(np.percentile(values, 95)),
     }
 
 
@@ -243,12 +243,12 @@ def main():
         if config["TEST_MODE"]:
             print("\n[TEST MODE] Skipping computation, using dummy values")
             output_stats = {
-                "PFD": {"mean": 0.0001, "sd": 0.00005, "median": 0.0001, "q2_5": 0.00005, "q97_5": 0.00015},
-                "SR_Total_Remained_Defect": {"mean": 7.0, "sd": 4.0, "median": 6.0, "q2_5": 1.0, "q97_5": 16.0},
-                "SD_Total_Remained_Defect": {"mean": 23.0, "sd": 14.0, "median": 20.0, "q2_5": 3.0, "q97_5": 55.0},
-                "IM_Total_Remained_Defect": {"mean": 36.0, "sd": 20.0, "median": 32.0, "q2_5": 8.0, "q97_5": 80.0},
-                "ST_Total_Remained_Defect": {"mean": 24.0, "sd": 13.0, "median": 21.0, "q2_5": 5.0, "q97_5": 55.0},
-                "IC_Total_Remained_Defect": {"mean": 9.0, "sd": 7.0, "median": 7.0, "q2_5": 1.0, "q97_5": 25.0},
+                "PFD": {"mean": 0.0001, "sd": 0.00005, "median": 0.0001, "q5": 0.00005, "q95": 0.00015},
+                "SR_Total_Remained_Defect": {"mean": 7.0, "sd": 4.0, "median": 6.0, "q5": 1.0, "q95": 16.0},
+                "SD_Total_Remained_Defect": {"mean": 23.0, "sd": 14.0, "median": 20.0, "q5": 3.0, "q95": 55.0},
+                "IM_Total_Remained_Defect": {"mean": 36.0, "sd": 20.0, "median": 32.0, "q5": 8.0, "q95": 80.0},
+                "ST_Total_Remained_Defect": {"mean": 24.0, "sd": 13.0, "median": 21.0, "q5": 5.0, "q95": 55.0},
+                "IC_Total_Remained_Defect": {"mean": 9.0, "sd": 7.0, "median": 7.0, "q5": 1.0, "q95": 25.0},
             }
             trace_s3_key = None
         else:
