@@ -88,9 +88,9 @@ interface RadioButtonGridProps {
 }
 
 const LEVEL_DESCRIPTIONS = [
-  { level: 'High', color: '#15803d', description: 'Exceeds safety standards (IEEE/IEC) with additional reliability-enhancing activities.' },
-  { level: 'Medium', color: '#b45309', description: 'Satisfactorily meets all required safety standards with documented evidence.' },
-  { level: 'Low', color: '#b91c1c', description: 'Insufficient evidence or unsatisfactory compliance with standards. (Used as the default for conservative assessment)' },
+  { level: 'High', color: '#15803d', description: 'Satisfactorily performs all activities required by standards (e.g., IEEE, IEC) and conducts additional activities expected to further enhance software reliability.' },
+  { level: 'Medium', color: '#b45309', description: 'Satisfactorily performs all activities required by the standards.' },
+  { level: 'Low', color: '#b91c1c', description: 'Falls short of performing all activities required by the standards.' },
 ];
 
 export function RadioButtonGrid({ children, tabLabel, inputValues, onInputChange }: RadioButtonGridProps) {
