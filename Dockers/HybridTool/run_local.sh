@@ -56,17 +56,17 @@ export S3_BUCKET="${S3_BUCKET:-dummy}"
 export AWS_REGION="${AWS_REGION:-ap-northeast-2}"
 export TEST_MODE="${TEST_MODE:-false}"
 export TEST_OUTPUT_DIR="${TEST_OUTPUT_DIR:-$PROJECT_ROOT/tempDoc/hybrid-tool-test}"
-export DRAWS="${DRAWS:-19500}"
-export TUNE="${TUNE:-500}"
-export CHAINS="${CHAINS:-1}"
-export THIN="${THIN:-1}"
+# export DRAWS="${DRAWS:-1000}"
+# export TUNE="${TUNE:-500}"
+# export CHAINS="${CHAINS:-1}"
+# export THIN="${THIN:-1}"
 
 # bbn_inference용 환경 변수 (TASK_TYPE=bbn_inference 시 사용)
 # BayesianPage 폼 데이터 예시값 (실제 값으로 교체 가능)
-export FP_Input="${FP_Input:-56}"
-# USE_NRC_DATA=true: nrc_report_data() 값으로 실행 (로컬 테스트 기본값)
-# USE_NRC_DATA=false: env var로 직접 속성값을 지정할 때 사용
-export USE_NRC_DATA="${USE_NRC_DATA:-true}"
+export FP_Input="${FP_Input:-200}"
+
+# BBN_INPUT_FILE: 설정하면 해당 JSON 파일로 실행, 미설정 시 nrc_report_data() 기본값 사용
+export BBN_INPUT_FILE="$PROJECT_ROOT/tempDoc/my-bbn-input.json"
 export nChains="${nChains:-1}"
 export nIter="${nIter:-19500}"
 export nBurnin="${nBurnin:-500}"
