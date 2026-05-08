@@ -271,6 +271,36 @@ def main():
             )
             print("[STEP 1] Composite model completed")
 
+            # ESS check
+            import arviz as az
+            summary = az.summary(trace, var_names=OUTPUT_VAR_NAMES, extend=True)
+            ess_min = summary["ess_bulk"].min()
+            ess_threshold = config["DRAWS"] * 0.1
+            print(f"\n[DIAG] ESS check (threshold: draws × 10% = {ess_threshold:.0f})")
+            print(summary[["ess_bulk", "r_hat"]].to_string())
+            if ess_min < ess_threshold:
+                print(f"[WARN] ESS too low: min ess_bulk={ess_min:.1f} < {ess_threshold:.0f}. Consider increasing draws/tune.")
+            else:
+                print(f"[DIAG] ESS OK: min ess_bulk={ess_min:.1f}")
+
+            # Trace plot (local only — skipped when saving to S3)
+            test_output_dir = config.get("TEST_OUTPUT_DIR")
+            if test_output_dir:
+                import matplotlib
+                matplotlib.use("Agg")
+                import matplotlib.pyplot as plt
+                n_vars = len(OUTPUT_VAR_NAMES)
+                az.plot_trace(
+                    trace,
+                    var_names=OUTPUT_VAR_NAMES,
+                    figsize=(14, n_vars * 3),
+                )
+                plt.tight_layout()
+                trace_plot_path = Path(test_output_dir) / f"trace_plot-{job_id}.png"
+                plt.savefig(trace_plot_path, dpi=120, bbox_inches="tight")
+                plt.close()
+                print(f"[DIAG] Trace plot saved: {trace_plot_path}")
+
             # Compute statistics for all output variables
             posterior = trace.posterior
             output_stats = {}
