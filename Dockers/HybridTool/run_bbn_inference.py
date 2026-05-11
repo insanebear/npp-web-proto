@@ -279,9 +279,9 @@ def main():
             )
             print("[STEP 1] Composite model completed")
 
-            # ESS check
+            # ESS check + HDI extraction
             import arviz as az
-            summary = az.summary(trace, var_names=OUTPUT_VAR_NAMES, extend=True)
+            summary = az.summary(trace, var_names=OUTPUT_VAR_NAMES, hdi_prob=0.95, extend=True)
             ess_min = summary["ess_bulk"].min()
             ess_threshold = config["DRAWS"] * 0.1
             print(f"\n[DIAG] ESS check (threshold: draws × 10% = {ess_threshold:.0f})")
@@ -297,27 +297,86 @@ def main():
                 import matplotlib
                 matplotlib.use("Agg")
                 import matplotlib.pyplot as plt
+                from plotly.subplots import make_subplots
+                import plotly.graph_objects as go
+                import plotly.io as pio
+
+                posterior = trace.posterior
                 n_vars = len(OUTPUT_VAR_NAMES)
-                az.plot_trace(
-                    trace,
-                    var_names=OUTPUT_VAR_NAMES,
-                    figsize=(14, n_vars * 3),
-                )
+
+                # Static PNG (fallback / quick view)
+                az.plot_trace(trace, var_names=OUTPUT_VAR_NAMES, figsize=(14, n_vars * 3))
                 plt.tight_layout()
                 trace_plot_path = Path(test_output_dir) / f"trace_plot-{job_id}.png"
                 plt.savefig(trace_plot_path, dpi=120, bbox_inches="tight")
                 plt.close()
-                print(f"[DIAG] Trace plot saved: {trace_plot_path}")
+                print(f"[DIAG] Trace plot (PNG) saved: {trace_plot_path}")
+
+                # Interactive HTML
+                subplot_titles = []
+                for v in OUTPUT_VAR_NAMES:
+                    subplot_titles += [f"{v} — distribution", f"{v} — trace"]
+
+                fig = make_subplots(
+                    rows=n_vars, cols=2,
+                    subplot_titles=subplot_titles,
+                    column_widths=[0.35, 0.65],
+                )
+
+                for i, var_name in enumerate(OUTPUT_VAR_NAMES):
+                    if var_name not in posterior:
+                        continue
+                    samples = posterior[var_name].values.flatten()
+                    row = i + 1
+
+                    # Left: histogram
+                    fig.add_trace(
+                        go.Histogram(x=samples, nbinsx=80, name=var_name,
+                                     showlegend=False,
+                                     marker_color="steelblue", opacity=0.75),
+                        row=row, col=1,
+                    )
+                    fig.update_xaxes(title_text=var_name, row=row, col=1)
+                    fig.update_yaxes(title_text="count", row=row, col=1)
+
+                    # Right: trace
+                    fig.add_trace(
+                        go.Scatter(y=samples, mode="lines", name=var_name,
+                                   showlegend=False,
+                                   line=dict(color="steelblue", width=0.6)),
+                        row=row, col=2,
+                    )
+                    fig.update_xaxes(title_text="draw", row=row, col=2)
+                    fig.update_yaxes(title_text=var_name, row=row, col=2)
+
+                fig.update_layout(
+                    height=280 * n_vars,
+                    title_text=f"BBN Trace Plot — {job_id}",
+                    title_font_size=16,
+                )
+                html_path = Path(test_output_dir) / f"trace_plot-{job_id}.html"
+                pio.write_html(fig, str(html_path), include_plotlyjs="cdn")
+                print(f"[DIAG] Trace plot (HTML) saved: {html_path}")
 
             # Compute statistics for all output variables
             posterior = trace.posterior
             output_stats = {}
             for var_name in OUTPUT_VAR_NAMES:
                 if var_name in posterior:
-                    output_stats[var_name] = _var_stats(posterior[var_name])
+                    stats = _var_stats(posterior[var_name])
+                    if var_name in summary.index:
+                        for col in ("hdi_2.5%", "hdi_97.5%"):
+                            if col in summary.columns:
+                                stats[col] = float(summary.loc[var_name, col])
+                    output_stats[var_name] = stats
                     print(f"[STEP 1] {var_name} mean: {output_stats[var_name]['mean']:.6g}")
                 else:
                     print(f"[WARN] {var_name} not found in posterior")
+
+            # Print 95% HDI for PFD
+            if "PFD" in output_stats and "hdi_2.5%" in output_stats["PFD"]:
+                pfd = output_stats["PFD"]
+                print(f"\n[HDI] PFD 95% HDI: [{pfd['hdi_2.5%']:.6g}, {pfd['hdi_97.5%']:.6g}]")
 
             # Save trace to S3
             print("\n[STEP 2] Saving trace to S3...")

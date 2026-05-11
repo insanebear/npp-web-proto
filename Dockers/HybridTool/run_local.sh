@@ -66,8 +66,9 @@ export TEST_OUTPUT_DIR="${TEST_OUTPUT_DIR:-$PROJECT_ROOT/tempDoc/hybrid-tool-tes
 # BayesianPage 폼 데이터 예시값 (실제 값으로 교체 가능)
 export FP_Input="${FP_Input:-200}"
 
-# BBN_INPUT_FILE: 설정하면 해당 JSON 파일로 실행, 미설정 시 nrc_report_data() 기본값 사용
-export BBN_INPUT_FILE="$PROJECT_ROOT/tempDoc/my-bbn-input.json"
+# BBN_INPUT_FILE: 설정하면 해당 JSON 파일로 실행, 미설정 시 my-bbn-input.json 사용
+export BBN_INPUT_FILE="${BBN_INPUT_FILE:-$PROJECT_ROOT/tempDoc/my-bbn-input.json}"
+
 export nChains="${nChains:-1}"
 export nIter="${nIter:-19500}"
 export nBurnin="${nBurnin:-500}"
