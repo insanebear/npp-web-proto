@@ -226,7 +226,15 @@ def main():
         if bbn_input_file:
             from bbn_input_loader import load_bayesian_data_from_env
             bbn_data: BayesianData = load_bayesian_data_from_env(bbn_input_file, s3_bucket=None)
-            input_json = {"source": bbn_input_file}
+            with open(bbn_input_file, "r", encoding="utf-8") as _f:
+                _loaded = json.load(_f)
+            input_json = _loaded.get("input", _loaded)
+            input_json["settings"] = {
+                "nChains": str(config["CHAINS"]),
+                "nIter":   str(config["DRAWS"] + config["TUNE"]),
+                "nBurnin": str(config["TUNE"]),
+                "nThin":   str(config["THIN"]),
+            }
             print(f"[CONFIG] Loaded BBN input from local file: {bbn_input_file}")
         else:
             input_json = build_input_json_from_env()
