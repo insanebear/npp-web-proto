@@ -66,4 +66,21 @@ def run_composite_model(data_override: Optional[BayesianData] = None, draws: int
                 RV.tag.test_value = pm.math.clip(RV.tag.test_value, -20, 20)
 
     trace = run_sampling(model, draws=draws, tune=tune, chains=chains, thin=thin)
+
+    RED = "\033[1;31m"
+    YELLOW = "\033[1;33m"
+    GREEN = "\033[1;32m"
+    RESET = "\033[0m"
+
+    pfd = trace.posterior["PFD"].values
+    mask = pfd > 1
+    n_over = int(mask.sum())
+    if n_over > 0:
+        print(f"\n{RED}[PFD>1] {n_over} samples exceeded 1 ({n_over / pfd.size * 100:.2f}%){RESET}")
+        for var in ["generic_number_of_defects", "generic_SFP", "generic_FSD", "IC_Total_Remained_Defect"]:
+            v = trace.posterior[var].values[mask]
+            print(f"{YELLOW}  {var}: min={v.min():.4e}, mean={v.mean():.4e}, max={v.max():.4e}{RESET}")
+    else:
+        print(f"\n{GREEN}[PFD>1] No samples exceeded 1{RESET}")
+
     return trace
