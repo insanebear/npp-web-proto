@@ -284,7 +284,7 @@ def main():
             summary = az.summary(trace, var_names=OUTPUT_VAR_NAMES, hdi_prob=0.95, extend=True)
             ess_min = summary["ess_bulk"].min()
             ess_threshold = config["DRAWS"] * 0.1
-            print(f"\n[DIAG] ESS check (threshold: draws × 10% = {ess_threshold:.0f})")
+            print(f"\n[DIAG] ESS check (threshold: draws * 10% = {ess_threshold:.0f})")
             print(summary[["ess_bulk", "r_hat"]].to_string())
             if ess_min < ess_threshold:
                 print(f"[WARN] ESS too low: min ess_bulk={ess_min:.1f} < {ess_threshold:.0f}. Consider increasing draws/tune.")

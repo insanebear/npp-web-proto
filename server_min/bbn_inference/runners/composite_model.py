@@ -47,7 +47,7 @@ def run_composite_model(data_override: Optional[BayesianData] = None, draws: int
     print("Generic trace stats:")
     for var_name in generic_trace.posterior.data_vars:
         values = generic_trace.posterior[var_name].values
-        print(f"{var_name} → max: {values.max()}, min: {values.min()}")
+        print(f"{var_name} -> max: {values.max()}, min: {values.min()}")
 
     model = create_composite_model(SR_Dev_trace=SR_Dev_trace, SR_VV_trace=SR_VV_trace,
                                    SD_Dev_trace=SD_Dev_trace, SD_VV_trace=SD_VV_trace,
