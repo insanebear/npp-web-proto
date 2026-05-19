@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# 실험 B: FP sweep
-#   SDLC 속성 all-Medium 고정, FP=50 / 200 / 1000 비교
+# 실험 A: SDLC 비교
+#   FP=200 고정, SDLC 속성 all-Low / all-Medium / all-High 비교
 #   Draw: 1000~5000 (1000 단위), 각 NREPS회 반복
-#   비교: draw level별 × rep별 조건간 단조성 검사 (FP-1000 > FP-200 > FP-50)
+#   비교: draw level별 × rep별 조건간 단조성 검사 (Low > Medium > High)
 #
 # 사용법:
-#   bash Dockers/HybridTool/exp_fp.sh
-#   MAX_JOBS=3 bash Dockers/HybridTool/exp_fp.sh   # 동시 실행 수 조절
+#   bash scripts/experiments/exp_sdlc.sh
+#   MAX_JOBS=3 bash scripts/experiments/exp_sdlc.sh   # 동시 실행 수 조절
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -24,23 +24,21 @@ S3_BUCKET="dummy"
 AWS_REGION="ap-northeast-2"
 TASK_TYPE="bbn_inference"
 
-# 비교 방향: FP 높을수록 PFD 높아야 함 (FP-1000 > FP-200 > FP-50)
-CONDITION_KEYS=(fp-50 fp-200 fp-1000)
-COMPARE_ORDER=(fp-1000 fp-200 fp-50)
+CONDITION_KEYS=(all-low all-medium all-high)
 declare -A CONDITION_FILES
-CONDITION_FILES[fp-50]="$PROJECT_ROOT/tempDoc/my-bbn-input-fp50.json"
-CONDITION_FILES[fp-200]="$PROJECT_ROOT/tempDoc/my-bbn-input.json"
-CONDITION_FILES[fp-1000]="$PROJECT_ROOT/tempDoc/my-bbn-input-fp1000.json"
+CONDITION_FILES[all-low]="$PROJECT_ROOT/tempDoc/my-bbn-input-all-low.json"
+CONDITION_FILES[all-medium]="$PROJECT_ROOT/tempDoc/my-bbn-input.json"
+CONDITION_FILES[all-high]="$PROJECT_ROOT/tempDoc/my-bbn-input-all-high.json"
 declare -A CONDITION_LABELS
-CONDITION_LABELS[fp-50]="FP-50"
-CONDITION_LABELS[fp-200]="FP-200"
-CONDITION_LABELS[fp-1000]="FP-1000"
+CONDITION_LABELS[all-low]="All-Low"
+CONDITION_LABELS[all-medium]="All-Medium"
+CONDITION_LABELS[all-high]="All-High"
 
 # ── 출력 디렉토리 & 로그 설정 ─────────────────────────────────
 _KST_TS="$(date -u -d '+9 hours' +%y%m%d_%H%M%S)"
-OUT_DIR="$PROJECT_ROOT/tempDoc/hybrid-tool-test/exp-fp-$_KST_TS"
+OUT_DIR="$PROJECT_ROOT/tempDoc/hybrid-tool-test/exp-sdlc-$_KST_TS"
 mkdir -p "$OUT_DIR"
-LOG_FILE="$OUT_DIR/exp_fp_run.log"
+LOG_FILE="$OUT_DIR/exp_sdlc_run.log"
 
 # draw_dir: draw level별 하위 폴더 ($OUT_DIR/draw{N}/)
 run_job() {
@@ -66,7 +64,7 @@ run_job() {
 
 result_file_for() {
     local cond="$1" draw="$2" rep="$3"
-    echo "$OUT_DIR/draw${draw}/results_bbn_results-${cond}-draw${draw}-rep${rep}.json"
+    echo "$OUT_DIR/draw${draw}/results_bbn_results-sdlc-${cond}-draw${draw}-rep${rep}.json"
 }
 
 main() {
@@ -77,14 +75,13 @@ main() {
     _start_sec=$(date +%s)
 
     echo "=================================================="
-    echo "실험 B: FP sweep (SDLC all-Medium 고정)"
-    echo "FP 조건    : 50 / 200 / 1000"
-    echo "Draw levels: ${DRAWS_LIST[*]}"
-    echo "Reps       : $NREPS"
+    echo "실험 A: SDLC 비교 (FP=200 고정)"
+    echo "Draw levels : ${DRAWS_LIST[*]}"
+    echo "Reps        : $NREPS"
     echo "Max 동시 실행: $MAX_JOBS"
-    echo "출력        : $OUT_DIR"
-    echo "콘솔 로그   : $LOG_FILE"
-    echo "시작        : $_start_ts"
+    echo "출력         : $OUT_DIR"
+    echo "콘솔 로그    : $LOG_FILE"
+    echo "시작         : $_start_ts"
     echo "=================================================="
 
     for draw in "${DRAWS_LIST[@]}"; do
@@ -114,7 +111,7 @@ main() {
                 item="${flat_keys[$((i + b))]}"
                 cond="${item%%:*}"
                 rep="${item##*:}"
-                job_id="${cond}-draw${draw}-rep${rep}"
+                job_id="sdlc-${cond}-draw${draw}-rep${rep}"
                 batch_names+=("$job_id")
 
                 echo "  ▷ $job_id 시작"
@@ -155,7 +152,7 @@ main() {
             for item in "${retry_keys[@]}"; do
                 cond="${item%%:*}"
                 rep="${item##*:}"
-                job_id="${cond}-draw${draw}-rep${rep}"
+                job_id="sdlc-${cond}-draw${draw}-rep${rep}"
                 local _rs _elapsed _m _s
                 echo "  ▷ $job_id 재시도"
                 _rs=$(date +%s)
@@ -182,10 +179,10 @@ main() {
         for rep in $(seq 1 $NREPS); do
             cmp_args=()
             missing=false
-            for cond in "${COMPARE_ORDER[@]}"; do
+            for cond in "${CONDITION_KEYS[@]}"; do
                 result_file="$(result_file_for "$cond" "$draw" "$rep")"
                 if [ ! -f "$result_file" ]; then
-                    echo "  [rep${rep}] ⚠ 결과 파일 없음 (재시도 후에도 실패) — 로그: $draw_dir/${cond}-draw${draw}-rep${rep}.log"
+                    echo "  [rep${rep}] ⚠ 결과 파일 없음 (재시도 후에도 실패) — 로그: $draw_dir/sdlc-${cond}-draw${draw}-rep${rep}.log"
                     missing=true
                     infra_fail=true
                     break
@@ -224,7 +221,7 @@ main() {
 
     echo ""
     echo "=================================================="
-    echo "실험 B 완료: $OUT_DIR"
+    echo "실험 A 완료: $OUT_DIR"
     echo "시작: $_start_ts"
     echo "종료: $_end_ts"
     echo "총 소요 시간: ${_min}m ${_sec}s"
