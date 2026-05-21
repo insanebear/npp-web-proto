@@ -63,7 +63,7 @@ run_job() {
     TASK_TYPE="$TASK_TYPE" \
     S3_BUCKET="$S3_BUCKET" \
     AWS_REGION="$AWS_REGION" \
-    PYTENSOR_FLAGS="base_compiledir=/tmp/pytensor_${job_id}" \
+    PYTENSOR_FLAGS="base_compiledir=/tmp/pt_${cond}" \
         bash "$SCRIPT_DIR/runner.sh" >> "$log_file" 2>&1
 }
 
