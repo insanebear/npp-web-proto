@@ -172,6 +172,117 @@ OUTPUT_VAR_NAMES = [
 ]
 
 
+def _save_trace_plots(trace, job_id: str, output_dir: str, var_names: list) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from plotly.subplots import make_subplots
+    import plotly.graph_objects as go
+    import plotly.io as pio
+    import arviz as az
+
+    n_vars = len(var_names)
+    posterior = trace.posterior
+
+    az.plot_trace(trace, var_names=var_names, figsize=(14, n_vars * 3))
+    plt.tight_layout()
+    png_path = Path(output_dir) / f"trace_plot-{job_id}.png"
+    plt.savefig(png_path, dpi=120, bbox_inches="tight")
+    plt.close()
+    print(f"[DIAG] Trace plot (PNG) saved: {png_path}")
+
+    subplot_titles = []
+    for v in var_names:
+        subplot_titles += [f"{v} — distribution", f"{v} — trace"]
+
+    fig = make_subplots(
+        rows=n_vars, cols=2,
+        subplot_titles=subplot_titles,
+        column_widths=[0.35, 0.65],
+    )
+    for i, var_name in enumerate(var_names):
+        if var_name not in posterior:
+            continue
+        samples = posterior[var_name].values.flatten()
+        row = i + 1
+        fig.add_trace(
+            go.Histogram(x=samples, nbinsx=80, name=var_name,
+                         showlegend=False, marker_color="steelblue", opacity=0.75),
+            row=row, col=1,
+        )
+        fig.update_xaxes(title_text=var_name, row=row, col=1)
+        fig.update_yaxes(title_text="count", row=row, col=1)
+        fig.add_trace(
+            go.Scatter(y=samples, mode="lines", name=var_name,
+                       showlegend=False, line=dict(color="steelblue", width=0.6)),
+            row=row, col=2,
+        )
+        fig.update_xaxes(title_text="draw", row=row, col=2)
+        fig.update_yaxes(title_text=var_name, row=row, col=2)
+
+    fig.update_layout(
+        height=280 * n_vars,
+        title_text=f"BBN Trace Plot — {job_id}",
+        title_font_size=16,
+    )
+    html_path = Path(output_dir) / f"trace_plot-{job_id}.html"
+    pio.write_html(fig, str(html_path), include_plotlyjs="cdn")
+    print(f"[DIAG] Trace plot (HTML) saved: {html_path}")
+
+
+def _save_autocorr_plots(trace, job_id: str, output_dir: str, var_names: list, draws: int) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import plotly.graph_objects as go
+    import plotly.io as pio
+    import arviz as az
+
+    max_lag = min(50, max(1, draws // 10))
+    key_lags = [l for l in [1, 5, 10, 20, 50] if l <= max_lag]
+
+    print(f"\n[DIAG] Autocorrelation (max_lag={max_lag}, draws={draws})")
+    header = f"{'var':<30}" + "".join(f"  lag{l:>3}" for l in key_lags)
+    print(header)
+
+    autocorr_data = {}
+    for var_name in var_names:
+        if var_name not in trace.posterior:
+            continue
+        samples = trace.posterior[var_name].values.flatten().astype(float)
+        ac = az.autocorr(samples)
+        autocorr_data[var_name] = ac
+        print(f"{var_name:<30}" + "".join(f"  {ac[l]:>7.3f}" for l in key_lags))
+
+    az.plot_autocorr(trace, var_names=var_names, max_lag=max_lag, figsize=(10, max(3, len(var_names) * 2)))
+    plt.tight_layout()
+    png_path = Path(output_dir) / f"autocorr-{job_id}.png"
+    plt.savefig(png_path, dpi=120, bbox_inches="tight")
+    plt.close()
+    print(f"[DIAG] Autocorr plot (PNG) saved: {png_path}")
+
+    fig = go.Figure()
+    lags = list(range(max_lag + 1))
+    for var_name, ac in autocorr_data.items():
+        fig.add_trace(go.Scatter(
+            x=lags,
+            y=ac[:max_lag + 1].tolist(),
+            mode="lines+markers",
+            name=var_name,
+            marker=dict(size=4),
+        ))
+    fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
+    fig.update_layout(
+        title=f"Autocorrelation — {job_id}",
+        xaxis_title="lag",
+        yaxis_title="autocorrelation",
+        height=450,
+    )
+    html_path = Path(output_dir) / f"autocorr-{job_id}.html"
+    pio.write_html(fig, str(html_path), include_plotlyjs="cdn")
+    print(f"[DIAG] Autocorr plot (HTML) saved: {html_path}")
+
+
 def _save_results(config: Dict[str, Any], result_json: Dict[str, Any]) -> str:
     """Save JSON results to S3 or locally."""
     job_id = config["JOB_ID"]
@@ -279,84 +390,17 @@ def main():
             )
             print("[STEP 1] Composite model completed")
 
-            # ESS check + HDI extraction
+            # ESS diagnostic (no threshold — inspect values directly)
             import arviz as az
             summary = az.summary(trace, var_names=OUTPUT_VAR_NAMES, hdi_prob=0.95, extend=True)
-            ess_min = summary["ess_bulk"].min()
-            ess_threshold = config["DRAWS"] * 0.1
-            print(f"\n[DIAG] ESS check (threshold: draws * 10% = {ess_threshold:.0f})")
-            print(summary[["ess_bulk", "r_hat"]].to_string())
-            if ess_min < ess_threshold:
-                print(f"[WARN] ESS too low: min ess_bulk={ess_min:.1f} < {ess_threshold:.0f}. Consider increasing draws/tune.")
-            else:
-                print(f"[DIAG] ESS OK: min ess_bulk={ess_min:.1f}")
+            print(f"\n[DIAG] ESS (draws={config['DRAWS']})")
+            print(summary[["ess_bulk", "ess_tail"]].to_string())
 
-            # Trace plot (local only — skipped when saving to S3)
+            # Diagnostic plots (local only — skipped when saving to S3)
             test_output_dir = config.get("TEST_OUTPUT_DIR")
             if test_output_dir:
-                import matplotlib
-                matplotlib.use("Agg")
-                import matplotlib.pyplot as plt
-                from plotly.subplots import make_subplots
-                import plotly.graph_objects as go
-                import plotly.io as pio
-
-                posterior = trace.posterior
-                n_vars = len(OUTPUT_VAR_NAMES)
-
-                # Static PNG (fallback / quick view)
-                az.plot_trace(trace, var_names=OUTPUT_VAR_NAMES, figsize=(14, n_vars * 3))
-                plt.tight_layout()
-                trace_plot_path = Path(test_output_dir) / f"trace_plot-{job_id}.png"
-                plt.savefig(trace_plot_path, dpi=120, bbox_inches="tight")
-                plt.close()
-                print(f"[DIAG] Trace plot (PNG) saved: {trace_plot_path}")
-
-                # Interactive HTML
-                subplot_titles = []
-                for v in OUTPUT_VAR_NAMES:
-                    subplot_titles += [f"{v} — distribution", f"{v} — trace"]
-
-                fig = make_subplots(
-                    rows=n_vars, cols=2,
-                    subplot_titles=subplot_titles,
-                    column_widths=[0.35, 0.65],
-                )
-
-                for i, var_name in enumerate(OUTPUT_VAR_NAMES):
-                    if var_name not in posterior:
-                        continue
-                    samples = posterior[var_name].values.flatten()
-                    row = i + 1
-
-                    # Left: histogram
-                    fig.add_trace(
-                        go.Histogram(x=samples, nbinsx=80, name=var_name,
-                                     showlegend=False,
-                                     marker_color="steelblue", opacity=0.75),
-                        row=row, col=1,
-                    )
-                    fig.update_xaxes(title_text=var_name, row=row, col=1)
-                    fig.update_yaxes(title_text="count", row=row, col=1)
-
-                    # Right: trace
-                    fig.add_trace(
-                        go.Scatter(y=samples, mode="lines", name=var_name,
-                                   showlegend=False,
-                                   line=dict(color="steelblue", width=0.6)),
-                        row=row, col=2,
-                    )
-                    fig.update_xaxes(title_text="draw", row=row, col=2)
-                    fig.update_yaxes(title_text=var_name, row=row, col=2)
-
-                fig.update_layout(
-                    height=280 * n_vars,
-                    title_text=f"BBN Trace Plot — {job_id}",
-                    title_font_size=16,
-                )
-                html_path = Path(test_output_dir) / f"trace_plot-{job_id}.html"
-                pio.write_html(fig, str(html_path), include_plotlyjs="cdn")
-                print(f"[DIAG] Trace plot (HTML) saved: {html_path}")
+                _save_trace_plots(trace, job_id, test_output_dir, OUTPUT_VAR_NAMES)
+                _save_autocorr_plots(trace, job_id, test_output_dir, OUTPUT_VAR_NAMES, config["DRAWS"])
 
             # Compute statistics for all output variables
             posterior = trace.posterior
