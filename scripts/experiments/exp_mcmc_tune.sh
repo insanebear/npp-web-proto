@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# 실험 B: MCMC 설정값 탐색 (단조성 기준)
+# 실험 B: MCMC draws 탐색 (단조성 기준)
 #   chains=1, thin=1 고정
-#   tune × draws 그리드 서치로 단조성이 안정적으로 나오는 최솟값 탐색
+#   tune=1000 고정, draws 그리드 서치로 단조성이 안정적으로 나오는 최솟값 탐색
+#   tune을 여러 값으로 비교할 경우 TUNE_LIST에 값 추가
 #   조건: all-Low PFD > all-Medium PFD > all-High PFD (median & mean 모두)
 #
 # 사용법:
@@ -14,7 +15,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # ── 실험 설정 ─────────────────────────────────────────────────
 NCHAINS=1
 NTHIN=1
-TUNE_LIST=(1000 2000)
+TUNE_LIST=(1000)            # 기본 1000 고정; 범위 비교 시 (1000 2000 ...) 으로 확장
 DRAWS_LIST=(500 1000 2000 3000)
 NREPS=3
 MAX_JOBS="${MAX_JOBS:-4}"
@@ -283,9 +284,9 @@ main() {
     local total_jobs=$(( total_combos * ${#CONDITION_KEYS[@]} * NREPS ))
 
     echo "=================================================="
-    echo "실험 B: MCMC 설정값 탐색 (단조성 기준)"
+    echo "실험 B: MCMC draws 탐색 (단조성 기준)"
     echo "  chains=1, thin=1 고정"
-    echo "  tune   : ${TUNE_LIST[*]}"
+    echo "  tune   : ${TUNE_LIST[*]}  (기본 1000 고정)"
     echo "  draws  : ${DRAWS_LIST[*]}"
     echo "  reps   : $NREPS"
     echo "  조합 수 : $total_combos  (총 runner 실행: $total_jobs)"
