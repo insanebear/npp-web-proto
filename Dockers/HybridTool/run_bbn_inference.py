@@ -282,6 +282,13 @@ def _save_autocorr_plots(trace, job_id: str, output_dir: str, var_names: list, d
     pio.write_html(fig, str(html_path), include_plotlyjs="cdn")
     print(f"[DIAG] Autocorr plot (HTML) saved: {html_path}")
 
+    # rep 간 비교 HTML 생성용 raw 데이터 저장 (combine_autocorr.py에서 사용)
+    json_path = Path(output_dir) / f"autocorr-{job_id}.json"
+    json_data = {var: ac[:max_lag + 1].tolist() for var, ac in autocorr_data.items()}
+    json_data["__meta__"] = {"job_id": job_id, "max_lag": max_lag, "draws": draws}
+    json_path.write_text(json.dumps(json_data, indent=2), encoding="utf-8")
+    print(f"[DIAG] Autocorr data (JSON) saved: {json_path}")
+
 
 def _save_results(config: Dict[str, Any], result_json: Dict[str, Any]) -> str:
     """Save JSON results to S3 or locally."""

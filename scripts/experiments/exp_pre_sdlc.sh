@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# 사전 실험: SDLC draws 탐색 (단조성 기준)
+# 사전 실험: SDLC draws 탐색 (median 안정성 기준)
 #   exp_sdlc.sh 실행에 앞서 안정적인 draws 최솟값 탐색
 #   chains=1, thin=1 고정
-#   tune=1000 고정, draws 그리드 서치로 단조성이 안정적으로 나오는 최솟값 탐색
+#   tune=1000 고정, draws 그리드 서치로 median이 안정적으로 나오는 최솟값 탐색
 #   tune을 여러 값으로 비교할 경우 TUNE_LIST에 값 추가
-#   조건: all-Low PFD > all-Medium PFD > all-High PFD (median & mean 모두)
+#   조건: all-Medium 단일 조건으로 대표 테스트
 #
 # 사용법:
 #   bash scripts/experiments/exp_pre_sdlc.sh
@@ -17,7 +17,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 NCHAINS=1
 NTHIN=1
 TUNE_LIST=(1000)            # 기본 1000 고정; 범위 비교 시 (1000 2000 ...) 으로 확장
-DRAWS_LIST=(500 1000 2000 3000)
+DRAWS_LIST=(1000 2000 3000)
 NREPS=3
 MAX_JOBS="${MAX_JOBS:-4}"
 
@@ -25,7 +25,7 @@ S3_BUCKET="dummy"
 AWS_REGION="ap-northeast-2"
 TASK_TYPE="bbn_inference"
 
-CONDITION_KEYS=(all-low all-medium all-high)
+CONDITION_KEYS=(all-medium)
 declare -A CONDITION_FILES
 CONDITION_FILES[all-low]="$PROJECT_ROOT/tempDoc/my-bbn-input-all-low.json"
 CONDITION_FILES[all-medium]="$PROJECT_ROOT/tempDoc/my-bbn-input.json"
@@ -42,10 +42,7 @@ mkdir -p "$OUT_DIR"
 LOG_FILE="$OUT_DIR/exp_pre_sdlc_run.log"
 
 # ── 결과 추적용 전역 배열 ─────────────────────────────────────
-declare -A PASS_COUNT
-declare -A PARTIAL_COUNT
-declare -A FAIL_COUNT
-declare -A MISSING_COUNT
+declare -A STABILITY
 
 # ─────────────────────────────────────────────────────────────
 run_job() {
@@ -153,123 +150,87 @@ run_combo() {
         done
     fi
 
-    # ── rep별 단조성 검사 및 집계 ──────────────────────────────
-    local key="${tune}:${draw}"
-    PASS_COUNT[$key]=0
-    PARTIAL_COUNT[$key]=0
-    FAIL_COUNT[$key]=0
-    MISSING_COUNT[$key]=0
+    # ── rep 간 autocorrelation 비교 HTML 생성 ─────────────────────
+    local autocorr_json_files=()
+    for cond in "${CONDITION_KEYS[@]}"; do
+        for rep in $(seq 1 $NREPS); do
+            local af="$combo_dir/autocorr-pre-sdlc-${cond}-tune${tune}-draw${draw}-rep${rep}.json"
+            [ -f "$af" ] && autocorr_json_files+=("$af")
+        done
+    done
+    if [ ${#autocorr_json_files[@]} -gt 1 ]; then
+        local combined_html="$combo_dir/autocorr_combined-tune${tune}_draw${draw}.html"
+        python "$SCRIPT_DIR/combine_autocorr.py" "$combined_html" "${autocorr_json_files[@]}" \
+            && echo "  📊 Autocorr 비교 HTML: $combined_html"
+    fi
 
+    # ── 조건별 median 안정성 체크 ─────────────────────────────────
     echo ""
-    echo "  ── tune=$tune draw=$draw 비교 결과 ──"
-    for rep in $(seq 1 $NREPS); do
-        local cmp_args=() missing=false
-        for cond in "${CONDITION_KEYS[@]}"; do
-            local result_file
-            result_file="$(result_file_for "$cond" "$tune" "$draw" "$rep")"
-            if [ ! -f "$result_file" ]; then
-                echo "  [rep${rep}] ⚠ 결과 파일 없음 — $combo_dir/pre-sdlc-${cond}-tune${tune}-draw${draw}-rep${rep}.log"
-                missing=true
-                MISSING_COUNT[$key]=$(( ${MISSING_COUNT[$key]} + 1 ))
+    echo "  ── tune=$tune draw=$draw  median 안정성 (relative range) ──"
+    for cond in "${CONDITION_KEYS[@]}"; do
+        local rep_files=() all_present=true
+        for rep in $(seq 1 $NREPS); do
+            local rf
+            rf="$(result_file_for "$cond" "$tune" "$draw" "$rep")"
+            if [ ! -f "$rf" ]; then
+                all_present=false
                 break
             fi
-            cmp_args+=("${CONDITION_LABELS[$cond]}=$result_file")
+            rep_files+=("$rf")
         done
-        [ "$missing" = true ] && continue
 
-        local cmp_log="$combo_dir/comparison_rep${rep}.log"
-        python "$SCRIPT_DIR/compare_pfd_hdi.py" "${cmp_args[@]}" > "$cmp_log" 2>&1
-        echo "  [rep${rep}]"
-        grep -E "median|mean|PASS|PARTIAL|FAIL" "$cmp_log" | sed 's/^/    /'
-
-        if grep -q "  PASS —" "$cmp_log"; then
-            PASS_COUNT[$key]=$(( ${PASS_COUNT[$key]} + 1 ))
-        elif grep -q "  PARTIAL —" "$cmp_log"; then
-            PARTIAL_COUNT[$key]=$(( ${PARTIAL_COUNT[$key]} + 1 ))
-        else
-            FAIL_COUNT[$key]=$(( ${FAIL_COUNT[$key]} + 1 ))
+        if [ "$all_present" = false ]; then
+            echo "    [${CONDITION_LABELS[$cond]}] ⚠ 결과 파일 누락 — 계산 불가"
+            STABILITY["${cond}:${tune}:${draw}"]="N/A"
+            continue
         fi
-    done
 
-    local p=${PASS_COUNT[$key]}
-    local pa=${PARTIAL_COUNT[$key]}
-    local f=${FAIL_COUNT[$key]}
-    local m=${MISSING_COUNT[$key]}
-    local label
-    if [ "$p" -eq "$NREPS" ]; then
-        label="✓ ALL PASS"
-    elif [ "$f" -eq 0 ] && [ "$m" -eq 0 ]; then
-        label="△ PARTIAL"
-    else
-        label="✗ FAIL/MISSING"
-    fi
-    echo "  → tune=$tune draw=$draw: PASS=${p}/${NREPS} PARTIAL=${pa} FAIL=${f} MISSING=${m}  $label"
+        local stab_out
+        stab_out=$(python "$SCRIPT_DIR/check_median_stability.py" \
+            "${CONDITION_LABELS[$cond]}" "${rep_files[@]}" 2>&1)
+        echo "$stab_out" | grep -v "^STABILITY_PCT:" | sed 's/^/  /'
+
+        local pct
+        pct=$(echo "$stab_out" | grep "^STABILITY_PCT:" | cut -d: -f2)
+        STABILITY["${cond}:${tune}:${draw}"]="${pct:-N/A}"
+    done
 }
 
 # ─────────────────────────────────────────────────────────────
 print_summary_table() {
+    # ── Median 안정성 요약 테이블 ──────────────────────────────────
     echo ""
     echo "════════════════════════════════════════════════════════════════"
-    echo "  최종 요약 테이블  (PASS count / $NREPS reps)"
-    echo "  ✓ = ALL PASS  △ = PARTIAL only  ✗ = FAIL/MISSING 포함"
+    echo "  Median 안정성 요약 — PFD relative range across reps"
+    echo "  relative range = (max - min) / mean(rep medians)"
     echo "════════════════════════════════════════════════════════════════"
-
-    local header
-    header="$(printf '  %-14s' 'tune \ draws')"
-    for draw in "${DRAWS_LIST[@]}"; do
-        header+="$(printf '%12s' "draws=$draw")"
-    done
-    echo "$header"
-    echo "  $(printf -- '-%.0s' $(seq 1 $((14 + 12 * ${#DRAWS_LIST[@]}))))"
-
-    local best_tune="" best_draw="" best_found=false
 
     for tune in "${TUNE_LIST[@]}"; do
-        local row
-        row="$(printf '  %-14s' "tune=$tune")"
+        local hdr
+        hdr="$(printf '  %-16s' "tune=$tune")"
         for draw in "${DRAWS_LIST[@]}"; do
-            local key="${tune}:${draw}"
-            local p="${PASS_COUNT[$key]:-?}"
-            local pa="${PARTIAL_COUNT[$key]:-?}"
-            local f="${FAIL_COUNT[$key]:-?}"
-            local m="${MISSING_COUNT[$key]:-?}"
-            local cell
-            if [ "$p" = "?" ]; then
-                cell="?"
-            elif [ "$p" -eq "$NREPS" ]; then
-                cell="${p}/${NREPS} ✓"
-                if [ "$best_found" = false ]; then
-                    best_tune="$tune"
-                    best_draw="$draw"
-                    best_found=true
-                fi
-            elif [ "$f" -eq 0 ] && [ "$m" -eq 0 ]; then
-                cell="${p}/${NREPS} △"
-            else
-                cell="${p}/${NREPS} ✗"
-            fi
-            row+="$(printf '%12s' "$cell")"
+            hdr+="$(printf '%12s' "draw=$draw")"
         done
-        echo "$row"
-    done
+        echo "$hdr"
+        echo "  $(printf -- '-%.0s' $(seq 1 $((16 + 12 * ${#DRAWS_LIST[@]}))))"
 
-    echo ""
-    if [ "$best_found" = true ]; then
-        echo "  ★ 추천 설정 (전 rep PASS 기준 최솟값):"
-        echo ""
-        echo "    chains = 1"
-        echo "    tune   = $best_tune   (nBurnin)"
-        echo "    draws  = $best_draw   (nIter = $((best_tune + best_draw)))"
-        echo "    thin   = 1"
-        echo ""
-        echo "  → 다른 실험 스크립트에서 아래 값으로 설정하세요:"
-        echo "    NBURN=$best_tune"
-        echo "    DRAWS_LIST=($best_draw)"
-        echo "    NCHAINS=1"
-        echo "    NTHIN=1"
-    else
-        echo "  ⚠ 전 rep PASS 조합 없음 — TUNE_LIST / DRAWS_LIST 범위 확대 필요"
-    fi
+        for cond in "${CONDITION_KEYS[@]}"; do
+            local row
+            row="$(printf '  %-16s' "${CONDITION_LABELS[$cond]}")"
+            for draw in "${DRAWS_LIST[@]}"; do
+                local key="${cond}:${tune}:${draw}"
+                local val="${STABILITY[$key]:-?}"
+                local cell
+                if [ "$val" = "?" ] || [ "$val" = "N/A" ]; then
+                    cell="$val"
+                else
+                    cell="${val}%"
+                fi
+                row+="$(printf '%12s' "$cell")"
+            done
+            echo "$row"
+        done
+    done
     echo "════════════════════════════════════════════════════════════════"
 }
 
