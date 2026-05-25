@@ -8,11 +8,13 @@ Usage:
 Example:
   python check_median_stability.py All-Low rep1.json rep2.json rep3.json
 
-Output (마지막 줄):
-  STABILITY_PCT:<value>  — 쉘 스크립트에서 파싱용
+Output (마지막 두 줄):
+  STABILITY_PCT:<value>  — relative range, 쉘 스크립트 파싱용
+  CV_PCT:<value>         — 변동계수(std/mean), 쉘 스크립트 파싱용
 """
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -52,11 +54,17 @@ def main():
     mean = sum(medians) / len(medians)
     rel_range_pct = (mx - mn) / mean * 100 if mean > 0 else float("inf")
 
-    print(f"  [{label}]  medians: {' / '.join(f'{v:.4g}' for v in medians)}")
-    print(f"    min={mn:.4g}  max={mx:.4g}  mean={mean:.4g}")
-    print(f"    relative range = ({mx:.4g} - {mn:.4g}) / {mean:.4g} = {rel_range_pct:.1f}%")
-    # 쉘 스크립트 파싱용 — 이 줄은 grep으로 추출
+    variance = sum((v - mean) ** 2 for v in medians) / (len(medians) - 1)
+    std = math.sqrt(variance)
+    cv_pct = std / mean * 100 if mean > 0 else float("inf")
+
+    print(f"  [{label}]  n={len(medians)}  mean={mean:.4g}  std={std:.4g}")
+    print(f"    min={mn:.4g}  max={mx:.4g}")
+    print(f"    relative range = ({mx:.4g} - {mn:.4g}) / {mean:.4g} = {rel_range_pct:.1f}%  (참고)")
+    print(f"    CV = {std:.4g} / {mean:.4g} = {cv_pct:.1f}%  (판단 기준)")
+    # 쉘 스크립트 파싱용 — 이 줄들은 grep으로 추출
     print(f"STABILITY_PCT:{rel_range_pct:.2f}")
+    print(f"CV_PCT:{cv_pct:.2f}")
 
 
 if __name__ == "__main__":

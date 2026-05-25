@@ -18,7 +18,7 @@ NCHAINS=1
 NTHIN=1
 TUNE_LIST=(1000)            # 기본 1000 고정; 범위 비교 시 (1000 2000 ...) 으로 확장
 DRAWS_LIST=(1000 2000 3000)
-NREPS=3
+NREPS=30
 MAX_JOBS="${MAX_JOBS:-4}"
 
 S3_BUCKET="dummy"
@@ -43,6 +43,7 @@ LOG_FILE="$OUT_DIR/exp_pre_sdlc_run.log"
 
 # ── 결과 추적용 전역 배열 ─────────────────────────────────────
 declare -A STABILITY
+declare -A CV
 
 # ─────────────────────────────────────────────────────────────
 run_job() {
@@ -188,35 +189,55 @@ run_combo() {
         local stab_out
         stab_out=$(python "$SCRIPT_DIR/check_median_stability.py" \
             "${CONDITION_LABELS[$cond]}" "${rep_files[@]}" 2>&1)
-        echo "$stab_out" | grep -v "^STABILITY_PCT:" | sed 's/^/  /'
+        echo "$stab_out" | grep -v "^STABILITY_PCT:" | grep -v "^CV_PCT:" | sed 's/^/  /'
 
-        local pct
+        local pct cv_val
         pct=$(echo "$stab_out" | grep "^STABILITY_PCT:" | cut -d: -f2)
+        cv_val=$(echo "$stab_out" | grep "^CV_PCT:" | cut -d: -f2)
         STABILITY["${cond}:${tune}:${draw}"]="${pct:-N/A}"
+        CV["${cond}:${tune}:${draw}"]="${cv_val:-N/A}"
     done
 }
 
 # ─────────────────────────────────────────────────────────────
 print_summary_table() {
-    # ── Median 안정성 요약 테이블 ──────────────────────────────────
     echo ""
     echo "════════════════════════════════════════════════════════════════"
-    echo "  Median 안정성 요약 — PFD relative range across reps"
-    echo "  relative range = (max - min) / mean(rep medians)"
+    echo "  Median 안정성 요약 — CV (변동계수) & relative range across reps"
+    echo "  CV = std / mean  |  relative range = (max - min) / mean  (참고)"
     echo "════════════════════════════════════════════════════════════════"
 
     for tune in "${TUNE_LIST[@]}"; do
         local hdr
         hdr="$(printf '  %-16s' "tune=$tune")"
         for draw in "${DRAWS_LIST[@]}"; do
-            hdr+="$(printf '%12s' "draw=$draw")"
+            hdr+="$(printf '%20s' "draw=$draw")"
         done
         echo "$hdr"
-        echo "  $(printf -- '-%.0s' $(seq 1 $((16 + 12 * ${#DRAWS_LIST[@]}))))"
+        echo "  $(printf -- '-%.0s' $(seq 1 $((16 + 20 * ${#DRAWS_LIST[@]}))))"
 
+        # CV 행
         for cond in "${CONDITION_KEYS[@]}"; do
             local row
-            row="$(printf '  %-16s' "${CONDITION_LABELS[$cond]}")"
+            row="$(printf '  %-10s %-6s' "${CONDITION_LABELS[$cond]}" "(CV)")"
+            for draw in "${DRAWS_LIST[@]}"; do
+                local key="${cond}:${tune}:${draw}"
+                local val="${CV[$key]:-?}"
+                local cell
+                if [ "$val" = "?" ] || [ "$val" = "N/A" ]; then
+                    cell="$val"
+                else
+                    cell="${val}%"
+                fi
+                row+="$(printf '%20s' "$cell")"
+            done
+            echo "$row"
+        done
+
+        # relative range 행 (참고)
+        for cond in "${CONDITION_KEYS[@]}"; do
+            local row
+            row="$(printf '  %-10s %-6s' "${CONDITION_LABELS[$cond]}" "(RR)")"
             for draw in "${DRAWS_LIST[@]}"; do
                 local key="${cond}:${tune}:${draw}"
                 local val="${STABILITY[$key]:-?}"
@@ -226,11 +247,52 @@ print_summary_table() {
                 else
                     cell="${val}%"
                 fi
-                row+="$(printf '%12s' "$cell")"
+                row+="$(printf '%20s' "$cell")"
             done
             echo "$row"
         done
     done
+    echo "════════════════════════════════════════════════════════════════"
+}
+
+CV_THRESHOLD=5.0
+
+print_conclusion() {
+    echo ""
+    echo "════════════════════════════════════════════════════════════════"
+    echo "  결론 — CV < ${CV_THRESHOLD}% 기준"
+    echo "════════════════════════════════════════════════════════════════"
+
+    local recommended_draw=""
+    for tune in "${TUNE_LIST[@]}"; do
+        for cond in "${CONDITION_KEYS[@]}"; do
+            echo "  [${CONDITION_LABELS[$cond]}]"
+            for draw in "${DRAWS_LIST[@]}"; do
+                local key="${cond}:${tune}:${draw}"
+                local cv_val="${CV[$key]:-N/A}"
+                if [ "$cv_val" = "N/A" ] || [ "$cv_val" = "?" ]; then
+                    echo "    draw=$draw:  CV=N/A  →  계산 불가"
+                else
+                    local pass
+                    pass=$(awk -v v="$cv_val" -v t="$CV_THRESHOLD" 'BEGIN { print (v < t) ? "yes" : "no" }')
+                    if [ "$pass" = "yes" ]; then
+                        echo "    draw=$draw:  CV=${cv_val}%  →  기준 충족 (< ${CV_THRESHOLD}%)"
+                        [ -z "$recommended_draw" ] && recommended_draw="$draw"
+                    else
+                        echo "    draw=$draw:  CV=${cv_val}%  →  기준 미달 (≥ ${CV_THRESHOLD}%)"
+                    fi
+                fi
+            done
+        done
+    done
+
+    echo ""
+    if [ -n "$recommended_draw" ]; then
+        echo "  ✅ 권장 draw: $recommended_draw  (CV < ${CV_THRESHOLD}% 충족하는 최솟값)"
+    else
+        echo "  ⚠ 모든 draw에서 CV ≥ ${CV_THRESHOLD}% — draw=${DRAWS_LIST[-1]} 보수적 채택 권장"
+        echo "    (NREPS 추가 또는 draw 범위 확장 검토)"
+    fi
     echo "════════════════════════════════════════════════════════════════"
 }
 
@@ -262,6 +324,7 @@ main() {
     done
 
     print_summary_table
+    print_conclusion
 
     local _end_ts _end_sec _elapsed _min _sec
     _end_ts="$(date -u -d '+9 hours' '+%Y-%m-%d %H:%M:%S KST')"
