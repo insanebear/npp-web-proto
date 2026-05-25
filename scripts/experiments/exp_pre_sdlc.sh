@@ -275,8 +275,6 @@ print_summary_table() {
 
 # ─────────────────────────────────────────────────────────────
 main() {
-    trap 'echo ""; echo "⚠ 중단됨 — 실행 중인 job 종료 중..."; kill 0' INT TERM
-
     local _start_ts _start_sec
     _start_ts="$(date -u -d '+9 hours' '+%Y-%m-%d %H:%M:%S KST')"
     _start_sec=$(date +%s)
@@ -319,5 +317,6 @@ main() {
     echo "=================================================="
 }
 
+trap 'trap - INT TERM; echo ""; echo "⚠ 중단됨 — 실행 중인 job 종료 중..."; kill 0' INT TERM
 main 2>&1 | tee "$LOG_FILE"
 echo "콘솔 로그 저장됨: $LOG_FILE"
