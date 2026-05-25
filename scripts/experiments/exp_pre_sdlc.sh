@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# 실험 B: MCMC draws 탐색 (단조성 기준)
+# 사전 실험: SDLC draws 탐색 (단조성 기준)
+#   exp_sdlc.sh 실행에 앞서 안정적인 draws 최솟값 탐색
 #   chains=1, thin=1 고정
 #   tune=1000 고정, draws 그리드 서치로 단조성이 안정적으로 나오는 최솟값 탐색
 #   tune을 여러 값으로 비교할 경우 TUNE_LIST에 값 추가
 #   조건: all-Low PFD > all-Medium PFD > all-High PFD (median & mean 모두)
 #
 # 사용법:
-#   bash scripts/experiments/exp_mcmc_tune.sh
-#   MAX_JOBS=3 bash scripts/experiments/exp_mcmc_tune.sh
+#   bash scripts/experiments/exp_pre_sdlc.sh
+#   MAX_JOBS=3 bash scripts/experiments/exp_pre_sdlc.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -36,9 +37,9 @@ CONDITION_LABELS[all-high]="All-High"
 
 # ── 출력 디렉토리 & 로그 ─────────────────────────────────────
 _KST_TS="$(date -u -d '+9 hours' +%y%m%d_%H%M%S)"
-OUT_DIR="$PROJECT_ROOT/tempDoc/hybrid-tool-test/exp-mcmc-$_KST_TS"
+OUT_DIR="$PROJECT_ROOT/tempDoc/hybrid-tool-test/exp-pre-sdlc-$_KST_TS"
 mkdir -p "$OUT_DIR"
-LOG_FILE="$OUT_DIR/exp_mcmc_run.log"
+LOG_FILE="$OUT_DIR/exp_pre_sdlc_run.log"
 
 # ── 결과 추적용 전역 배열 ─────────────────────────────────────
 declare -A PASS_COUNT
@@ -70,7 +71,7 @@ run_job() {
 
 result_file_for() {
     local cond="$1" tune="$2" draw="$3" rep="$4"
-    echo "$OUT_DIR/tune${tune}_draw${draw}/results_bbn_results-mcmc-${cond}-tune${tune}-draw${draw}-rep${rep}.json"
+    echo "$OUT_DIR/tune${tune}_draw${draw}/results_bbn_results-pre-sdlc-${cond}-tune${tune}-draw${draw}-rep${rep}.json"
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -99,7 +100,7 @@ run_combo() {
             local item="${flat_keys[$((i + b))]}"
             local cond="${item%%:*}"
             local rep="${item##*:}"
-            local job_id="mcmc-${cond}-tune${tune}-draw${draw}-rep${rep}"
+            local job_id="pre-sdlc-${cond}-tune${tune}-draw${draw}-rep${rep}"
             batch_names+=("$job_id")
             echo "  ▷ $job_id 시작"
             run_job "$job_id" "$cond" "$niter" "$tune" "$combo_dir" &
@@ -137,7 +138,7 @@ run_combo() {
         for item in "${retry_keys[@]}"; do
             local cond="${item%%:*}"
             local rep="${item##*:}"
-            local job_id="mcmc-${cond}-tune${tune}-draw${draw}-rep${rep}"
+            local job_id="pre-sdlc-${cond}-tune${tune}-draw${draw}-rep${rep}"
             local _rs _elapsed _m _s
             _rs=$(date +%s)
             if run_job "$job_id" "$cond" "$niter" "$tune" "$combo_dir"; then
@@ -167,7 +168,7 @@ run_combo() {
             local result_file
             result_file="$(result_file_for "$cond" "$tune" "$draw" "$rep")"
             if [ ! -f "$result_file" ]; then
-                echo "  [rep${rep}] ⚠ 결과 파일 없음 — $combo_dir/mcmc-${cond}-tune${tune}-draw${draw}-rep${rep}.log"
+                echo "  [rep${rep}] ⚠ 결과 파일 없음 — $combo_dir/pre-sdlc-${cond}-tune${tune}-draw${draw}-rep${rep}.log"
                 missing=true
                 MISSING_COUNT[$key]=$(( ${MISSING_COUNT[$key]} + 1 ))
                 break
@@ -284,7 +285,7 @@ main() {
     local total_jobs=$(( total_combos * ${#CONDITION_KEYS[@]} * NREPS ))
 
     echo "=================================================="
-    echo "실험 B: MCMC draws 탐색 (단조성 기준)"
+    echo "사전 실험: SDLC draws 탐색 (단조성 기준)"
     echo "  chains=1, thin=1 고정"
     echo "  tune   : ${TUNE_LIST[*]}  (기본 1000 고정)"
     echo "  draws  : ${DRAWS_LIST[*]}"
@@ -312,7 +313,7 @@ main() {
 
     echo ""
     echo "=================================================="
-    echo "실험 B 완료: $OUT_DIR"
+    echo "사전 실험 (SDLC) 완료: $OUT_DIR"
     echo "시작: $_start_ts  /  종료: $_end_ts"
     echo "총 소요 시간: ${_min}m ${_sec}s"
     echo "=================================================="
