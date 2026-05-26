@@ -64,7 +64,7 @@ run_job() {
     S3_BUCKET="$S3_BUCKET" \
     AWS_REGION="$AWS_REGION" \
     PYTENSOR_FLAGS="base_compiledir=/tmp/pt_${cond}" \
-        bash "$SCRIPT_DIR/runner.sh" >> "$log_file" 2>&1
+        timeout 600 bash "$SCRIPT_DIR/runner.sh" >> "$log_file" 2>&1
 }
 
 result_file_for() {
