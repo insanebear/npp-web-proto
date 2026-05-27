@@ -16,10 +16,10 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # ── 실험 설정 ─────────────────────────────────────────────────
 NCHAINS=1
 NTHIN=1
-TUNE_LIST=(500)            # 기본 1000 고정; 범위 비교 시 (1000 2000 ...) 으로 확장
+TUNE_LIST=(1000)            # 기본 1000 고정; 범위 비교 시 (1000 2000 ...) 으로 확장
 DRAWS_LIST=(1000 5000 10000 15000 20000)
-NREPS=3
-MAX_JOBS="${MAX_JOBS:-4}"
+NREPS=10
+MAX_JOBS="${MAX_JOBS:-2}"
 
 S3_BUCKET="dummy"
 AWS_REGION="ap-northeast-2"
