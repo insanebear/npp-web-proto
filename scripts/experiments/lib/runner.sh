@@ -11,7 +11,7 @@
 #   BBN_INPUT_FILE, FP_Input, TEST_MODE, 기타 task 설정
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 CONDA_ENV_NAME="${CONDA_ENV_NAME:-gxx_env_311}"
 

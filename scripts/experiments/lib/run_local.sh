@@ -4,7 +4,7 @@
 # conda 환경(gxx_env)을 사용합니다.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 _KST_TS="$(date -u -d '+9 hours' +%y%m%d_%H%M%S)"
 

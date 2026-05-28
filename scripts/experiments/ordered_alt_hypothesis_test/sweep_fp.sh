@@ -3,7 +3,7 @@
 # 사용법: bash Dockers/HybridTool/run_fp_sweep.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 _KST_TS="$(date -u -d '+9 hours' +%y%m%d_%H%M%S)"
 OUT_DIR="$PROJECT_ROOT/tempDoc/hybrid-tool-test/fp-sweep-$_KST_TS"
@@ -24,7 +24,7 @@ run_condition() {
     JOB_ID="$job_id" \
     BBN_INPUT_FILE="$input_file" \
     TEST_OUTPUT_DIR="$OUT_DIR" \
-        bash "$SCRIPT_DIR/run_local.sh"
+        bash "$SCRIPT_DIR/../lib/run_local.sh"
 
     if [ $? -ne 0 ]; then
         echo "❌ [$label] 실패. 중단합니다."
@@ -43,7 +43,7 @@ echo "비교 결과"
 echo "=================================================="
 
 COMPARISON_LOG="$OUT_DIR/comparison_result.log"
-python "$SCRIPT_DIR/compare_pfd_hdi.py" \
+python "$SCRIPT_DIR/../lib/compare_pfd_hdi.py" \
     "FP-1000=$OUT_DIR/results_bbn_results-fp-1000.json" \
     "FP-200=$OUT_DIR/results_bbn_results-fp-200.json" \
     "FP-50=$OUT_DIR/results_bbn_results-fp-50.json" \

@@ -11,7 +11,7 @@
 #   MAX_JOBS=3 bash scripts/experiments/exp_pre_fp.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # ── 실험 설정 ─────────────────────────────────────────────────
 NCHAINS=1
@@ -64,7 +64,7 @@ run_job() {
     S3_BUCKET="$S3_BUCKET" \
     AWS_REGION="$AWS_REGION" \
     PYTENSOR_FLAGS="base_compiledir=/tmp/pt_${cond}" \
-        timeout 600 bash "$SCRIPT_DIR/runner.sh" >> "$log_file" 2>&1
+        timeout 600 bash "$SCRIPT_DIR/../lib/runner.sh" >> "$log_file" 2>&1
 }
 
 result_file_for() {
@@ -161,7 +161,7 @@ run_combo() {
     done
     if [ ${#autocorr_json_files[@]} -gt 1 ]; then
         local combined_html="$combo_dir/autocorr_combined-tune${tune}_draw${draw}.html"
-        python "$SCRIPT_DIR/combine_autocorr.py" "$combined_html" "${autocorr_json_files[@]}" \
+        python "$SCRIPT_DIR/../lib/combine_autocorr.py" "$combined_html" "${autocorr_json_files[@]}" \
             && echo "  📊 Autocorr 비교 HTML: $combined_html"
     fi
 
@@ -187,7 +187,7 @@ run_combo() {
         fi
 
         local stab_out
-        stab_out=$(python "$SCRIPT_DIR/check_median_stability.py" \
+        stab_out=$(python "$SCRIPT_DIR/../lib/check_median_stability.py" \
             "${CONDITION_LABELS[$cond]}" "${rep_files[@]}" 2>&1)
         echo "$stab_out" | grep -v "^STABILITY_PCT:" | grep -v "^CV_PCT:" | sed 's/^/  /'
 

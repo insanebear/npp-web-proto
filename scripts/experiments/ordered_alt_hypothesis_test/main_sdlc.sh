@@ -10,7 +10,7 @@
 #   RESULT_DIR=<path> bash scripts/experiments/exp_sdlc.sh # 기존 데이터 재분석
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # ── 실험 설정 ─────────────────────────────────────────────────
 NBURN=1000
@@ -75,7 +75,7 @@ run_job() {
     S3_BUCKET="$S3_BUCKET" \
     AWS_REGION="$AWS_REGION" \
     PYTENSOR_FLAGS="base_compiledir=/tmp/pytensor_${job_id}" \
-        bash "$SCRIPT_DIR/runner.sh" >> "$log_file" 2>&1
+        bash "$SCRIPT_DIR/../lib/runner.sh" >> "$log_file" 2>&1
 }
 
 # rep from_rep~to_rep 실행 (배치 + 재시도)
@@ -192,7 +192,7 @@ run_power_analysis() {
     win_draw_dir=$(cygpath -w "$draw_dir" 2>/dev/null || echo "$draw_dir")
 
     local output
-    output=$(python "$SCRIPT_DIR/power_test_jt.py" \
+    output=$(python "$SCRIPT_DIR/../lib/power_test_jt.py" \
         "${jt_args[@]}" \
         --alpha 0.05 --target-power 0.80 --B 1000 \
         --out-dir "$win_draw_dir" 2>&1)
@@ -213,7 +213,7 @@ run_jt_test() {
     local jt_log="$draw_dir/jt_test_result.log"
     echo ""
     echo "── JT Test 결과 ──────────────────────────────────"
-    python "$SCRIPT_DIR/compare_pfd_jt.py" "${jt_args[@]}" | tee "$jt_log"
+    python "$SCRIPT_DIR/../lib/compare_pfd_jt.py" "${jt_args[@]}" | tee "$jt_log"
 
     if grep -q "^JT_RESULT:PASS" "$jt_log"; then
         echo "  -> PASS -- 단조 순서 통계적으로 확인됨"
