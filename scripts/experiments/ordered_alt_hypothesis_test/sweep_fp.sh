@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # All-Medium SDLC 조건에서 FP를 50 / 200 / 1000으로 순서대로 실행하고 PFD HDI를 비교합니다.
-# 사용법: bash Dockers/HybridTool/run_fp_sweep.sh
+# 사용법: bash scripts/experiments/ordered_alt_hypothesis_test/sweep_fp.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"

@@ -5,9 +5,9 @@
 #   가설: PFD(fp-50) < PFD(fp-200) < PFD(fp-1000)
 #
 # 사용법:
-#   bash scripts/experiments/exp_fp.sh
-#   MAX_JOBS=3 bash scripts/experiments/exp_fp.sh        # 동시 실행 수 조절
-#   RESULT_DIR=<path> bash scripts/experiments/exp_fp.sh # 기존 데이터 재분석
+#   bash scripts/experiments/ordered_alt_hypothesis_test/main_fp.sh
+#   MAX_JOBS=3 bash scripts/experiments/ordered_alt_hypothesis_test/main_fp.sh        # 동시 실행 수 조절
+#   RESULT_DIR=<path> bash scripts/experiments/ordered_alt_hypothesis_test/main_fp.sh # 기존 데이터 재분석
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"

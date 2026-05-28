@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # All-Low / All-Medium / All-High 3조건을 순서대로 실행하고 PFD HDI를 비교합니다.
-# 사용법: bash Dockers/HybridTool/run_comparison.sh
+# 사용법: bash scripts/experiments/ordered_alt_hypothesis_test/sweep_sdlc.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"

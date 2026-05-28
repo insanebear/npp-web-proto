@@ -5,9 +5,9 @@
 #   가설: PFD(all-high) < PFD(all-medium) < PFD(all-low)
 #
 # 사용법:
-#   bash scripts/experiments/exp_sdlc.sh
-#   MAX_JOBS=3 bash scripts/experiments/exp_sdlc.sh        # 동시 실행 수 조절
-#   RESULT_DIR=<path> bash scripts/experiments/exp_sdlc.sh # 기존 데이터 재분석
+#   bash scripts/experiments/ordered_alt_hypothesis_test/main_sdlc.sh
+#   MAX_JOBS=3 bash scripts/experiments/ordered_alt_hypothesis_test/main_sdlc.sh        # 동시 실행 수 조절
+#   RESULT_DIR=<path> bash scripts/experiments/ordered_alt_hypothesis_test/main_sdlc.sh # 기존 데이터 재분석
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"

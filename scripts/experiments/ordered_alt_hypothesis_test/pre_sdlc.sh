@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # 사전 실험: SDLC draws 탐색 (median 안정성 기준)
-#   exp_sdlc.sh 실행에 앞서 안정적인 draws 최솟값 탐색
+#   main_sdlc.sh 실행에 앞서 안정적인 draws 최솟값 탐색
 #   chains=1, thin=1 고정
 #   tune=1000 고정, draws 그리드 서치로 median이 안정적으로 나오는 최솟값 탐색
 #   tune을 여러 값으로 비교할 경우 TUNE_LIST에 값 추가
 #   조건: all-Medium 단일 조건으로 대표 테스트
 #
 # 사용법:
-#   bash scripts/experiments/exp_pre_sdlc.sh
-#   MAX_JOBS=3 bash scripts/experiments/exp_pre_sdlc.sh
+#   bash scripts/experiments/ordered_alt_hypothesis_test/pre_sdlc.sh
+#   MAX_JOBS=3 bash scripts/experiments/ordered_alt_hypothesis_test/pre_sdlc.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
@@ -306,7 +306,7 @@ main() {
     local total_jobs=$(( total_combos * ${#CONDITION_KEYS[@]} * NREPS ))
 
     echo "=================================================="
-    echo "사전 실험: SDLC draws 탐색 (단조성 기준)"
+    echo "사전 실험: SDLC draws 탐색 (median 안정성 기준)"
     echo "  chains=1, thin=1 고정"
     echo "  tune   : ${TUNE_LIST[*]}  (기본 1000 고정)"
     echo "  draws  : ${DRAWS_LIST[*]}"
