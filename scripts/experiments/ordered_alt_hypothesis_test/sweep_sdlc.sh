@@ -24,7 +24,7 @@ run_condition() {
     JOB_ID="$job_id" \
     BBN_INPUT_FILE="$input_file" \
     TEST_OUTPUT_DIR="$OUT_DIR" \
-        bash "$SCRIPT_DIR/../lib/run_local.sh"
+        bash "$SCRIPT_DIR/../../run_local.sh"
 
     if [ $? -ne 0 ]; then
         echo "❌ [$label] 실패. 중단합니다."

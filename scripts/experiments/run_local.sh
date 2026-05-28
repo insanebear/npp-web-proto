@@ -4,7 +4,7 @@
 # conda 환경(gxx_env)을 사용합니다.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 _KST_TS="$(date -u -d '+9 hours' +%y%m%d_%H%M%S)"
 
@@ -39,6 +39,6 @@ export nThin="${nThin:-1}"
 # runner.sh 호출 (core 실행 로직)
 LOG_FILE="$TEST_OUTPUT_DIR/run_local_$_KST_TS.log"
 mkdir -p "$TEST_OUTPUT_DIR"
-bash "$SCRIPT_DIR/runner.sh" 2>&1 | tee "$LOG_FILE"
+bash "$SCRIPT_DIR/lib/runner.sh" 2>&1 | tee "$LOG_FILE"
 echo ""
 echo "로그 저장됨: $LOG_FILE"

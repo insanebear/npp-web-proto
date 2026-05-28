@@ -61,4 +61,4 @@ mkdir -p "$TEST_OUTPUT_DIR"
 
 # ── 실행 ─────────────────────────────────────────────────────
 cd "$PROJECT_ROOT"
-python "$SCRIPT_DIR/run_local.py"
+python "$SCRIPT_DIR/../run_local.py"
