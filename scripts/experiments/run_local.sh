@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
-# 로컬에서 HybridTool 스크립트를 실행하기 위한 헬퍼 스크립트
-# Docker 이미지 빌드 없이 빠르게 테스트할 수 있습니다.
-# conda 환경(gxx_env)을 사용합니다.
+# Docker 이미지 빌드 없이 HybridTool 스크립트를 로컬에서 실행하는 헬퍼 스크립트.
+# conda 환경(gxx_env_311)을 사용합니다.
+#
+# 사용법:
+#   bash run_local.sh                          # 기본값: TASK_TYPE=bbn_inference
+#   TASK_TYPE=full_analysis bash run_local.sh
+#   TASK_TYPE=sensitivity_analysis bash run_local.sh
+#   TASK_TYPE=update_pfd bash run_local.sh
+#   TASK_TYPE=bbn_inference bash run_local.sh
+#
+# 주요 환경변수 오버라이드 예시:
+#   nIter=5000 nBurnin=2000 nChains=4 bash run_local.sh
+#   BBN_INPUT_FILE=/path/to/input.json bash run_local.sh
+#   TEST_MODE=true bash run_local.sh           # 실제 계산 없이 더미 결과 반환
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 _KST_TS="$(date -u -d '+9 hours' +%y%m%d_%H%M%S)"
 
-# 환경 변수 설정 (필요에 따라 수정하세요)
 export CONDA_ENV_NAME="${CONDA_ENV_NAME:-gxx_env_311}"
 export TASK_TYPE="${TASK_TYPE:-bbn_inference}"
 export JOB_ID="${JOB_ID:-local-full-$_KST_TS}"
@@ -36,7 +46,6 @@ export nIter="${nIter:-2000}"
 export nBurnin="${nBurnin:-1000}"
 export nThin="${nThin:-1}"
 
-# runner.sh 호출 (core 실행 로직)
 LOG_FILE="$TEST_OUTPUT_DIR/run_local_$_KST_TS.log"
 mkdir -p "$TEST_OUTPUT_DIR"
 bash "$SCRIPT_DIR/lib/runner.sh" 2>&1 | tee "$LOG_FILE"
