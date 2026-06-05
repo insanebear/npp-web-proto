@@ -47,7 +47,7 @@ def run_composite_model(data_override: Optional[BayesianData] = None, draws: int
     print("Generic trace stats:")
     for var_name in generic_trace.posterior.data_vars:
         values = generic_trace.posterior[var_name].values
-        print(f"{var_name} → max: {values.max()}, min: {values.min()}")
+        print(f"{var_name} -> max: {values.max()}, min: {values.min()}")
 
     model = create_composite_model(SR_Dev_trace=SR_Dev_trace, SR_VV_trace=SR_VV_trace,
                                    SD_Dev_trace=SD_Dev_trace, SD_VV_trace=SD_VV_trace,
@@ -66,4 +66,21 @@ def run_composite_model(data_override: Optional[BayesianData] = None, draws: int
                 RV.tag.test_value = pm.math.clip(RV.tag.test_value, -20, 20)
 
     trace = run_sampling(model, draws=draws, tune=tune, chains=chains, thin=thin)
+
+    RED = "\033[1;31m"
+    YELLOW = "\033[1;33m"
+    GREEN = "\033[1;32m"
+    RESET = "\033[0m"
+
+    pfd = trace.posterior["PFD"].values
+    mask = pfd > 1
+    n_over = int(mask.sum())
+    if n_over > 0:
+        print(f"\n{RED}[PFD>1] {n_over} samples exceeded 1 ({n_over / pfd.size * 100:.2f}%){RESET}")
+        for var in ["generic_number_of_defects", "generic_SFP", "generic_FSD", "IC_Total_Remained_Defect"]:
+            v = trace.posterior[var].values[mask]
+            print(f"{YELLOW}  {var}: min={v.min():.4e}, mean={v.mean():.4e}, max={v.max():.4e}{RESET}")
+    else:
+        print(f"\n{GREEN}[PFD>1] No samples exceeded 1{RESET}")
+
     return trace

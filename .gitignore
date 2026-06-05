@@ -103,6 +103,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!scripts/experiments/lib/
 lib64/
 parts/
 sdist/

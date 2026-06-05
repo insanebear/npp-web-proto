@@ -172,6 +172,124 @@ OUTPUT_VAR_NAMES = [
 ]
 
 
+def _save_trace_plots(trace, job_id: str, output_dir: str, var_names: list) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from plotly.subplots import make_subplots
+    import plotly.graph_objects as go
+    import plotly.io as pio
+    import arviz as az
+
+    n_vars = len(var_names)
+    posterior = trace.posterior
+
+    az.plot_trace(trace, var_names=var_names, figsize=(14, n_vars * 3))
+    plt.tight_layout()
+    png_path = Path(output_dir) / f"trace_plot-{job_id}.png"
+    plt.savefig(png_path, dpi=120, bbox_inches="tight")
+    plt.close()
+    print(f"[DIAG] Trace plot (PNG) saved: {png_path}")
+
+    subplot_titles = []
+    for v in var_names:
+        subplot_titles += [f"{v} — distribution", f"{v} — trace"]
+
+    fig = make_subplots(
+        rows=n_vars, cols=2,
+        subplot_titles=subplot_titles,
+        column_widths=[0.35, 0.65],
+    )
+    for i, var_name in enumerate(var_names):
+        if var_name not in posterior:
+            continue
+        samples = posterior[var_name].values.flatten()
+        row = i + 1
+        fig.add_trace(
+            go.Histogram(x=samples, nbinsx=80, name=var_name,
+                         showlegend=False, marker_color="steelblue", opacity=0.75),
+            row=row, col=1,
+        )
+        fig.update_xaxes(title_text=var_name, row=row, col=1)
+        fig.update_yaxes(title_text="count", row=row, col=1)
+        fig.add_trace(
+            go.Scatter(y=samples, mode="lines", name=var_name,
+                       showlegend=False, line=dict(color="steelblue", width=0.6)),
+            row=row, col=2,
+        )
+        fig.update_xaxes(title_text="draw", row=row, col=2)
+        fig.update_yaxes(title_text=var_name, row=row, col=2)
+
+    fig.update_layout(
+        height=280 * n_vars,
+        title_text=f"BBN Trace Plot — {job_id}",
+        title_font_size=16,
+    )
+    html_path = Path(output_dir) / f"trace_plot-{job_id}.html"
+    pio.write_html(fig, str(html_path), include_plotlyjs="cdn")
+    print(f"[DIAG] Trace plot (HTML) saved: {html_path}")
+
+
+def _save_autocorr_plots(trace, job_id: str, output_dir: str, var_names: list, draws: int) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import plotly.graph_objects as go
+    import plotly.io as pio
+    import arviz as az
+
+    max_lag = min(50, max(1, draws // 10))
+    key_lags = [l for l in [1, 5, 10, 20, 50] if l <= max_lag]
+
+    print(f"\n[DIAG] Autocorrelation (max_lag={max_lag}, draws={draws})")
+    header = f"{'var':<30}" + "".join(f"  lag{l:>3}" for l in key_lags)
+    print(header)
+
+    autocorr_data = {}
+    for var_name in var_names:
+        if var_name not in trace.posterior:
+            continue
+        samples = trace.posterior[var_name].values.flatten().astype(float)
+        ac = az.autocorr(samples)
+        autocorr_data[var_name] = ac
+        print(f"{var_name:<30}" + "".join(f"  {ac[l]:>7.3f}" for l in key_lags))
+
+    az.plot_autocorr(trace, var_names=var_names, max_lag=max_lag, figsize=(10, max(3, len(var_names) * 2)))
+    plt.tight_layout()
+    png_path = Path(output_dir) / f"autocorr-{job_id}.png"
+    plt.savefig(png_path, dpi=120, bbox_inches="tight")
+    plt.close()
+    print(f"[DIAG] Autocorr plot (PNG) saved: {png_path}")
+
+    fig = go.Figure()
+    lags = list(range(max_lag + 1))
+    for var_name, ac in autocorr_data.items():
+        fig.add_trace(go.Scatter(
+            x=lags,
+            y=ac[:max_lag + 1].tolist(),
+            mode="lines+markers",
+            name=var_name,
+            marker=dict(size=4),
+        ))
+    fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
+    fig.update_layout(
+        title=f"Autocorrelation — {job_id}",
+        xaxis_title="lag",
+        yaxis_title="autocorrelation",
+        height=450,
+    )
+    html_path = Path(output_dir) / f"autocorr-{job_id}.html"
+    pio.write_html(fig, str(html_path), include_plotlyjs="cdn")
+    print(f"[DIAG] Autocorr plot (HTML) saved: {html_path}")
+
+    # rep 간 비교 HTML 생성용 raw 데이터 저장 (combine_autocorr.py에서 사용)
+    json_path = Path(output_dir) / f"autocorr-{job_id}.json"
+    json_data = {var: ac[:max_lag + 1].tolist() for var, ac in autocorr_data.items()}
+    json_data["__meta__"] = {"job_id": job_id, "max_lag": max_lag, "draws": draws}
+    json_path.write_text(json.dumps(json_data, indent=2), encoding="utf-8")
+    print(f"[DIAG] Autocorr data (JSON) saved: {json_path}")
+
+
 def _save_results(config: Dict[str, Any], result_json: Dict[str, Any]) -> str:
     """Save JSON results to S3 or locally."""
     job_id = config["JOB_ID"]
@@ -221,24 +339,40 @@ def main():
 
         update_job_status(dynamodb_client, config, status='RUNNING')
 
-        # Reconstruct input JSON from flat env vars (or use NRC report data for local testing)
-        if os.environ.get("USE_NRC_DATA", "false").lower() == "true":
-            from bbn_inference.data import nrc_report_data
-            from bbn_inference.bbn_data_model import State
-            bbn_data: BayesianData = nrc_report_data()
-            _state_to_str = {State.High: "High", State.Medium: "Medium", State.Low: "Low"}
-            input_json = {"FP": {"FP_Input": str(bbn_data.function_point)}}
-            for _section, _keys in SECTION_KEYS.items():
-                _section_data = {k: _state_to_str[bbn_data.attr_states[k]] for k in _keys if k in bbn_data.attr_states}
-                if _section_data:
-                    input_json[_section] = _section_data
-            _settings = {k: os.environ.get(k) for k in SETTINGS_KEYS if os.environ.get(k) is not None}
-            if _settings:
-                input_json["settings"] = _settings
-            print("[CONFIG] Using nrc_report_data() for local testing")
+        # Input priority: BBN_INPUT_FILE > env vars > nrc_report_data() fallback
+        bbn_input_file = os.environ.get("BBN_INPUT_FILE")
+        if bbn_input_file:
+            from bbn_input_loader import load_bayesian_data_from_env
+            bbn_data: BayesianData = load_bayesian_data_from_env(bbn_input_file, s3_bucket=None)
+            with open(bbn_input_file, "r", encoding="utf-8") as _f:
+                _loaded = json.load(_f)
+            input_json = _loaded.get("input", _loaded)
+            input_json["settings"] = {
+                "nChains": str(config["CHAINS"]),
+                "nIter":   str(config["DRAWS"] + config["TUNE"]),
+                "nBurnin": str(config["TUNE"]),
+                "nThin":   str(config["THIN"]),
+            }
+            print(f"[CONFIG] Loaded BBN input from local file: {bbn_input_file}")
         else:
             input_json = build_input_json_from_env()
-            bbn_data: BayesianData = bayesian_data_from_json(input_json)
+            if input_json:
+                bbn_data: BayesianData = bayesian_data_from_json(input_json)
+                print("[CONFIG] Loaded BBN input from environment variables")
+            else:
+                from bbn_inference.data import nrc_report_data
+                from bbn_inference.bbn_data_model import State
+                bbn_data: BayesianData = nrc_report_data()
+                _state_to_str = {State.High: "High", State.Medium: "Medium", State.Low: "Low"}
+                input_json = {"FP": {"FP_Input": str(bbn_data.function_point)}}
+                for _section, _keys in SECTION_KEYS.items():
+                    _section_data = {k: _state_to_str[bbn_data.attr_states[k]] for k in _keys if k in bbn_data.attr_states}
+                    if _section_data:
+                        input_json[_section] = _section_data
+                _settings = {k: os.environ.get(k) for k in SETTINGS_KEYS if os.environ.get(k) is not None}
+                if _settings:
+                    input_json["settings"] = _settings
+                print("[CONFIG] No input specified, using nrc_report_data() defaults")
 
         if config["TEST_MODE"]:
             print("\n[TEST MODE] Skipping computation, using dummy values")
@@ -263,15 +397,37 @@ def main():
             )
             print("[STEP 1] Composite model completed")
 
+            # ESS diagnostic (no threshold — inspect values directly)
+            import arviz as az
+            summary = az.summary(trace, var_names=OUTPUT_VAR_NAMES, hdi_prob=0.95, extend=True)
+            print(f"\n[DIAG] ESS (draws={config['DRAWS']})")
+            print(summary[["ess_bulk", "ess_tail"]].to_string())
+
+            # Diagnostic plots (local only — skipped when saving to S3)
+            test_output_dir = config.get("TEST_OUTPUT_DIR")
+            if test_output_dir:
+                _save_trace_plots(trace, job_id, test_output_dir, OUTPUT_VAR_NAMES)
+                _save_autocorr_plots(trace, job_id, test_output_dir, OUTPUT_VAR_NAMES, config["DRAWS"])
+
             # Compute statistics for all output variables
             posterior = trace.posterior
             output_stats = {}
             for var_name in OUTPUT_VAR_NAMES:
                 if var_name in posterior:
-                    output_stats[var_name] = _var_stats(posterior[var_name])
+                    stats = _var_stats(posterior[var_name])
+                    if var_name in summary.index:
+                        for col in ("hdi_2.5%", "hdi_97.5%"):
+                            if col in summary.columns:
+                                stats[col] = float(summary.loc[var_name, col])
+                    output_stats[var_name] = stats
                     print(f"[STEP 1] {var_name} mean: {output_stats[var_name]['mean']:.6g}")
                 else:
                     print(f"[WARN] {var_name} not found in posterior")
+
+            # Print 95% HDI for PFD
+            if "PFD" in output_stats and "hdi_2.5%" in output_stats["PFD"]:
+                pfd = output_stats["PFD"]
+                print(f"\n[HDI] PFD 95% HDI: [{pfd['hdi_2.5%']:.6g}, {pfd['hdi_97.5%']:.6g}]")
 
             # Save trace to S3
             print("\n[STEP 2] Saving trace to S3...")
