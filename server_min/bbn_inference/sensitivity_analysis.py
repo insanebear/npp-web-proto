@@ -20,19 +20,15 @@ def get_confidence(data, goal):
 
 max_demand = 25000
 demand_interval = 200
-demand_start = 100
-max_trial = 10 # used to prevent infinite loop
+demand_start = 1
+N_RUNS = 3  # number of independent MCMC runs averaged per grid point (replaces the re-sampling loop)
 
 def get_number_of_required_demand(trace, pfd_goal, confidence_goal, draws, tune, chains, thin):
     # filter out outliers for interpolation
     filtered_pfd_trace = filter_outsiders(trace.posterior["PFD"])
 
-    # confidence level of pfd trace obtained from BBN model
-    original_confidence = get_confidence(trace.posterior["PFD"], pfd_goal)
-
     demand_traces = [] # used for debugging
     demands = []
-    max_confidence = original_confidence
     confidence_levels = []
     means = []
 
@@ -41,17 +37,19 @@ def get_number_of_required_demand(trace, pfd_goal, confidence_goal, draws, tune,
     while demand <= max_demand:
         print("number of demands: ", demand)
         demands.append(demand)
-        confidence = 0
-        trial = 0
-        while confidence < max_confidence:
+
+        # Estimate confidence at this grid point by averaging N_RUNS independent MCMC runs.
+        # (Replaces the previous re-sampling loop that resampled until the confidence exceeded
+        #  the running maximum, which biased the estimate toward the upper tail and caused the
+        #  required demand to be under-estimated.)
+        conf_samples = []
+        for _ in range(N_RUNS):
             demand_model = demand_model_func(demand=demand, observed_failures=0, pfd_trace=filtered_pfd_trace)
             demand_trace = run_sampling(model=demand_model, draws=draws, tune=tune, chains=chains, thin=thin)
-            confidence = get_confidence(demand_trace.posterior["pfd_prior"], pfd_goal)
-            print("confidence: ", confidence)
-            max_confidence = max(confidence, max_confidence)
-            trial += 1
-            if trial == max_trial:
-                break
+            conf_samples.append(get_confidence(demand_trace.posterior["pfd_prior"], pfd_goal))
+        confidence = float(np.mean(conf_samples))
+        print("confidence (mean of {} runs): {}".format(N_RUNS, confidence))
+
         confidence_levels.append(confidence)
         means.append(demand_trace.posterior["pfd_prior"].mean().item())
         demand_traces.append(demand_trace)
