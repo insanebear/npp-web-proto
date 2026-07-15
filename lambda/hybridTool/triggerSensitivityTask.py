@@ -60,7 +60,9 @@ def handler(event, context):
     요청 본문:
     {
         "pfd_goal": 0.0001,
-        "confidence_goal": 0.95
+        "confidence_goal": 0.95,
+        "demand": 0,      # (optional) 지금까지 수행한 테스트 수
+        "failures": 0     # (optional) 지금까지 관측된 실패 수
     }
     """
     # CORS Preflight 요청 처리 (OPTIONS 메서드)
@@ -117,6 +119,8 @@ def handler(event, context):
             
             pfd_goal = float(body.get('pfd_goal', 0))
             confidence_goal = float(body.get('confidence_goal', 0))
+            demand = int(body.get('demand', 0))
+            failures = int(body.get('failures', 0))
             test_mode = body.get('test_mode', False)
             bbn_input_s3_bucket = body.get('bbn_input_s3_bucket')
             bbn_input_s3_key = body.get('bbn_input_s3_key')
@@ -155,7 +159,19 @@ def handler(event, context):
                         'message': 'confidence_goal must be between 0 and 1'
                     })
                 }
-        
+
+            if demand < 0 or failures < 0 or failures > demand:
+                return {
+                    'statusCode': 400,
+                    'headers': {
+                        'Access-Control-Allow-Origin': '*',
+                        'Content-Type': 'application/json'
+                    },
+                    'body': json.dumps({
+                        'message': 'demand and failures must be non-negative, and failures cannot exceed demand'
+                    })
+                }
+
         except (ValueError, TypeError) as e:
             return {
                 'statusCode': 400,
@@ -187,6 +203,8 @@ def handler(event, context):
                         'createdAt': datetime.utcnow().isoformat(),
                         'pfdGoal': str(pfd_goal),
                         'confidenceGoal': str(confidence_goal),
+                        'demand': str(demand),
+                        'failures': str(failures),
                         'testMode': str(test_mode).lower(),
                         'bbnInputBucket': bbn_input_s3_bucket or '',
                         'bbnInputKey': bbn_input_s3_key or ''
@@ -214,6 +232,8 @@ def handler(event, context):
             {'name': 'JOB_ID', 'value': job_id},
             {'name': 'PFD_GOAL', 'value': str(pfd_goal)},
             {'name': 'CONFIDENCE_GOAL', 'value': str(confidence_goal)},
+            {'name': 'DEMAND', 'value': str(demand)},
+            {'name': 'FAILURES', 'value': str(failures)},
             {'name': 'S3_BUCKET', 'value': S3_BUCKET},
             {'name': 'AWS_REGION', 'value': AWS_REGION},
             {'name': 'TEST_MODE', 'value': 'true' if test_mode else 'false'},

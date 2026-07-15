@@ -6,6 +6,8 @@ Environment variables:
 - JOB_ID: Job identifier
 - PFD_GOAL: Target PFD value
 - CONFIDENCE_GOAL: Target confidence level
+- DEMAND: (optional, default 0) Number of tests already performed
+- FAILURES: (optional, default 0) Number of failures observed so far
 - S3_BUCKET: S3 bucket name for results
 - AWS_REGION: AWS region
 - PRIOR_TRACE_S3_KEY: (optional) S3 key of pre-computed prior trace (.nc)
@@ -39,21 +41,33 @@ def get_job_config() -> Dict[str, Any]:
     
     # Add Sensitivity Analysis specific environment variables
     config["CONFIDENCE_GOAL"] = float(os.environ.get("CONFIDENCE_GOAL", "0"))
-    
+    # Test history: demands already executed / failures observed so far
+    # (0/0 = plan from scratch, identical to the original behaviour)
+    config["DEMAND"] = int(os.environ.get("DEMAND", "0"))
+    config["FAILURES"] = int(os.environ.get("FAILURES", "0"))
+
     # Base validation
     validate_base_config(config)
-    
+
     # Sensitivity Analysis specific validation
     if config["CONFIDENCE_GOAL"] <= 0:
         raise ValueError("CONFIDENCE_GOAL must be a positive number")
     if config["CONFIDENCE_GOAL"] > 1.0:
         raise ValueError("CONFIDENCE_GOAL must be between 0 and 1 (e.g., 0.95)")
-    
+    if config["DEMAND"] < 0:
+        raise ValueError("DEMAND must be non-negative")
+    if config["FAILURES"] < 0:
+        raise ValueError("FAILURES must be non-negative")
+    if config["FAILURES"] > config["DEMAND"]:
+        raise ValueError("failures cannot exceed demand")
+
     config["PRIOR_TRACE_S3_KEY"] = os.environ.get("PRIOR_TRACE_S3_KEY")
 
     # Print configuration
     print_base_config(config)
     print(f"[CONFIG] CONFIDENCE_GOAL: {config['CONFIDENCE_GOAL']}")
+    print(f"[CONFIG] DEMAND: {config['DEMAND']}")
+    print(f"[CONFIG] FAILURES: {config['FAILURES']}")
     print(f"[CONFIG] DRAWS: {config['DRAWS']}")
     print(f"[CONFIG] TUNE: {config['TUNE']}")
     print(f"[CONFIG] CHAINS: {config['CHAINS']}")
@@ -68,6 +82,8 @@ def run_sensitivity_analysis(config: Dict[str, Any], bbn_data: Any) -> Dict[str,
     """Run Sensitivity Analysis"""
     pfd_goal = config["PFD_GOAL"]
     confidence_goal = config["CONFIDENCE_GOAL"]
+    tests_performed = config["DEMAND"]
+    failures = config["FAILURES"]
     draws = config["DRAWS"]
     tune = config["TUNE"]
     chains = config["CHAINS"]
@@ -87,22 +103,36 @@ def run_sensitivity_analysis(config: Dict[str, Any], bbn_data: Any) -> Dict[str,
     # 2. Sensitivity Analysis & Prior Metrics
     print("\n[STEP 2] Running sensitivity analysis...")
     
-    # Calculate required demand
-    num_tests = get_number_of_required_demand(
+    # Calculate the required TOTAL demand given the test history
+    # (Littlewood & Wright pfd-bound stopping rule: only the totals (N, j) matter)
+    num_tests, goal_already_achieved = get_number_of_required_demand(
         trace, pfd_goal=pfd_goal, confidence_goal=confidence_goal,
-        draws=draws, tune=tune, chains=chains, thin=thin
+        draws=draws, tune=tune, chains=chains, thin=thin,
+        failures=failures, tests_performed=tests_performed
     )
-    
+    num_tests = int(num_tests)
+
+    # Tests still to run = required total minus what has already been executed
+    # (the subtraction stays outside the model; only failures enters the likelihood)
+    additional_tests = 0 if goal_already_achieved else max(0, num_tests - tests_performed)
+
     # Calculate Prior PFD metrics (for context)
     prior_mean = trace.posterior["PFD"].mean().item()
     prior_conf = get_confidence(data=trace.posterior["PFD"], goal=pfd_goal)
-    
-    print(f"[STEP 2] Required number of tests: {int(num_tests)}")
+
+    print(f"[STEP 2] Required total number of tests: {num_tests}")
+    print(f"[STEP 2] Tests already performed: {tests_performed} (failures: {failures})")
+    print(f"[STEP 2] Additional tests required: {additional_tests}")
+    print(f"[STEP 2] Goal already achieved: {goal_already_achieved}")
     print(f"[STEP 2] Prior mean: {prior_mean}")
     print(f"[STEP 2] Prior confidence @goal: {prior_conf}")
-    
+
     return {
-        "num_tests": int(num_tests),
+        "num_tests": num_tests,
+        "additional_tests": additional_tests,
+        "tests_performed": tests_performed,
+        "failures": failures,
+        "goal_already_achieved": goal_already_achieved,
         "prior_mean": prior_mean,
         "prior_confidence": prior_conf,
     }
@@ -130,7 +160,9 @@ def build_completion_payload(
     payload = {
         "status": "completed",
         "job_id": config["JOB_ID"],
-        "num_tests": result_metrics["num_tests"]
+        "num_tests": result_metrics["num_tests"],
+        "additional_tests": result_metrics["additional_tests"],
+        "goal_already_achieved": result_metrics["goal_already_achieved"]
     }
     if config["TEST_OUTPUT_DIR"]:
         payload["local_path"] = s3_location
@@ -144,6 +176,10 @@ def get_test_mode_dummy(config: Dict[str, Any]) -> Dict[str, Any]:
     num_tests = 99999
     return {
         "num_tests": num_tests,
+        "additional_tests": max(0, num_tests - config["DEMAND"]),
+        "tests_performed": config["DEMAND"],
+        "failures": config["FAILURES"],
+        "goal_already_achieved": False,
         "prior_mean": config["PFD_GOAL"],
         "prior_confidence": config["CONFIDENCE_GOAL"],
     }
