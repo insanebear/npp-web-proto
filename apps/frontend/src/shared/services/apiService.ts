@@ -126,10 +126,14 @@ type HybridToolSettings = {
   thin?: number;
 };
 
-export type SensitivityIn = { 
-  pfd_goal: number; 
-  confidence_goal: number; 
-  trace_id?: string | null; 
+export type SensitivityIn = {
+  pfd_goal: number;
+  confidence_goal: number;
+  /** Test history: tests already performed (default 0 = plan from scratch) */
+  demand?: number;
+  /** Test history: failures observed so far (default 0) */
+  failures?: number;
+  trace_id?: string | null;
   test_mode?: boolean;
   settings?: HybridToolSettings;
 } & BbnInputOptions;
@@ -189,6 +193,11 @@ export type SensitivityAnalysisResult = {
   message: string;
   data: {
     num_tests: number;
+    /** Tests still to run = num_tests − tests_performed (absent in legacy results) */
+    additional_tests?: number;
+    tests_performed?: number;
+    failures?: number;
+    goal_already_achieved?: boolean;
     prior_mean: number;
     prior_confidence: number;
   };

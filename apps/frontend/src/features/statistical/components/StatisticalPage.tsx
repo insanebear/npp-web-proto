@@ -75,6 +75,18 @@ export default function StatisticalPage() {
   const [isNumOfTestsLocked, setIsNumOfTestsLocked] = useState<boolean>(true);
   const [sensitivityTests, setSensitivityTests] = useState<number | null>(null);
 
+  // Observed Failures lock/unlock state (auto-carried from the test history)
+  const [isFailuresLocked, setIsFailuresLocked] = useState<boolean>(true);
+  const [sensitivityFailures, setSensitivityFailures] = useState<number | null>(null);
+
+  // Test history (optional) inputs for sensitivity analysis
+  const [historyOpen, setHistoryOpen] = useState<boolean>(false);
+  const [historyTests, setHistoryTests] = useState<string>("");
+  const [historyFailures, setHistoryFailures] = useState<string>("");
+  const [sensitivityHistoryTests, setSensitivityHistoryTests] = useState<number | null>(null);
+  const [additionalTests, setAdditionalTests] = useState<number | null>(null);
+  const [goalAlreadyAchieved, setGoalAlreadyAchieved] = useState<boolean>(false);
+
 
   useEffect(() => {
     if (isPolling) {
@@ -528,6 +540,9 @@ export default function StatisticalPage() {
     setCurrentJobType('sensitivity-analysis');
     setSensitivityJobId(null);
     setSensitivityCompletedTime(null);
+    setSensitivityHistoryTests(null);
+    setAdditionalTests(null);
+    setGoalAlreadyAchieved(false);
 
     // Validation
     const p = parseFloat(pfdGoal);
@@ -553,6 +568,25 @@ export default function StatisticalPage() {
       return;
     }
 
+    // Test history (optional): empty inputs mean plan from scratch (0/0)
+    const histTests = historyTests.trim() === "" ? 0 : Number(historyTests);
+    const histFailures = historyFailures.trim() === "" ? 0 : Number(historyFailures);
+    if (!Number.isInteger(histTests) || histTests < 0 || histTests > 10_000_000) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Tests performed so far must be an integer between 0 and 10,000,000." });
+      return;
+    }
+    if (!Number.isInteger(histFailures) || histFailures < 0 || histFailures > 1_000_000) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Observed failures must be an integer between 0 and 1,000,000." });
+      return;
+    }
+    if (histFailures > histTests) {
+      setLoading(false); setCurrentJobType(null);
+      setErrorMsg({ message: "Observed failures cannot exceed the tests performed so far." });
+      return;
+    }
+
     // BBN file required
     if (bbnTab === 'select' && !selectedBbnKey) {
       setLoading(false); setCurrentJobType(null);
@@ -571,6 +605,8 @@ export default function StatisticalPage() {
       const jobResponse = await api.sensitivityAnalysis({
         pfd_goal: p,
         confidence_goal: c,
+        demand: histTests,
+        failures: histFailures,
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
         ...buildBbnPayload(),
@@ -592,9 +628,17 @@ export default function StatisticalPage() {
         jobStartTime,
         (resultData: SensitivityAnalysisResult, _downloadUrl, elapsedSeconds) => {
           const numTests = Number(resultData.data.num_tests);
+          const addl = resultData.data.additional_tests;
           setTests(numTests);
           setSensitivityTests(numTests);
           setIsNumOfTestsLocked(true);
+          // Carry the test-history failures over to the PFD update form
+          setFailures(histFailures);
+          setSensitivityFailures(histFailures);
+          setIsFailuresLocked(true);
+          setSensitivityHistoryTests(histTests);
+          setAdditionalTests(typeof addl === 'number' ? addl : null);
+          setGoalAlreadyAchieved(Boolean(resultData.data.goal_already_achieved));
           setErrorMsg(null);
           if (elapsedSeconds !== undefined) {
             setSensitivityCompletedTime(elapsedSeconds);
@@ -1185,9 +1229,9 @@ export default function StatisticalPage() {
                         zIndex: 10,
                       }}
                     >
-                      Calculates the required number of tests 
-                      <br />to achieve the target failure probability and confidence,
-                      <br />assuming no failures occur.
+                      Calculates the required number of tests
+                      <br />to achieve the target failure probability and confidence.
+                      <br />Optionally reflects tests already performed and failures observed.
                     </span>
                   </span>
                 </h2>
@@ -1233,6 +1277,57 @@ export default function StatisticalPage() {
                   </div>
                   <span css={cssObj.hintText}>Range: 0 – 100 (exclusive), up to 2 decimal places</span>
                 </div>
+                <div css={cssObj.inputGroup}>
+                  <button
+                    type="button"
+                    onClick={() => setHistoryOpen((prev) => !prev)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: '#374151',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ fontSize: '10px' }}>{historyOpen ? '▼' : '▶'}</span>
+                    Test history (optional)
+                  </button>
+                  {historyOpen && (
+                    <>
+                      <span css={cssObj.hintText}>
+                        If tests were already performed, enter them here to get the additional tests required. Leave empty to plan from scratch.
+                      </span>
+                      <label css={cssObj.inputLabel} style={{ marginTop: '8px' }}>Tests Performed So Far</label>
+                      <input
+                        type="number"
+                        value={historyTests}
+                        onChange={(e) => setHistoryTests(e.target.value)}
+                        placeholder="e.g. 5000"
+                        css={cssObj.inputBox}
+                        min={0}
+                        max={10_000_000}
+                        step={1}
+                      />
+                      <label css={cssObj.inputLabel} style={{ marginTop: '8px' }}>Observed Failures So Far</label>
+                      <input
+                        type="number"
+                        value={historyFailures}
+                        onChange={(e) => setHistoryFailures(e.target.value)}
+                        placeholder="e.g. 1"
+                        css={cssObj.inputBox}
+                        min={0}
+                        max={1_000_000}
+                        step={1}
+                      />
+                    </>
+                  )}
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button
                     type="submit"
@@ -1256,6 +1351,17 @@ export default function StatisticalPage() {
                     {tests !== null && tests > 0 ? tests : '—'}
                   </span>
                 </div>
+                {additionalTests !== null && sensitivityHistoryTests !== null && sensitivityHistoryTests > 0 && (
+                  <div css={cssObj.outputBox}>
+                    <span css={cssObj.outputLabel}>Additional tests required</span>
+                    <span css={cssObj.outputValue}>{additionalTests}</span>
+                  </div>
+                )}
+                {goalAlreadyAchieved && (
+                  <span css={cssObj.hintText} style={{ color: '#059669', fontWeight: 600 }}>
+                    Goal already achieved with the entered test history — no additional tests required.
+                  </span>
+                )}
               </form>
             </div>
 
@@ -1368,20 +1474,54 @@ export default function StatisticalPage() {
                 </div>
                 <div css={cssObj.inputGroup}>
                   <label css={cssObj.inputLabel}>Observed Failures</label>
-                  <input
-                    type="number"
-                    value={failures ?? ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFailures(value === '' ? null : Number(value));
-                    }}
-                    placeholder="e.g. 1"
-                    css={cssObj.inputBox}
-                    min={0}
-                    max={1_000_000}
-                    step={1}
-                    required
-                  />
+                  <div css={cssObj.lockedInputRow}>
+                    <div css={cssObj.lockedInputWrapper}>
+                      <input
+                        type="number"
+                        value={failures ?? ''}
+                        onChange={(e) => {
+                          if (!isFailuresLocked) {
+                            const value = e.target.value;
+                            setFailures(value === '' ? null : Number(value));
+                          }
+                        }}
+                        readOnly={isFailuresLocked}
+                        placeholder="e.g. 1"
+                        css={[cssObj.inputBox, isFailuresLocked ? cssObj.lockedInputBox : null]}
+                        min={0}
+                        max={1_000_000}
+                        step={1}
+                      />
+                      {isFailuresLocked && (
+                        <span css={cssObj.lockIcon}>🔒</span>
+                      )}
+                    </div>
+                    {isFailuresLocked ? (
+                      <button
+                        type="button"
+                        css={cssObj.lockBtn}
+                        onClick={() => setIsFailuresLocked(false)}
+                      >
+                        Edit
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        css={cssObj.restoreBtn}
+                        onClick={() => {
+                          setIsFailuresLocked(true);
+                          setFailures(sensitivityFailures);
+                        }}
+                      >
+                        Restore auto-fill
+                      </button>
+                    )}
+                  </div>
+                  <span css={isFailuresLocked ? cssObj.hintText : cssObj.warningHintText}>
+                    {isFailuresLocked
+                      ? 'Auto-filled from the Validation Planning test history.'
+                      : 'Will run with the entered value, independent of the test history.'}
+                  </span>
                   <span css={cssObj.hintText}>Range: 0 – 1,000,000 (integer)</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
