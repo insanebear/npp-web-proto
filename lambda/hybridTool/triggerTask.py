@@ -137,6 +137,7 @@ def handler(event, context):
         confidence_goal = float(body.get('confidence_goal', 0))
         failures_raw = body.get('failures')
         demand_required = body.get('demand_required')  # Optional: reuse from sensitivity analysis
+        forecast_tests = int(body.get('forecast_tests', 0))  # Optional: posterior predictive forecast horizon
         test_mode = body.get('test_mode', False)
         bbn_input_s3_bucket = body.get('bbn_input_s3_bucket')
         bbn_input_s3_key = body.get('bbn_input_s3_key')
@@ -264,6 +265,7 @@ def handler(event, context):
             {'name': 'PFD_GOAL', 'value': str(pfd_goal)},
             {'name': 'CONFIDENCE_GOAL', 'value': str(confidence_goal)},
             {'name': 'FAILURES', 'value': str(failures)},
+            {'name': 'FORECAST_TESTS', 'value': str(forecast_tests)},
             {'name': 'S3_BUCKET', 'value': S3_BUCKET},
             {'name': 'AWS_REGION', 'value': AWS_REGION},
             {'name': 'TEST_MODE', 'value': 'true' if test_mode else 'false'},
