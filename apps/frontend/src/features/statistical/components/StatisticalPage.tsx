@@ -725,11 +725,13 @@ export default function StatisticalPage() {
       return;
     }
 
-    // Posterior predictive forecast horizon: the tests still to run
-    // (additional tests from the plan, falling back to the total test count)
-    const forecastTests = additionalTests != null && additionalTests > 0
+    // Posterior predictive forecast horizon: the tests still to run.
+    // Only forecast mid-campaign (test history entered) — a plan-from-scratch
+    // posterior already assumes the full demand ran, so the horizon is ambiguous.
+    const hasTestHistory = sensitivityHistoryTests != null && sensitivityHistoryTests > 0;
+    const forecastTests = hasTestHistory && additionalTests != null && additionalTests > 0
       ? additionalTests
-      : (tests ?? 0);
+      : 0;
 
     try {
       // NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
