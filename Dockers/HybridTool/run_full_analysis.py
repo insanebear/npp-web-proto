@@ -7,6 +7,8 @@ Environment variables:
 - PFD_GOAL: Target PFD value
 - CONFIDENCE_GOAL: Target confidence level
 - FAILURES: Observed number of failures
+- FORECAST_TESTS: (optional, default 0 = skip) Number of upcoming tests for the
+                  posterior predictive failure forecast
 - S3_BUCKET: S3 bucket name for results
 - AWS_REGION: AWS region
 - PRIOR_TRACE_S3_KEY: (optional) S3 key of pre-computed prior trace (.nc)
@@ -35,15 +37,17 @@ from bbn_inference.sensitivity_analysis import (
     demand_model_func,
 )
 from bbn_inference.runners.composite_model import run_composite_model
-from bbn_inference.bbn_utils import run_sampling
+from bbn_inference.bbn_utils import run_sampling, get_future_failure_prob
 
 
 def get_job_config() -> Dict[str, Any]:
     """Read and validate environment variables (Full Analysis specific)"""
     config = get_base_config()
-    
+
     # Add Full Analysis specific environment variables
     config["CONFIDENCE_GOAL"] = float(os.environ.get("CONFIDENCE_GOAL", "0"))
+    # Upcoming tests for the posterior predictive forecast (0 = skip)
+    config["FORECAST_TESTS"] = int(os.environ.get("FORECAST_TESTS", "0"))
     
     # FAILURES: required, must be provided (0 is a valid value, but None is not)
     failures_str = os.environ.get("FAILURES")
@@ -66,6 +70,8 @@ def get_job_config() -> Dict[str, Any]:
         raise ValueError("CONFIDENCE_GOAL must be a positive number")
     if config["FAILURES"] < 0:
         raise ValueError("FAILURES must be non-negative")
+    if not (0 <= config["FORECAST_TESTS"] <= 10_000_000):
+        raise ValueError("FORECAST_TESTS must be between 0 and 10,000,000")
     
     config["PRIOR_TRACE_S3_KEY"] = os.environ.get("PRIOR_TRACE_S3_KEY")
 
@@ -73,6 +79,7 @@ def get_job_config() -> Dict[str, Any]:
     print_base_config(config)
     print(f"[CONFIG] CONFIDENCE_GOAL: {config['CONFIDENCE_GOAL']}")
     print(f"[CONFIG] FAILURES: {config['FAILURES']}")
+    print(f"[CONFIG] FORECAST_TESTS: {config['FORECAST_TESTS']}")
     if config["DEMAND_REQUIRED"] is not None:
         print(f"[CONFIG] DEMAND_REQUIRED: {config['DEMAND_REQUIRED']} (reusing from sensitivity analysis)")
     else:
@@ -149,12 +156,23 @@ def run_full_analysis(config: Dict[str, Any], bbn_data: Any) -> Dict[str, Any]:
     pfd_output = [[str(demand), updated_mean]]
     print(f"[STEP 3] Demand={demand} -> PFD={updated_mean:.5g}, Confidence={last_conf:.4f}")
 
+    # Posterior predictive forecast: chance of seeing a failure in the upcoming tests
+    forecast_tests = config["FORECAST_TESTS"]
+    future_failure_prob = None
+    if forecast_tests > 0:
+        future_failure_prob = get_future_failure_prob(
+            updated_trace.posterior["pfd_prior"], forecast_tests
+        )
+        print(f"[STEP 3] P(>=1 failure in next {forecast_tests} tests): {future_failure_prob:.4f}")
+
     return {
         "demand_required": int(demand_required),
         "prior_mean": prior_mean,
         "prior_confidence": prior_conf,
         "pfd_output": pfd_output,
-        "final_confidence": last_conf
+        "final_confidence": last_conf,
+        "forecast_tests": forecast_tests,
+        "future_failure_prob": future_failure_prob
     }
 
 
@@ -181,6 +199,8 @@ def build_result_json(
         "output": {
             "mean_posterior_pfd": result_metrics["pfd_output"],
             "confidence": result_metrics["final_confidence"],
+            "forecast_tests": result_metrics["forecast_tests"],
+            "future_failure_prob": result_metrics["future_failure_prob"],
         },
     }
 
@@ -212,7 +232,9 @@ def get_test_mode_dummy(config: Dict[str, Any]) -> Dict[str, Any]:
         "prior_mean": config["PFD_GOAL"],
         "prior_confidence": config["CONFIDENCE_GOAL"],
         "pfd_output": [["100", 99999], ["200", 99999]],  # Dummy output structure
-        "final_confidence": 99999.0
+        "final_confidence": 99999.0,
+        "forecast_tests": config["FORECAST_TESTS"],
+        "future_failure_prob": 99999.0 if config["FORECAST_TESTS"] > 0 else None
     }
 
 

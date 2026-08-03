@@ -120,6 +120,7 @@ def handler(event, context):
         pfd_goal = float(body.get('pfd_goal', 0))
         demand = int(body.get('demand', 0))
         failures = int(body.get('failures', 0))
+        forecast_tests = int(body.get('forecast_tests', 0))  # Optional: posterior predictive forecast horizon
         test_mode = body.get('test_mode', False)
         bbn_input_s3_bucket = body.get('bbn_input_s3_bucket')
         bbn_input_s3_key = body.get('bbn_input_s3_key')
@@ -231,6 +232,7 @@ def handler(event, context):
         
         environment_overrides = [
             {'name': 'TASK_TYPE', 'value': 'update_pfd'},
+            {'name': 'FORECAST_TESTS', 'value': str(forecast_tests)},
             {'name': 'JOB_ID', 'value': job_id},
             {'name': 'PFD_GOAL', 'value': str(pfd_goal)},
             {'name': 'DEMAND', 'value': str(demand)},

@@ -105,3 +105,12 @@ def run_sampling(model, numpyro=False, draws=1000, tune=1000, chains=1, thin=1):
     print_summary(trace)
 
     return trace
+
+
+def get_future_failure_prob(data, num_future_demands):
+    # Posterior predictive P(at least one failure in the next num_future_demands
+    # demands), computed from posterior PFD samples: 1 - E[(1 - pfd)^m]
+    samples = np.clip(np.asarray(data).ravel(), 0.0, 1.0)
+    with np.errstate(divide="ignore"):
+        log_survival = num_future_demands * np.log1p(-samples)
+    return float(1.0 - np.mean(np.exp(log_survival)))
