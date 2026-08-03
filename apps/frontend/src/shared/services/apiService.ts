@@ -139,11 +139,13 @@ export type SensitivityIn = {
 } & BbnInputOptions;
 
 export type PfdUpdateIn = {
-  pfd_goal: number; 
-  confidence_goal: number; 
-  failures: number; 
+  pfd_goal: number;
+  confidence_goal: number;
+  failures: number;
   demand_required?: number;
-  trace_id?: string | null; 
+  /** Posterior predictive forecast horizon: upcoming tests to assess failure risk over (0/omit = skip) */
+  forecast_tests?: number;
+  trace_id?: string | null;
   test_mode?: boolean;
   settings?: HybridToolSettings;
 } & BbnInputOptions;

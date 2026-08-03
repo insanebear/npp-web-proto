@@ -725,6 +725,12 @@ export default function StatisticalPage() {
       return;
     }
 
+    // Posterior predictive forecast horizon: the tests still to run
+    // (additional tests from the plan, falling back to the total test count)
+    const forecastTests = additionalTests != null && additionalTests > 0
+      ? additionalTests
+      : (tests ?? 0);
+
     try {
       // NOTE: trace_id is sent but ignored by HybridTool (stateless architecture)
       // Test mode still makes actual API call but sends test_mode flag
@@ -733,6 +739,7 @@ export default function StatisticalPage() {
         confidence_goal: c,
         failures,
         demand_required: tests > 0 ? tests : undefined,
+        forecast_tests: forecastTests > 0 ? forecastTests : undefined,
         trace_id: traceId ?? undefined,
         test_mode: testMode || undefined,
         ...buildBbnPayload(),
@@ -1597,6 +1604,17 @@ export default function StatisticalPage() {
                   </span>
                 </div>
               </div>
+              {pfdUpdateResultData?.output?.future_failure_prob != null && (
+                <div css={cssObj.resultCardPriorRow} style={{ marginTop: 8 }}>
+                  <span>
+                    Failure risk in next{' '}
+                    {Number(pfdUpdateResultData.output.forecast_tests).toLocaleString()} tests:
+                  </span>
+                  <span style={{ fontWeight: 600, color: '#374151' }}>
+                    {(pfdUpdateResultData.output.future_failure_prob * 100).toFixed(1) + '%'}
+                  </span>
+                </div>
+              )}
               {pfdUpdateUsedDefaultBbn && (
                 <div css={cssObj.hintText} style={{ marginTop: 8 }}>
                   BBN input: NRC report data (default)
